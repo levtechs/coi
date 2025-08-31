@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
-import { Project, getTitle, getContent, getCollaborators, addCollaborator, setTitle} from "@/lib/projects";
+import { Project, getTitle, getContent, getCollaborators, addCollaborator, setTitle, setContent} from "@/lib/projects";
 
 import Button from "@/app/components/button";
 import Editor from "@/app/components/editor/editor";
@@ -67,7 +67,8 @@ export default function ProjectPage() {
             user={user} 
             setProject={setProject} 
             addCollaborator={addCollaborator}
-            changeTitle={setTitle}
+            setTitle={setTitle}
+            setContent={setContent}
         />
     );
 }
