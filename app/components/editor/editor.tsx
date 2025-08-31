@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { Project } from "@/lib/projects";
+import { Project } from "@/lib/types";
 
 import Modal from "../modal";
 import Button from "../button";

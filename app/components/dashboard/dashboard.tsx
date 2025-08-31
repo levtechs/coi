@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import { useAuth } from "@/lib/AuthContext";
-import { v4 as uuidv4 } from "uuid";
-import Button from "@/app/components/button";
+import { Project } from "@/lib/types";
+import { getProjects, saveProject, createProject } from "@/app/views/projects"
+
 import ProjectCard from "./project_card";
 import Modal from "@/app/components/modal";
-import { Project, getProjects, saveProject, createProject} from "@/lib/projects";
+
 
 const Dashboard = () => {
     const { user } = useAuth();

@@ -1,30 +1,54 @@
 // app/api/projects/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, doc, getDocs, getDoc, updateDoc } from "firebase/firestore";
+import { Project } from "@/lib/types";
+import { doc, getDoc, collection, updateDoc, addDoc} from "firebase/firestore";
 
 export async function GET(req: NextRequest) {
     const uid = req.headers.get("x-user-id");
-    if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
+    if (!uid) {
+        return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
+    }
 
     try {
+        // 1) load user document
         const userRef = doc(db, "users", uid);
-        const userSnap = await getDocs(collection(db, "projects")); // we will filter later
+        const userSnap = await getDoc(userRef);
 
-        const allProjects: any[] = [];
-        const projectsCol = collection(db, "projects");
-        const querySnapshot = await getDocs(projectsCol);
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            // user is owner or has access
-            if (data.ownerId === uid || (data.sharedWith ?? []).includes(uid)) {
-                allProjects.push({ id: doc.id, ...data });
+        if (!userSnap.exists()) {
+            // No user doc -> return empty list rather than throwing
+            return NextResponse.json({ projects: [] });
+        }
+
+        const userData = userSnap.data() as { projectIds?: string[] } | undefined;
+        const projectIds = Array.isArray(userData?.projectIds) ? userData!.projectIds : [];
+
+        if (projectIds.length === 0) {
+            return NextResponse.json({ projects: [] });
+        }
+
+        // 2) fetch each project by id (use Promise.all so requests run in parallel)
+        const projectPromises = projectIds.map(async (pid) => {
+            try {
+                const pRef = doc(db, "projects", pid);
+                const pSnap = await getDoc(pRef);
+                if (!pSnap.exists()) return null;
+                return { id: pSnap.id, ...(pSnap.data() ?? {}) };
+            } catch (e) {
+                // if a single project read fails, ignore it but log for debugging
+                console.error("Failed to fetch project", pid, e);
+                return null;
             }
         });
 
-        return NextResponse.json({ projects: allProjects });
+        const resolved = await Promise.all(projectPromises);
+        const projects = resolved.filter(
+        (p): p is Project => p !== null && typeof p.id === "string"
+        );
+
+        return NextResponse.json({ projects });
     } catch (err) {
-        console.log(err)
+        console.error("GET /api/projects error:", err);
         return NextResponse.json({ error: (err as Error).message }, { status: 500 });
     }
 }

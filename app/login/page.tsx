@@ -79,13 +79,15 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                 />
-                <input
-                    type="Display name"
-                    placeholder="Display name"
-                    className="border border-[var(--neutral-300)] rounded-md p-2 focus:outline-none focus:border-[var(--accent-500)] bg-[var(--background)] text-[var(--foreground)]"
-                    value={dn}
-                    onChange={(e) => setDN(e.target.value)}
-                />
+                {isSignup && (
+                    <input
+                        type="Display name"
+                        placeholder="Display name"
+                        className="border border-[var(--neutral-300)] rounded-md p-2 focus:outline-none focus:border-[var(--accent-500)] bg-[var(--background)] text-[var(--foreground)]"
+                        value={dn}
+                        onChange={(e) => setDN(e.target.value)}
+                    />
+                )}
                 <input
                     type="password"
                     placeholder="Password"

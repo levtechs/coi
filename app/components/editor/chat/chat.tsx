@@ -6,7 +6,7 @@ import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 
-import { Project } from "@/lib/projects";
+import { Project } from "@/lib/types";
 import { ModalContents } from "../types";
 import { Message } from "./types";
 

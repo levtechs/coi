@@ -4,7 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 
 import { FiEdit2 } from "react-icons/fi";
-import { Project } from "@/lib/projects";
+import { Project } from "@/lib/types";
 
 type ProjectCardProps = {
     project: Project;

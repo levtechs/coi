@@ -6,7 +6,7 @@ import { FiHome } from "react-icons/fi";
 import Button from "../button";
 import CollaboratorsDropdown from "./collabs_dd";
 import { ModalContents } from "./types";
-import { Project } from "@/lib/projects";
+import { Project } from "@/lib/types";
 
 interface MenuBarProps {
     project: Project;
@@ -58,7 +58,10 @@ const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setModa
 
             {/* Right side: Share + Collaborators */}
             <div className="flex items-center gap-4">
-                <CollaboratorsDropdown collaborators={project.collaborators || []} />
+                <CollaboratorsDropdown 
+                    collaborators={project.collaborators || []} 
+                    ownerId={project.ownerId}
+                />
                 <Button
                     onClick={() =>
                         setModalContents({

@@ -1,11 +1,6 @@
-import { auth } from "./firebase";
+import { auth } from "@/lib/firebase";
 
-export type Project = {
-    id: string;
-    title: string;
-    collaborators: string[]; // emails
-    content: string; // markdown
-};
+import { Project } from "@/lib/types";
 
 // Helper: include current user ID in headers
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
@@ -49,6 +44,12 @@ export async function saveProject(project: Project): Promise<void> {
 /** Delete a project (optional, not implemented in backend) */
 export async function deleteProject(projectId: string): Promise<void> {
     throw new Error("Delete project not implemented yet");
+}
+
+/** Fetch owner */
+export async function getOwnerId(projectId: string): Promise<string> {
+    const project = await apiFetch<Project>(`/api/projects/${projectId}`);
+    return project.ownerId;
 }
 
 /** Fetch collaborators */

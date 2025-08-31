@@ -1,6 +1,6 @@
 import { FiEdit2 } from "react-icons/fi";
 
-import { Project } from "@/lib/projects";
+import { Project } from "@/lib/types";
 
 import { ModalContents } from "./types";
 
