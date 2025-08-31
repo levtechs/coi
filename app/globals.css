@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+/* Base variables (Light mode by default) */
+:root {
+  /* Background & Text */
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* Neutral palette */
+  --neutral-50: #fafafa;
+  --neutral-100: #f5f5f5;
+  --neutral-200: #e5e5e5;
+  --neutral-300: #d4d4d4;
+  --neutral-400: #a3a3a3;
+  --neutral-500: #737373;
+  --neutral-600: #525252;
+  --neutral-700: #404040;
+  --neutral-800: #262626;
+  --neutral-900: #171717;
+
+  /* Accent (Green) */
+  --accent-50: #f0fdf4;
+  --accent-100: #dcfce7;
+  --accent-200: #bbf7d0;
+  --accent-300: #86efac;
+  --accent-400: #4ade80;
+  --accent-500: #22c55e;
+  --accent-600: #16a34a;
+  --accent-700: #15803d;
+  --accent-800: #166534;
+  --accent-900: #14532d;
+
+  /* Semantic colors */
+  --success: var(--accent-500);
+  --warning: #f59e0b; /* amber-500 */
+  --error: #ef4444;   /* red-500 */
+  --info: #3b82f6;    /* blue-500 */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-neutral: var(--neutral-500);
+  --color-accent: var(--accent-500);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+
+    /* Neutral palette */
+    --neutral-50: #1a1a1a;
+    --neutral-100: #1f1f1f;
+    --neutral-200: #262626;
+    --neutral-300: #2f2f2f;
+    --neutral-400: #525252;
+    --neutral-500: #737373;
+    --neutral-600: #a3a3a3;
+    --neutral-700: #d4d4d4;
+    --neutral-800: #e5e5e5;
+    --neutral-900: #fafafa;
+
+    /* Accent (Green) adjusted slightly for contrast */
+    --accent-50: #052e16;
+    --accent-100: #064e3b;
+    --accent-200: #065f46;
+    --accent-300: #047857;
+    --accent-400: #059669;
+    --accent-500: #10b981;
+    --accent-600: #34d399;
+    --accent-700: #6ee7b7;
+    --accent-800: #a7f3d0;
+    --accent-900: #d1fae5;
+
+    /* Semantic colors adjusted */
+    --success: var(--accent-400);
+    --warning: #fbbf24; /* amber-400 */
+    --error: #f87171;   /* red-400 */
+    --info: #60a5fa;    /* blue-400 */
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
