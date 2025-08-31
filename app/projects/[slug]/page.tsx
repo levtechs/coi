@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
-import { Project, getName, getContent, getCollaborators, addCollaborator} from "@/lib/projects";
+import { Project, getTitle, getContent, getCollaborators, addCollaborator, setTitle} from "@/lib/projects";
 
 import Button from "@/app/components/button";
 import Editor from "@/app/components/editor/editor";
@@ -26,12 +26,12 @@ export default function ProjectPage() {
         if (!projectId) return;
 
         async function fetchProject() {
-            const name = await getName(user!.uid, projectId!);
+            const title = await getTitle(user!.uid, projectId!);
             const collaborators = await getCollaborators(user!.uid, projectId!);
             const content = await getContent(user!.uid, projectId!);
             setProject({
                 id: projectId!,
-                name: name, // default to ID if name not fetched
+                title: title, // default to ID if name not fetched
                 collaborators,
                 content,
             });
@@ -67,6 +67,7 @@ export default function ProjectPage() {
             user={user} 
             setProject={setProject} 
             addCollaborator={addCollaborator}
+            changeTitle={setTitle}
         />
     );
 }

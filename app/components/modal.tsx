@@ -18,7 +18,7 @@ export default function Modal({
     onClose,
     onSubmit,
     title = "Project",
-    placeholder = "Enter project name"
+    placeholder = "Enter project title"
 }: ProjectModalProps) {
     const [value, setValue] = useState(initialValue);
 

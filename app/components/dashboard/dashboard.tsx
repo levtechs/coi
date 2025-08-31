@@ -32,14 +32,14 @@ const Dashboard = () => {
         setModalVisible(true);
     }
 
-    async function handleModalSubmit(name: string) {
-        if (!name.trim()) return;
+    async function handleModalSubmit(title: string) {
+        if (!title.trim()) return;
         if (!user) return;
 
         if (editingProject) {
-            await saveProject(user.uid, { ...editingProject, name: name.trim() });
+            await saveProject(user.uid, { ...editingProject, title: title.trim() });
         } else {
-            await saveProject(user.uid, { id: uuidv4(), name: name.trim(), collaborators: [], content: "" });
+            await saveProject(user.uid, { id: uuidv4(), title: title.trim(), collaborators: [], content: "" });
         }
 
         setModalVisible(false);
@@ -70,7 +70,7 @@ const Dashboard = () => {
             {/* Modal for Create/Edit */}
             <Modal
                 isOpen={modalVisible}
-                initialValue={editingProject?.name || ""}
+                initialValue={editingProject?.title || ""}
                 onClose={() => setModalVisible(false)}
                 onSubmit={handleModalSubmit}
                 title={editingProject ? "Edit Project" : "Create Project"}

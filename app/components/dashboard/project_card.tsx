@@ -19,7 +19,7 @@ export default function ProjectCard({ project, onEdit }: ProjectCardProps) {
             className="relative border border-[var(--neutral-300)] rounded-lg p-6 bg-[var(--neutral-200)] shadow hover:shadow-md transition cursor-pointer group"
             onClick={() => window.open(`/projects/${project.id}`, "_blank")}
         >
-            <h3 className="text-[var(--foreground)] font-semibold text-xl">{project.name}</h3>
+            <h3 className="text-[var(--foreground)] font-semibold text-xl">{project.title}</h3>
 
             {/* Edit Icon */}
             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition">

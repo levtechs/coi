@@ -4,7 +4,7 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot, QuerySnapshot, getDoc, 
 
 export type Project = {
     id: string;
-    name: string;
+    title: string;
     collaborators: string[]; // list of emails
     content: string; // markdown content
 };
@@ -20,7 +20,7 @@ export function subscribeToProjects(uid: string, callback: (projects: Project[])
             const data = doc.data() as Partial<Project>;
             return {
                 id: doc.id,
-                name: data.name || "Untitled Project",
+                title: data.title || "Untitled Project",
                 collaborators: data.collaborators || [],
                 content: data.content || "",
             } as Project;
@@ -37,7 +37,7 @@ export function subscribeToProjects(uid: string, callback: (projects: Project[])
 export async function saveProject(uid: string, project: Project) {
     const projectRef = doc(db, "users", uid, "projects", project.id);
     await setDoc(projectRef, {
-        name: project.name,
+        title: project.title,
         collaborators: project.collaborators,
         content: project.content,
     }, { merge: true });
@@ -72,14 +72,14 @@ export async function removeCollaborator(uid: string, projectId: string, email: 
 }
 
 /**
- * Get project name
+ * Get project title
  */
-export async function getName(uid: string, projectId: string): Promise<string> {
+export async function getTitle(uid: string, projectId: string): Promise<string> {
     const projectRef = doc(db, "users", uid, "projects", projectId);
     const snapshot = await getDoc(projectRef);
     if (!snapshot.exists()) return "";
     const data = snapshot.data() as Project;
-    return data.name || "";
+    return data.title || "";
 }
 
 /**
@@ -103,6 +103,15 @@ export async function getContent(uid: string, projectId: string): Promise<string
     const data = snapshot.data() as Project;
     return data.content || "";
 }
+
+/**
+ * Set project title
+ */
+export async function setTitle(uid: string, projectId: string, title: string) {
+    const projectRef = doc(db, "users", uid, "projects", projectId);
+    await updateDoc(projectRef, { title });
+}
+
 
 /**
  * Set project content
