@@ -3,9 +3,10 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
-import { Project, getName, getContent, getCollaborators } from "@/lib/projects";
+import { Project, getName, getContent, getCollaborators, addCollaborator} from "@/lib/projects";
 
 import Button from "@/app/components/button";
+import Editor from "@/app/components/editor/editor";
 
 export default function ProjectPage() {
     const { user } = useAuth();
@@ -61,18 +62,11 @@ export default function ProjectPage() {
     }
 
     return (
-        <div className="p-6 max-w-3xl mx-auto bg-[var(--neutral-100)] rounded-lg shadow-lg">
-            <h1 className="text-[var(--foreground)] text-3xl font-bold mb-4">{project.name}</h1>
-            <p className="text-[var(--foreground)] mb-2"><strong>ID:</strong> {project.id}</p>
-            <p className="text-[var(--foreground)] mb-2">
-                <strong>Collaborators:</strong> {project.collaborators.join(", ") || "None"}
-            </p>
-            <div className="mt-4">
-                <h2 className="text-[var(--foreground)] text-xl font-semibold mb-2">Content:</h2>
-                <div className="p-3 bg-[var(--neutral-200)] rounded-md text-[var(--foreground)] whitespace-pre-wrap">
-                    {project.content || "(No content)"}
-                </div>
-            </div>
-        </div>
+        <Editor 
+            project={project} 
+            user={user} 
+            setProject={setProject} 
+            addCollaborator={addCollaborator}
+        />
     );
 }

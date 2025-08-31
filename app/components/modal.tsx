@@ -1,22 +1,24 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, ReactNode } from "react";
 import Button from "@/app/components/button";
 
 type ProjectModalProps = {
-    visible: boolean;
+    isOpen: boolean;
     initialValue?: string;
-    onCancel: () => void;
+    onClose: () => void;
     onSubmit: (value: string) => void;
     title?: string;
+    placeholder?: string;
 };
 
-export default function ProjectModal({
-    visible,
+export default function Modal({
+    isOpen,
     initialValue = "",
-    onCancel,
+    onClose,
     onSubmit,
     title = "Project",
+    placeholder = "Enter project name"
 }: ProjectModalProps) {
     const [value, setValue] = useState(initialValue);
 
@@ -24,14 +26,14 @@ export default function ProjectModal({
         setValue(initialValue);
     }, [initialValue]);
 
-    if (!visible) return null;
+    if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 flex items-center justify-center z-50">
             {/* Semi-transparent blurred overlay */}
             <div
                 className="absolute inset-0 bg-[var(--overlay)] backdrop-blur-sm"
-                onClick={onCancel}
+                onClick={() => {(onClose()); setValue(initialValue);}}
             ></div>
 
             {/* Modal content (keep your original styling) */}
@@ -44,13 +46,13 @@ export default function ProjectModal({
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     className="border border-[var(--neutral-300)] rounded-md p-2 bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] transition"
-                    placeholder="Project Name"
+                    placeholder={placeholder}
                 />
                 <div className="flex justify-end gap-2">
-                    <Button color="var(--neutral-300)" onClick={onCancel}>
+                    <Button color="var(--neutral-300)" onClick={() => {(onClose()); setValue(initialValue);}}>
                         Cancel
                     </Button>
-                    <Button color="var(--accent-500)" onClick={() => onSubmit(value)}>
+                    <Button color="var(--accent-500)" onClick={() => {onSubmit(value); setValue(initialValue);}}>
                         Save
                     </Button>
                 </div>

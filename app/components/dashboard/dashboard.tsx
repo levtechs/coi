@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { v4 as uuidv4 } from "uuid";
 import Button from "@/app/components/button";
 import ProjectCard from "./project_card";
-import ProjectModal from "./project_modal";
+import Modal from "@/app/components/modal";
 import { Project, subscribeToProjects, saveProject } from "@/lib/projects";
 
 const Dashboard = () => {
@@ -68,10 +68,10 @@ const Dashboard = () => {
             </div>
 
             {/* Modal for Create/Edit */}
-            <ProjectModal
-                visible={modalVisible}
+            <Modal
+                isOpen={modalVisible}
                 initialValue={editingProject?.name || ""}
-                onCancel={() => setModalVisible(false)}
+                onClose={() => setModalVisible(false)}
                 onSubmit={handleModalSubmit}
                 title={editingProject ? "Edit Project" : "Create Project"}
             />
