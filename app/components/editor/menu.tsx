@@ -12,13 +12,12 @@ interface MenuBarProps {
     project: Project;
     user: { uid: string } | null;
     setProject: (updater: (prev: Project | null) => Project | null) => void;
-    addCollaborator: (uid: string, projectId: string, email: string) => Promise<void>;
-    setTitle: (uid: string, projectId: string, newTitle: string) => Promise<void>;
-    setContent: (uid: string, projectId: string, newContent: string) => Promise<void>;
+    addCollaborator: (projectId: string, email: string) => Promise<void>;
+    setTitle: (projectId: string, newTitle: string) => Promise<void>;
     setModalContents: (newContent: ModalContents) => void
 }
 
-const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setContent, setModalContents} : MenuBarProps) => {
+const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setModalContents} : MenuBarProps) => {
     return (
         <div className="flex items-center justify-between mb-4 border-b border-[var(--neutral-300)] pb-4">
             {/* Left side: Home + Title + Edit */}
@@ -44,7 +43,7 @@ const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setCont
                                     if (!user || !input.trim()) return;
 
                                     // Update the title in the database
-                                    await setTitle(user.uid, project.id, input);
+                                    await setTitle(project.id, input);
 
                                     // Update local state
                                     setProject((prev) =>
@@ -71,7 +70,7 @@ const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setCont
                                 if (!user) return;
 
                                 // Add collaborator in DB
-                                await addCollaborator(user.uid, project.id, input);
+                                await addCollaborator(project.id, input);
 
                                 // Update local state
                                 setProject((prev) =>

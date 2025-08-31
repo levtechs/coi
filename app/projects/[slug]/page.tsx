@@ -26,9 +26,9 @@ export default function ProjectPage() {
         if (!projectId) return;
 
         async function fetchProject() {
-            const title = await getTitle(user!.uid, projectId!);
-            const collaborators = await getCollaborators(user!.uid, projectId!);
-            const content = await getContent(user!.uid, projectId!);
+            const title = await getTitle(projectId!);
+            const collaborators = await getCollaborators(projectId!);
+            const content = await getContent(projectId!);
             setProject({
                 id: projectId!,
                 title: title, // default to ID if name not fetched

@@ -1,122 +1,102 @@
-// project.ts
-import { db } from "./firebase";
-import { collection, doc, setDoc, deleteDoc, onSnapshot, QuerySnapshot, getDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { auth } from "./firebase";
 
 export type Project = {
     id: string;
     title: string;
-    collaborators: string[]; // list of emails
-    content: string; // markdown content
+    collaborators: string[]; // emails
+    content: string; // markdown
 };
 
-/**
- * Subscribes to all projects for a given user.
- * Returns an unsubscribe function to stop listening.
- */
-export function subscribeToProjects(uid: string, callback: (projects: Project[]) => void) {
-    const projectsCol = collection(db, "users", uid, "projects");
-    const unsubscribe = onSnapshot(projectsCol, (snapshot: QuerySnapshot) => {
-        const projects = snapshot.docs.map(doc => {
-            const data = doc.data() as Partial<Project>;
-            return {
-                id: doc.id,
-                title: data.title || "Untitled Project",
-                collaborators: data.collaborators || [],
-                content: data.content || "",
-            } as Project;
-        });
-        callback(projects);
+// Helper: include current user ID in headers
+async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
+    const user = auth.currentUser;
+    if (!user) throw new Error("User not authenticated");
+
+    const res = await fetch(url, {
+        ...options,
+        headers: {
+            "Content-Type": "application/json",
+            "x-user-id": user.uid,
+            ...(options?.headers || {}),
+        },
     });
-    return unsubscribe;
+    if (!res.ok) throw new Error(`API request failed: ${res.status}`);
+    return res.json() as Promise<T>;
 }
 
-
-/**
- * Save a project (create or update)
- */
-export async function saveProject(uid: string, project: Project) {
-    const projectRef = doc(db, "users", uid, "projects", project.id);
-    await setDoc(projectRef, {
-        title: project.title,
-        collaborators: project.collaborators,
-        content: project.content,
-    }, { merge: true });
+/** Fetch all projects for current user */
+export async function getProjects(): Promise<Project[]> {
+    const data = await apiFetch<{ projects: Project[] }>("/api/projects");
+    return data.projects;
 }
 
-/**
- * Delete a project
- */
-export async function deleteProject(uid: string, projectId: string) {
-    const projectRef = doc(db, "users", uid, "projects", projectId);
-    await deleteDoc(projectRef);
-}
-
-/**
- * Add a collaborator to a project
- */
-export async function addCollaborator(uid: string, projectId: string, email: string) {
-    const projectRef = doc(db, "users", uid, "projects", projectId);
-    await updateDoc(projectRef, {
-        collaborators: arrayUnion(email),
+/** Create a new project */
+export async function createProject(title: string): Promise<void> {
+    await apiFetch("/api/projects", {
+        method: "POST",
+        body: JSON.stringify({ title }),
     });
 }
 
-/**
- * Remove a collaborator from a project
- */
-export async function removeCollaborator(uid: string, projectId: string, email: string) {
-    const projectRef = doc(db, "users", uid, "projects", projectId);
-    await updateDoc(projectRef, {
-        collaborators: arrayRemove(email),
+/** Save / update a project */
+export async function saveProject(project: Project): Promise<void> {
+    await apiFetch(`/api/projects/${project.id}`, {
+        method: "POST",
+        body: JSON.stringify(project),
     });
 }
 
-/**
- * Get project title
- */
-export async function getTitle(uid: string, projectId: string): Promise<string> {
-    const projectRef = doc(db, "users", uid, "projects", projectId);
-    const snapshot = await getDoc(projectRef);
-    if (!snapshot.exists()) return "";
-    const data = snapshot.data() as Project;
-    return data.title || "";
+/** Delete a project (optional, not implemented in backend) */
+export async function deleteProject(projectId: string): Promise<void> {
+    throw new Error("Delete project not implemented yet");
 }
 
-/**
- * Get list of collaborators for a project
- */
-export async function getCollaborators(uid: string, projectId: string): Promise<string[]> {
-    const projectRef = doc(db, "users", uid, "projects", projectId);
-    const snapshot = await getDoc(projectRef);
-    if (!snapshot.exists()) return [];
-    const data = snapshot.data() as Project;
-    return data.collaborators || [];
+/** Fetch collaborators */
+export async function getCollaborators(projectId: string): Promise<string[]> {
+    const project = await apiFetch<Project>(`/api/projects/${projectId}`);
+    return project.collaborators;
 }
 
-/**
- * Get project content
- */
-export async function getContent(uid: string, projectId: string): Promise<string> {
-    const projectRef = doc(db, "users", uid, "projects", projectId);
-    const snapshot = await getDoc(projectRef);
-    if (!snapshot.exists()) return "";
-    const data = snapshot.data() as Project;
-    return data.content || "";
+/** Add collaborator to project */
+export async function addCollaborator(projectId: string, email: string): Promise<void> {
+    await apiFetch(`/api/projects/${projectId}/share`, {
+        method: "POST",
+        body: JSON.stringify({ email }),
+    });
 }
 
-/**
- * Set project title
- */
-export async function setTitle(uid: string, projectId: string, title: string) {
-    const projectRef = doc(db, "users", uid, "projects", projectId);
-    await updateDoc(projectRef, { title });
+/** Remove collaborator from project */
+export async function removeCollaborator(projectId: string, email: string): Promise<void> {
+    await apiFetch(`/api/projects/${projectId}/share`, {
+        method: "DELETE",
+        body: JSON.stringify({ email }),
+    });
 }
 
+/** Fetch project title */
+export async function getTitle(projectId: string): Promise<string> {
+    const project = await apiFetch<Project>(`/api/projects/${projectId}`);
+    return project.title;
+}
 
-/**
- * Set project content
- */
-export async function setContent(uid: string, projectId: string, content: string) {
-    const projectRef = doc(db, "users", uid, "projects", projectId);
-    await updateDoc(projectRef, { content });
+/** Fetch project content */
+export async function getContent(projectId: string): Promise<string> {
+    const project = await apiFetch<Project>(`/api/projects/${projectId}`);
+    return project.content;
+}
+
+/** Update project title */
+export async function setTitle(projectId: string, title: string): Promise<void> {
+    await apiFetch(`/api/projects/${projectId}`, {
+        method: "POST",
+        body: JSON.stringify({ title }),
+    });
+}
+
+/** Update project content */
+export async function setContent(projectId: string, content: string): Promise<void> {
+    await apiFetch(`/api/projects/${projectId}`, {
+        method: "POST",
+        body: JSON.stringify({ content }),
+    });
 }

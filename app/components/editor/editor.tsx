@@ -17,9 +17,9 @@ interface EditorProps {
     project: Project;
     user: { uid: string } | null;
     setProject: (updater: (prev: Project | null) => Project | null) => void;
-    addCollaborator: (uid: string, projectId: string, email: string) => Promise<void>;
-    setTitle: (uid: string, projectId: string, newTitle: string) => Promise<void>;
-    setContent: (uid: string, projectId: string, newContent: string) => Promise<void>;
+    addCollaborator: (projectId: string, email: string) => Promise<void>;
+    setTitle: (projectId: string, newTitle: string) => Promise<void>;
+    setContent: (projectId: string, newContent: string) => Promise<void>;
 }
 
 const Editor = ({ project, user, setProject, addCollaborator, setTitle, setContent}: EditorProps) => {

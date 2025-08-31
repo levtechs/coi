@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword, GoogleAuthProvider, updateProfile } from "firebase/auth";
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { FcGoogle } from "react-icons/fc";
@@ -9,6 +11,7 @@ import Button from "@/app/components/button";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
+    const [dn, setDN] = useState("");
     const [password, setPassword] = useState("");
     const [isSignup, setIsSignup] = useState(false);
     const router = useRouter();
@@ -17,10 +20,23 @@ export default function LoginPage() {
         e.preventDefault();
         try {
             if (isSignup) {
-                await createUserWithEmailAndPassword(auth, email, password);
+                const cred = await createUserWithEmailAndPassword(auth, email, password);
+
+                // Update Firebase Auth profile with display name
+                if (dn.trim()) {
+                    await updateProfile(cred.user, { displayName: dn.trim() });
+                }
+
+                // Create Firestore user document
+                await setDoc(doc(db, "users", cred.user.uid), {
+                    email,
+                    displayName: dn.trim() || "", // same as Google login
+                    projectIds: [],
+                });
             } else {
                 await signInWithEmailAndPassword(auth, email, password);
             }
+
             router.push("/");
         } catch (err: any) {
             alert(err.message);
@@ -30,7 +46,20 @@ export default function LoginPage() {
     async function handleGoogleLogin() {
         try {
             const provider = new GoogleAuthProvider();
-            await signInWithPopup(auth, provider);
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+
+            // Create Firestore user doc if it doesn't exist
+            const userRef = doc(db, "users", user.uid);
+            const userSnap = await getDoc(userRef);
+            if (!userSnap.exists()) {
+                await setDoc(userRef, {
+                    email: user.email,
+                    displayName: user.displayName,
+                    projectIds: [],
+                });
+            }
+
             router.push("/");
         } catch (err: any) {
             alert(err.message);
@@ -49,6 +78,13 @@ export default function LoginPage() {
                     className="border border-[var(--neutral-300)] rounded-md p-2 focus:outline-none focus:border-[var(--accent-500)] bg-[var(--background)] text-[var(--foreground)]"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                />
+                <input
+                    type="Display name"
+                    placeholder="Display name"
+                    className="border border-[var(--neutral-300)] rounded-md p-2 focus:outline-none focus:border-[var(--accent-500)] bg-[var(--background)] text-[var(--foreground)]"
+                    value={dn}
+                    onChange={(e) => setDN(e.target.value)}
                 />
                 <input
                     type="password"

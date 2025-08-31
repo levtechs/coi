@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from "uuid";
 import Button from "@/app/components/button";
 import ProjectCard from "./project_card";
 import Modal from "@/app/components/modal";
-import { Project, subscribeToProjects, saveProject } from "@/lib/projects";
+import { Project, getProjects, saveProject, createProject} from "@/lib/projects";
 
 const Dashboard = () => {
     const { user } = useAuth();
@@ -16,8 +16,17 @@ const Dashboard = () => {
 
     useEffect(() => {
         if (!user) return;
-        const unsubscribe = subscribeToProjects(user.uid, setProjects);
-        return () => unsubscribe();
+
+        const fetchProjects = async () => {
+            try {
+                const projects: Project[] = await getProjects();
+                setProjects(projects);
+            } catch (err) {
+                console.error("Failed to fetch projects:", err);
+            }
+        };
+
+        fetchProjects();
     }, [user]);
 
     if (!user) return null;
@@ -37,13 +46,17 @@ const Dashboard = () => {
         if (!user) return;
 
         if (editingProject) {
-            await saveProject(user.uid, { ...editingProject, title: title.trim() });
+            await saveProject({ ...editingProject, title: title.trim() });
         } else {
-            await saveProject(user.uid, { id: uuidv4(), title: title.trim(), collaborators: [], content: "" });
+            await createProject(title.trim());
         }
 
         setModalVisible(false);
         setEditingProject(null);
+
+        // Fetch updated projects and set state
+        const updatedProjects = await getProjects();
+        setProjects(updatedProjects);
     }
 
     return (

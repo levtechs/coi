@@ -32,7 +32,7 @@ const ChatPanel = ({ project, user, setProject, setContent, setModalContents }: 
 
         // Example: simulate a response after 1s
         setTimeout(() => {
-            setMessages((prev) => [...prev, { content: "This is a response", isResponse: true }]);
+            setMessages((prev) => [...prev, { content: "this is a response", isResponse: true }]);
         }, 1000);
     };
 

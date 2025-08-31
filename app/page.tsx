@@ -35,7 +35,7 @@ export default function HomePage() {
             <div className="max-w-5xl mx-auto bg-[var(--neutral-100)] shadow-lg rounded-lg p-8">
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
                     <h1 className="text-3xl font-extrabold text-[var(--foreground)]">
-                        Welcome, {user.email}!
+                        Welcome, {user.displayName}!
                     </h1>
                     <Button color="var(--error)" onClick={() => signOut(auth)}>
                         Logout
