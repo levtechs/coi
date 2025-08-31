@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { Project } from "@/lib/projects";
 import Modal from "../modal";
+import Button from "../button";
+import CollaboratorsDropdown from "./collabs_dd";
 
 interface EditorProps {
     project: Project;
@@ -26,25 +28,20 @@ const Editor = ({ project, user, setProject, addCollaborator }: EditorProps) => 
         <div className="p-6 max-w-3xl mx-auto bg-[var(--neutral-100)] rounded-lg shadow-lg mt-4">
             {/* Top Menu Bar */}
             <div className="flex items-center justify-between mb-4 border-b border-[var(--neutral-300)] pb-2">
+                {/* Project Title */}
                 <h1 className="text-[var(--foreground)] text-2xl font-bold">{project.name}</h1>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-                >
-                    Share
-                </button>
-            </div>
 
-            {/* Collaborators Info */}
-            <p className="text-[var(--foreground)] mb-2">
-                <strong>ID:</strong> {project.id}
-            </p>
-            <p className="text-[var(--foreground)] mb-4">
-                <strong>Collaborators:</strong>{" "}
-                {project.collaborators?.filter(Boolean).length
-                    ? project.collaborators.filter(Boolean).join(", ")
-                    : "None"}
-            </p>
+                {/* Right side: Share + Collaborators */}
+                <div className="flex items-center gap-2">
+                    <CollaboratorsDropdown collaborators={project.collaborators || []} />
+                    <Button
+                        onClick={() => setIsModalOpen(true)}
+                        color="var(--accent-500)"
+                    >
+                        Share
+                    </Button>
+                </div>
+            </div>
 
             {/* Main Content Panel */}
             <div className="mt-4">
