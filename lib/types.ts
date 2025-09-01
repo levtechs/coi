@@ -5,3 +5,8 @@ export type Project = {
     collaborators: string[]; // emails
     content: string; // markdown
 };
+
+export interface Message {
+    content: string; //markdown
+    isResponse: boolean;
+}
