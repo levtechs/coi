@@ -6,6 +6,8 @@ import { useAuth } from "@/lib/AuthContext";
 import { Project } from "@/lib/types";
 import { getTitle, getContent, getCollaborators, addCollaborator, getOwnerId, setTitle, setContent } from "@/app/views/projects"
 
+import { FiLoader } from "react-icons/fi";
+
 import Button from "@/app/components/button";
 import Editor from "@/app/components/editor/editor";
 
@@ -59,6 +61,7 @@ export default function ProjectPage() {
     if (!project) {
         return (
             <div className="flex items-center justify-center h-screen">
+                <FiLoader className="animate-spin w-5 h-5 text-[var(--foreground)]" />
                 <p className="text-[var(--foreground)] text-xl">Loading project...</p>
             </div>
         );

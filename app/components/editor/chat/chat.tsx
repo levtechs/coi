@@ -40,7 +40,7 @@ const ChatPanel = ({ project, user, setProject, setContent, setModalContents }: 
             const MAX_HISTORY = 10; // last 10 messages only
 
             const recentMessages = updatedMessages.slice(-MAX_HISTORY);
-            const aiResponse = await getResponse(userInput, recentMessages);
+            const aiResponse = await getResponse(userInput, recentMessages, project.id);
             setLoading(false);
 
             setMessages((prev) => [...prev, { content: aiResponse, isResponse: true }]);

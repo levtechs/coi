@@ -9,7 +9,6 @@ import { getProjects, saveProject, createProject } from "@/app/views/projects"
 import ProjectCard from "./project_card";
 import Modal from "@/app/components/modal";
 
-
 const Dashboard = () => {
     const { user } = useAuth();
     const [projects, setProjects] = useState<Project[]>([]);

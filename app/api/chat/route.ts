@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { GEMINI_API_URL, systemInstruction} from "./config";
+import { GEMINI_API_URL, systemInstruction, INITIAL_DELAY_MS, MAX_RETRIES} from "./config";
 
 import { Message } from "@/lib/types";
 
@@ -12,12 +12,12 @@ if (!GEMINI_API_KEY) {
 }
 
 export async function POST(req: NextRequest) {
-    const MAX_RETRIES = 3;
-    const INITIAL_DELAY_MS = 300;
+    const uid = req.headers.get("x-user-id");
+    if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
     try {
         const body = await req.json();
-        const { message, messageHistory } = body as { message: string, messageHistory: Message[] };
+        const { message, messageHistory, projectId } = body as { message: string, messageHistory: Message[], projectId: string };
 
         // Ensure the current message is not empty
         if (!message || message.trim() === "") {
@@ -57,6 +57,9 @@ export async function POST(req: NextRequest) {
                 if (response.ok) {
                     const data = await response.json();
                     const result = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                    writeToDb(message, result, projectId, uid);
+
                     return NextResponse.json({ response: result || "" });
                 }
 
@@ -93,4 +96,8 @@ export async function POST(req: NextRequest) {
         console.error("Error in /api/chat:", err);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
+}
+
+const writeToDb = (message: string, result: string, projectId: string, uid: string) => {
+    return
 }

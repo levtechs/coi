@@ -22,7 +22,7 @@ const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setModa
         <div className="flex items-center justify-between mb-4 border-b border-[var(--neutral-300)] pb-4">
             {/* Left side: Home + Title + Edit */}
             <div className="flex items-center gap-2">
-                <Link href="/">
+                <Link href="/dashboard">
                     <FiHome
                         size={22}
                         className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"

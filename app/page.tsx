@@ -1,55 +1,35 @@
 "use client";
 
-import { useAuth } from "@/lib/AuthContext";
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import Dashboard from "@/app/components/dashboard/dashboard";
-import Button from "@/app/components/button";
-import { useEffect, useState } from "react";
+import { FaBook } from "react-icons/fa";
+import Button from "./components/button";
+import { useRouter } from "next/navigation";
 
-export default function HomePage() {
-    const { user, loading } = useAuth();
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-screen bg-[var(--background)] text-[var(--foreground)]">
-                <p className="text-xl">Loading authentication...</p>
-            </div>
-        );
-    }
-
-    if (!user) {
-        return (
-            <div className="flex flex-col items-center justify-center h-screen p-6 bg-[var(--background)] text-[var(--foreground)] text-center">
-                <p className="text-2xl font-semibold mb-4">You are not logged in.</p>
-                <p className="text-lg mb-6">Please log in to access the dashboard.</p>
-                <Button color="var(--accent-500)" onClick={() => (window.location.href = "/login")}>
-                    Go to Login Page
-                </Button>
-            </div>
-        );
-    }
+const LandingPage = () => {
+    const router = useRouter();
 
     return (
-        <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] p-6">
-            <div className="max-w-5xl mx-auto bg-[var(--neutral-100)] shadow-lg rounded-lg p-8">
-                <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-                    <h1 className="text-3xl font-extrabold text-[var(--foreground)]">
-                        Welcome, {user.displayName}!
-                    </h1>
-                    <Button color="var(--error)" onClick={() => signOut(auth)}>
-                        Logout
-                    </Button>
-                </div>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-[var(--neutral-100)] text-[var(--foreground)] p-6 gap-6">
+            {/* Title with Book Icon */}
+            <h1 className="text-4xl font-bold flex items-center gap-2">
+                Learn with Coi <FaBook className="text-[var(--accent-500)]" />
+            </h1>
 
-                <hr/>
+            {/* Short paragraph */}
+            <p className="text-center text-lg max-w-xl">
+                Welcome to Coi! Learn, create, and collaborate on projects seamlessly with our interactive platform.
+            </p>
 
-                <p className="mt-8 text-[var(--foreground)] text-lg  mb-4">
-                    Your projects
-                </p>
-
-                <Dashboard />
+            {/* Buttons */}
+            <div className="flex gap-4 mt-4">
+                <Button color="var(--accent-500)" onClick={() => router.push("/dashboard")}>
+                    Go to Dashboard
+                </Button>
+                <Button color="var(--neutral-300)" onClick={() => router.push("/login?signup=true")}>
+                    Sign Up
+                </Button>
             </div>
         </div>
     );
-}
+};
+
+export default LandingPage;
