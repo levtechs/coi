@@ -38,6 +38,7 @@ export async function POST(req: NextRequest, { params }: { params: { projectId: 
         const snap = await getDoc(projectRef);
 
         if (!snap.exists()) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+
         const data = snap.data();
 
         if (data.ownerId !== uid && !(data.sharedWith ?? []).includes(uid)) {

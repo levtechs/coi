@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GEMINI_API_URL } from "./config";
+
+import { GEMINI_API_URL, systemInstruction} from "./config";
 
 import { Message } from "@/lib/types";
 
@@ -36,11 +37,6 @@ export async function POST(req: NextRequest) {
             role: "user",
             parts: [{ text: message }]
         });
-
-        // Include a system instruction for the model's persona
-        const systemInstruction = {
-            parts: [{ text: "You are a helpful assistant. Respond in a clear and friendly manner." }]
-        };
         
         // Loop for retries with exponential backoff
         for (let i = 0; i < MAX_RETRIES; i++) {

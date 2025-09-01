@@ -8,7 +8,7 @@ interface ContentPanelProps {
     project: Project;
     user: { uid: string } | null;
     setProject: (updater: (prev: Project | null) => Project | null) => void;
-    setContent: (uid: string, projectId: string, newContent: string) => Promise<void>;
+    setContent: (projectId: string, newContent: string) => Promise<void>;
     setModalContents: (newContent: ModalContents) => void
 }
 
@@ -25,14 +25,14 @@ const ContentPanel = ( {project, user, setProject, setContent, setModalContents}
                             if (!user) return;
 
                             // Add collaborator in DB
-                            await setContent(user.uid, project.id, input);
+                            await setContent(project.id, input);
 
                             // Update local state
                             setProject((prev) =>
                                 prev
                                     ? {
                                         ...prev,
-                                        content: input,   // ✅ replace content
+                                        content: input,
                                     }
                                     : prev
                             );

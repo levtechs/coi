@@ -3,7 +3,7 @@ export type Project = {
     title: string;
     ownerId: string;
     collaborators: string[]; // emails
-    content: string; // markdown
+    content: string; // JSON
 };
 
 export interface Message {
