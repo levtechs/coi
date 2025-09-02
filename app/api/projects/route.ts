@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-    const uid = req.headers.get("x-user-id");
+    const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
     const body = await req.json();

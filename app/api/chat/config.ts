@@ -1,8 +1,17 @@
 export const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
 
+// ==== settings ====
+
 //for retrying when Gemini API fails
 export const MAX_RETRIES = 3;
 export const INITIAL_DELAY_MS = 300;
+
+export const defaultGeneralConfig = {
+    temperature: 0.7,
+    maxOutputTokens: 4096
+}
+
+// ==== prompts ====
 
 // System instruction for Gemini to give a response to the user message
 export const chatResponseSystemInstruction = {
@@ -16,128 +25,133 @@ Use standard markdown formatting and LaTeX when necessary
 // System instruction for Gemini to generate structured hierarchical notes
 export const genContentSystemInstruction = {
     parts: [{text: `
-You are a note-taking assistant. You receive a user message and an AI response. 
-Your task is to analyze the conversation and produce a hierarchical summary in JSON format. 
-
-The JSON should represent key points, subpoints, and structured relationships between ideas. 
-Each key point should include a "title" and "details" array for subpoints or explanations. 
+You are a note-taking assistant. You receive a user message and an AI response.
+Your task is to analyze the conversation and produce a hierarchical summary in JSON format.
+There will be an example input and output at the end of this instruction.
+The JSON should represent key points, subpoints, and structured relationships between ideas.
+Each key point should include a "title" and "details" array for subpoints or explanations.
 Use clear, concise phrasing. Include all relevant info from the AI response that answers the user's question.
-
+Use markdown formatting if applicable.
+Return the entire new JSON.
 Output strictly in JSON format. Do not include any extra text outside the JSON.
 
-Example input:
-
-Expand a bit more on that
-
-Absolutely! Let's unpack that concluding thought a bit more, as it encapsulates the profound significance of what we've discussed.
-
-The statement: "In essence, Divergence and Curl are the fundamental building blocks for describing how vector fields behave at every point in space – whether they are expanding/contracting or rotating/swirling. Stokes' Theorem then beautifully ties these local rotational tendencies to larger-scale circulation, revealing deep connections that underpin many of the laws governing our physical universe."
-
-Let's break it down:
-
-1. "Divergence and Curl are the fundamental building blocks for describing how vector fields behave at every point in space..."
-Imagine you have a complex, dynamic system – a flowing river, an electromagnetic field, or even the movement of air in a storm. How do you begin to understand it? You need tools that can describe the local behavior, what's happening at the smallest scale, point by point.
-
-Divergence gives us the "expansion/contraction" lens. At any given point, it tells us if the field is spreading out (like water from a tap), converging inward (like water going down a drain), or simply flowing through without any net change in density. It's about sources and sinks, creation and destruction. Without divergence, we couldn't mathematically express concepts like electric charge density or the expansion of a gas.
-
-Curl gives us the "rotation/swirling" lens. At any point, it tells us if the field has a tendency to spin. Is there a vortex forming? Is there a sheer force causing rotation? It's about the rotational character, the vorticity. Without curl, we couldn't quantify the swirling motion in a fluid or the induced electric fields around changing magnetic fields.
-
-These two operations, divergence and curl, are mathematically independent ways of characterizing a vector field's behavior at an infinitesimal level. They are the primary diagnostic tools that allow us to understand the "personality" of a field at any given location.
-
-2. "...Stokes' Theorem then beautifully ties these local rotational tendencies to larger-scale circulation..."
-This is where the magic of Stokes' Theorem truly shines. It takes the microscopic, point-by-point understanding provided by the curl and scales it up to a macroscopic, observable phenomenon: circulation.
-
-The "local rotational tendencies" are what the curl measures – the spin of a tiny paddlewheel at every point on a surface.
-The "larger-scale circulation" is what the line integral around the boundary measures – the net work done, or the total flow, around a macroscopic loop.
-Stokes' Theorem is a profound statement of equivalence: the sum of all the tiny, local spins through a surface is precisely equal to the overall "flow-around-ness" along the boundary of that surface. It's a bridge between the infinitesimal and the finite, showing how the accumulated effect of local rotations manifests as a global circulation. It's "beautiful" because it's elegant, concise, and deeply insightful.
-
-3. "...revealing deep connections that underpin many of the laws governing our physical universe."
-This is the ultimate payoff. These mathematical concepts aren't just abstract ideas; they are the language through which nature communicates its fundamental rules.
-
-Electromagnetism: As we discussed, Stokes' Theorem is the mathematical heart of Faraday's Law of Induction (a changing magnetic field's flux through a surface creates a circulating electric field around its boundary) and plays a crucial role in Ampere-Maxwell's Law (magnetic field circulation around a loop is related to current and changing electric flux through the enclosed surface). These laws govern everything from how electric motors work to how light travels.
-
-Fluid Dynamics: Stokes' Theorem helps us understand vorticity in fluids. The circulation around a large area of fluid is directly related to the total "swirl" within that area. This is vital for studying weather patterns, ocean currents, and the design of aircraft wings.
-
-Conservative Fields: The concept that fields with zero curl are conservative (meaning work done is path-independent, and potential energy can be defined) is directly a consequence of Stokes' Theorem. This underpins our understanding of gravity, electrostatics, and other fundamental forces. It simplifies countless physics problems by allowing us to use scalar potentials instead of complex vector integrals.
-
-In essence, these mathematical tools provide the framework for expressing, analyzing, and predicting physical phenomena. They allow us to move from observing a local event (like a tiny swirl) to understanding its global impact (like a large-scale current) and vice-versa. They are the backbone of theoretical physics and engineering, enabling us to build models and make sense of the world around us.
-
-You're digging into the very core of how we understand and describe the physical universe – truly fascinating stuff! Keep exploring!
-
-Example output:
+EXAMPLE INPUT:
 
 {
-  "title": "Expanded Explanation of Divergence, Curl, and Stokes' Theorem",
+  "user_message": "Can you give me a summary of divergence, curl, and Stokes' theorem?",
+  "ai_response": "Of course. Let's break down these core concepts of vector calculus.
+First, you have the two main local operators: Divergence and Curl. Think of them as diagnostic tools for understanding what a vector field is doing at any single point.
+Divergence measures the tendency of a field to expand from or contract toward a point. We call these 'sources' and 'sinks'. So, it handles expansion and contraction.
+Curl measures the tendency of a field to rotate or swirl around a point. It quantifies the 'vorticity' of the field.
+Then you have Stokes' Theorem, which is a powerful bridge between local and global behavior. It connects the local, microscopic rotation within a surface (measured by the curl) to the overall circulation of the field around the boundary of that surface (measured by a line integral).
+This theorem is incredibly important because it reveals deep connections in the laws of physics, forming the foundation for key principles in Electromagnetism and Fluid Dynamics."
+}
+
+EXAMPLE CORRESPONDING OUTPUT:
+
+{
+  "title": "Expanded Explanation of Vector Calculus Theorems",
   "details": [
     {
-      "title": "Divergence and Curl: Fundamental Building Blocks for Vector Fields",
+      "title": "Divergence and Curl: Local Field Behavior",
       "details": [
-        "**Purpose:** Provide tools to describe local behavior of complex, dynamic systems (e.g., flowing river, electromagnetic field) at an infinitesimal, point-by-point level.",
-        {
-          "title": "Divergence (Expansion/Contraction Lens)",
-          "details": [
-            "**Function:** Indicates if a field is spreading out (source), converging inward (sink), or flowing through without net change in density at a given point.",
-            "**Concepts:** Represents sources and sinks, creation and destruction within the field.",
-            "**Applications:** Mathematically expresses concepts like electric charge density or gas expansion."
-          ]
-        },
-        {
-          "title": "Curl (Rotation/Swirling Lens)",
-          "details": [
-            "**Function:** Indicates if a field has a tendency to spin or rotate at a given point (e.g., vortex formation, shear force causing rotation).",
-            "**Concepts:** Quantifies the rotational character or vorticity of the field.",
-            "**Applications:** Quantifies swirling motion in fluids or induced electric fields around changing magnetic fields."
-          ]
-        },
-        "**Significance:** Mathematically independent operations that characterize a vector field's behavior at an infinitesimal level; primary diagnostic tools for understanding a field's 'personality'."
+        "Divergence handles expansion/contraction (sources/sinks).",
+        "Curl handles rotation/swirling (vorticity).",
+        "These are diagnostic tools for a field's behavior."
       ]
     },
     {
-      "title": "Stokes' Theorem: Tying Local Rotation to Larger-Scale Circulation",
+      "title": "Stokes' Theorem (Curl-to-Circulation)",
       "details": [
-        "**Core Idea:** Bridges the microscopic understanding (curl) to macroscopic, observable phenomena (circulation).",
-        "**Local Rotational Tendencies:** Measured by the curl (spin of a tiny paddlewheel at every point on a surface).",
-        "**Larger-Scale Circulation:** Measured by the line integral around the boundary (net work done or total flow around a macroscopic loop).",
-        "**Equivalence Statement:** The sum of all tiny, local spins *through* a surface is precisely equal to the overall 'flow-around-ness' *along* the boundary of that surface.",
-        "**Nature:** A profound statement of equivalence, elegant, concise, and deeply insightful, connecting the infinitesimal to the finite."
-      ]
-    },
-    {
-      "title": "Deep Connections Underpinning Laws of the Physical Universe",
-      "details": [
-        "**Overall Impact:** These mathematical concepts are the language through which nature communicates its fundamental rules, providing a framework for expressing, analyzing, and predicting physical phenomena.",
-        {
-          "title": "Electromagnetism",
-          "details": [
-            "**Faraday's Law of Induction:** Stokes' Theorem is its mathematical heart (changing magnetic flux creates circulating electric field).",
-            "**Ampere-Maxwell's Law:** Plays a crucial role (magnetic field circulation related to current and changing electric flux).",
-            "**Significance:** Governs electric motors, light travel, and other electromagnetic phenomena."
-          ]
-        },
-        {
-          "title": "Fluid Dynamics",
-          "details": [
-            "**Vorticity:** Helps understand vorticity in fluids (circulation around an area related to total 'swirl' within that area).",
-            "**Applications:** Vital for studying weather patterns, ocean currents, and aircraft wing design."
-          ]
-        },
-        {
-          "title": "Conservative Fields",
-          "details": [
-            "**Principle:** Fields with zero curl are conservative (work done is path-independent, potential energy can be defined).",
-            "**Derivation:** Directly a consequence of Stokes' Theorem.",
-            "**Applications:** Underpins understanding of gravity, electrostatics, and other fundamental forces; simplifies physics problems by allowing use of scalar potentials."
-          ]
-        }
+        "Connects local curl (microscopic spin) to larger-scale circulation (line integral).",
+        "Reveals deep connections in physical laws, e.g., Electromagnetism and Fluid Dynamics."
       ]
     }
   ]
-}
-`
+}`
     }]
 };
 
-export const defaultGeneralConfig = {
-    temperature: 0.7,
-    maxOutputTokens: 4096
+// System instruction for Gemini to update existing structured hierarchical notes
+export const updateContentSystemInstruction = {
+    parts: [{text: `
+You are a note-taking assistant. You receive a hierarchical summary in JSON format, a user message and an AI response. 
+Your task is to analyze the conversation and update the given hierarchical summary in JSON format, based on the new information.
+There will be an example input and output at the end of this instruction. 
+
+The JSON should represent key points, subpoints, and structured relationships between ideas.
+Keep as much of the existing content and structure of the given JSON as possible, adding childeren and new sections beside and under the existing ones.  
+Each key point should include a "title" and "details" array for subpoints or explanations. 
+Use clear, concise phrasing. Include all relevant info from the AI response that answers the user's question.
+Use markdown formatting if applicable. 
+
+Return the entire new JSON.
+Output strictly in JSON format. Do not include any extra text outside the JSON.
+
+EXAMPLE INPUT:
+
+{
+  "existing_summary": {
+    "title": "Expanded Explanation of Vector Calculus Theorems",
+    "details": [
+      {
+        "title": "Divergence and Curl: Local Field Behavior",
+        "details": [
+          "Divergence handles expansion/contraction (sources/sinks).",
+          "Curl handles rotation/swirling (vorticity).",
+          "These are diagnostic tools for a field's behavior."
+        ]
+      },
+      {
+        "title": "Stokes' Theorem (Curl-to-Circulation)",
+        "details": [
+          "Connects local curl (microscopic spin) to larger-scale circulation (line integral).",
+          "Reveals deep connections in physical laws, e.g., Electromagnetism and Fluid Dynamics."
+        ]
+      }
+    ]
+  },
+  "user_message": "That makes sense for circulation. But what about the other major theorem, the one related to divergence? How does that fit in?",
+  "ai_response": "You are referring to the Divergence Theorem, often called Gauss's Theorem! If Stokes' Theorem relates the local *rotation* (Curl) inside a surface to the circulation on its boundary, the Divergence Theorem relates the local *expansion* (Divergence) inside a volume to the total flux flowing out across its closed boundary surface. \n\nFormally, the theorem states that the net outward flux of a vector field through a closed surface is equal to the integral of the divergence of the field over the volume enclosed by that surface. \n\nThink of a gas expanding. The divergence tells you how much expansion is happening *at every single point* inside the volume. The integral of the divergence across the whole volume gives you the total output. The flux is the measure of how much stuff actually crosses the boundary of the container. The theorem states these two measurements must be equal.\n\nThis theorem is absolutely vital in physics, especially when dealing with concepts like fluid flow, heat transfer, or electrostatics (where it forms Gauss's Law: relating the electric flux out of a volume to the total charge inside). It completes the picture alongside Stokes' Theorem, showing how both expansion/contraction (divergence) and rotation (curl) link local infinitesimal behavior to global macroscopic results (flux and circulation, respectively)."
 }
+
+EXAMPLE CORRESPONDING OUTPUT:
+
+{
+  "title": "Expanded Explanation of Vector Calculus Theorems",
+  "details": [
+    {
+      "title": "Divergence Theorem (Gauss's Theorem): Linking Local Expansion to Global Flux",
+      "details": [
+        "**Core Relationship:** If Stokes' Theorem handles rotation/circulation, the Divergence Theorem relates the local *expansion* (Divergence) inside a volume to the total flux flowing out across its closed boundary surface.",
+        "**Formal Statement:** The net outward flux of a vector field through a closed surface is equal to the integral of the divergence of the field over the volume enclosed by that surface.",
+        "**Analogy (Gas/Fluid):** The accumulated local expansion (integral of divergence) inside a volume equals the total measure of 'stuff' crossing the boundary (flux).",
+        {
+          "title": "Applications and Significance",
+          "details": [
+            "Vital in physics for analyzing fluid flow and heat transfer.",
+            "**Electrostatics:** Forms the basis of Gauss's Law, relating electric flux out of a volume to the total charge inside.",
+            "**Completes the Picture:** Shows how expansion/contraction (divergence) links local infinitesimal behavior to global macroscopic results (flux)."
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Divergence and Curl: Local Field Behavior",
+      "details": [
+        "Divergence handles expansion/contraction (sources/sinks).",
+        "Curl handles rotation/swirling (vorticity).",
+        "These are diagnostic tools for a field's behavior."
+      ]
+    },
+    {
+      "title": "Stokes' Theorem (Curl-to-Circulation)",
+      "details": [
+        "Connects local curl (microscopic spin) to larger-scale circulation (line integral).",
+        "Reveals deep connections in physical laws, e.g., Electromagnetism and Fluid Dynamics."
+      ]
+    }
+  ]
+}`
+    }]
+};

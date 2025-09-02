@@ -63,7 +63,7 @@ const ContentPanel = ({ project, user, setProject, setContent, setModalContents 
     const content = project.content as unknown as StructuredContent;
     
     return (
-        <div className="flex-1">
+        <div className="flex-1 min-h-[75vh]">
             <div className="relative group p-3 rounded-md text-[var(--foreground)] whitespace-pre-wrap h-full">
                 {/* Edit Icon */}
                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition">

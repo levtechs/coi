@@ -42,9 +42,9 @@ const Editor = ({
             />
 
             {/* Main Layout */}
-            <div className="flex gap-6 mt-4">
-                {/* Main Content Panel */}
-                <div className="flex-1">
+            <div className="relative mt-4">
+                {/* Main Content Panel - occupies the available space with a right margin */}
+                <div className="mr-80 md:mr-96 max-w-[40vw]">
                     <ContentPanel
                         project={project}
                         user={user}
@@ -54,12 +54,11 @@ const Editor = ({
                     />
                 </div>
 
-                {/* Chat Panel - left side & vertically centered */}
-                <div className="sticky top-1/2 -translate-y-1/2 self-start">
+                {/* Chat Panel - fixed to the viewport and always centered */}
+                <div className="fixed top-1/2 -translate-y-1/2 right-6">
                     <ChatPanel project={project} setProject={setProject} />
                 </div>
             </div>
-
 
             {/* Modal */}
             <Modal

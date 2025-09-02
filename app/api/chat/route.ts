@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
         const result = await getChatResponse(message, messageHistory) || "";
 
         writeChatPairToDb(message, result, projectId, uid);
-        const newContent: string = await getUpdatedContent(message, result);
+        const newContent: string = await getUpdatedContent(projectId, message, result);
         await writeNewContentToDb(newContent, projectId);
 
         return NextResponse.json({ response: result || "" , newContent}); 
