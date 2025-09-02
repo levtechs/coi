@@ -79,7 +79,7 @@ if (!GEMINI_API_KEY) {
  * @param body The request body to send to the Gemini API.
  * @returns The raw API response data.
  */
-const callGeminiApi = async (body: any) => {
+const callGeminiApi = async (body: object) => {
     for (let i = 0; i < MAX_RETRIES; i++) {
         try {
             const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
@@ -165,7 +165,7 @@ export const getPreviousContent = async (projectId: string): Promise<string | nu
 export const getUpdatedContent = async (projectId: string, message: string, response: string) => {
     const previousContent = await getPreviousContent(projectId);
 
-    let body: Object = {}
+    let body: object = {}
     if (previousContent) {
         // We add the previous content to the history to give the model full context.
         const contents: Contents = [
