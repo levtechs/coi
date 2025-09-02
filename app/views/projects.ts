@@ -23,6 +23,12 @@ export async function saveProject(project: Project): Promise<void> {
     });
 }
 
+/** Fetch project */
+export async function getProject(projectId: string): Promise<Project> {
+    const project = await apiFetch<Project>(`/api/projects/${projectId}`);
+    return project;
+}
+
 /** Fetch owner */
 export async function getOwnerId(projectId: string): Promise<string> {
     const project = await apiFetch<Project>(`/api/projects/${projectId}`);

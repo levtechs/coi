@@ -1,16 +1,16 @@
-// views/users.ts
+import { User } from "@/lib/types";
+import { auth } from "@/lib/firebase";
+
+import { apiFetch } from "./helpers";
 
 /**
  * Get the user ID (uid) from an email.
+ * @param email The email of the user to search for.
+ * @returns The user's ID, or null if not found.
  */
 export async function getUserIdFromEmail(email: string): Promise<string | null> {
     try {
-        const res = await fetch(`/api/users?email=${encodeURIComponent(email)}`);
-        if (!res.ok) {
-            console.error("Failed to fetch UID:", await res.json());
-            return null;
-        }
-        const data = await res.json();
+        const data = await apiFetch<{ uid: string }>(`/api/users?email=${encodeURIComponent(email)}`);
         return data.uid ?? null;
     } catch (err) {
         console.error("Error fetching UID from email:", err);
@@ -19,19 +19,16 @@ export async function getUserIdFromEmail(email: string): Promise<string | null> 
 }
 
 /**
- * Get the email from a user ID (uid).
+ * Get the user from a user ID (uid).
+ * @param userId The ID of the user to fetch.
+ * @returns The user object, or null if not found.
  */
-export async function getEmailFromUserId(userId: string): Promise<string | null> {
+export async function getUserFromId(userId: string): Promise<User | null> {
     try {
-        const res = await fetch(`/api/users/${userId}`);
-        if (!res.ok) {
-            console.error("Failed to fetch email:", await res.json());
-            return null;
-        }
-        const data = await res.json();
-        return data.email ?? null;
+        const data = await apiFetch<User>(`/api/users/${userId}`);
+        return data;
     } catch (err) {
-        console.error("Error fetching email from UID:", err);
+        console.error("Error fetching user from UID:", err);
         return null;
     }
 }

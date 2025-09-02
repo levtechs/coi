@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { Project } from "@/lib/types";
-import { getTitle, getContent, getCollaborators, addCollaborator, getOwnerId, setTitle, setContent } from "@/app/views/projects"
+import { getProjects, getTitle, getContent, getCollaborators, addCollaborator, getOwnerId, setTitle, setContent, getProject } from "@/app/views/projects"
 
 import { FiLoader } from "react-icons/fi";
 
@@ -28,17 +28,8 @@ export default function ProjectPage() {
         if (!projectId) return;
 
         async function fetchProject() {
-            const title = await getTitle(projectId!);
-            const ownerId = await getOwnerId(projectId!);
-            const collaborators = await getCollaborators(projectId!);
-            const content = await getContent(projectId!);
-            setProject({
-                id: projectId!,
-                ownerId: ownerId,
-                title: title, // default to ID if name not fetched
-                collaborators,
-                content,
-            });
+            const project = await getProject(projectId!);
+            setProject(project);
         }
 
         fetchProject();

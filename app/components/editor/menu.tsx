@@ -59,7 +59,7 @@ const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setModa
             {/* Right side: Share + Collaborators */}
             <div className="flex items-center gap-4">
                 <CollaboratorsDropdown 
-                    collaborators={project.collaborators || []} 
+                    sharedWith={project.sharedWith || []} 
                     ownerId={project.ownerId}
                 />
                 <Button
