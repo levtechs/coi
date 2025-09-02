@@ -17,7 +17,7 @@ const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [isLoading, setLoading] = useState(false);
-    const bottomRef = useRef<HTMLDivElement | null>(null);
+    const messagesEndRef = useRef<HTMLDivElement | null>(null); // New ref for the scrollable container
 
     const loadHistory = async () => {
         try {
@@ -68,9 +68,11 @@ const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
         }
     };
 
-    // Scroll to bottom whenever messages change
+    // Scroll to the bottom of the messages container whenever messages change
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+        }
     }, [messages]);
 
     // Load chat history on mount
@@ -79,15 +81,15 @@ const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
     }, [project.id]);
 
     return (
-        <div className="w-[50%] bg-[var(--neutral-200)] rounded-md p-3 flex flex-col h-[75vh]">
+        <div className="bg-[var(--neutral-200)] rounded-md p-3 flex flex-col h-[75vh] w-[50vw]">
             <h2 className="text-[var(--foreground)] text-xl font-semibold mb-2">Chat</h2>
 
-            <div className="flex-1 overflow-y-auto bg-[var(--neutral-100)] rounded-md p-2 mb-2 flex flex-col">
+            {/* This is the new scrollable container with the ref attached */}
+            <div ref={messagesEndRef} className="flex-1 overflow-y-auto bg-[var(--neutral-100)] rounded-md p-2 mb-2 flex flex-col">
                 <ChatMessages 
                     messages={messages}
                     isLoading={isLoading}
                 />
-                <div ref={bottomRef} />
             </div>
 
             <div className="flex items-center bg-[var(--neutral-100)] rounded-md px-2 py-1">

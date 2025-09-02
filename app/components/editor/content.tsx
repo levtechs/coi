@@ -55,7 +55,7 @@ interface ContentPanelProps {
 const ContentPanel = ({ project, user, setProject, setContent, setModalContents }: ContentPanelProps) => {
     return (
         <div className="flex-1">
-            <div className="relative group p-3 bg-[var(--neutral-200)] rounded-md text-[var(--foreground)] whitespace-pre-wrap">
+            <div className="relative group p-3 rounded-md text-[var(--foreground)] whitespace-pre-wrap h-full">
                 {/* Edit Icon */}
                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition">
                     <FiEdit2

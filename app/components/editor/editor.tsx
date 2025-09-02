@@ -3,15 +3,11 @@
 import { useState } from "react";
 
 import { Project } from "@/lib/types";
-
 import Modal from "../modal";
-import Button from "../button";
-
 import MenuBar from "./menu";
 import ContentPanel from "./content";
 import ChatPanel from "./chat/chat";
-
-import { noModal} from "./types";
+import { noModal } from "./types";
 
 interface EditorProps {
     project: Project;
@@ -22,21 +18,21 @@ interface EditorProps {
     setContent: (projectId: string, newContent: string) => Promise<void>;
 }
 
-const Editor = ({ project, user, setProject, addCollaborator, setTitle, setContent}: EditorProps) => {
+const Editor = ({
+    project,
+    user,
+    setProject,
+    addCollaborator,
+    setTitle,
+    setContent,
+}: EditorProps) => {
     const [modalContents, setModalContents] = useState(noModal);
     const closeModal = () => setModalContents(noModal);
-
-    // Optional: subscribe to project updates from DB for real-time syncing
-    // useEffect(() => {
-    //     if (!user) return;
-    //     const unsubscribe = subscribeToProject(user.uid, project.id, setProject);
-    //     return () => unsubscribe();
-    // }, [user, project.id, setProject]);
 
     return (
         <div className="p-6 mx-4 sm:mx-6 lg:mx-12 w-auto bg-[var(--neutral-100)] rounded-lg shadow-lg mt-8">
             {/* Top Menu Bar */}
-            <MenuBar 
+            <MenuBar
                 project={project}
                 user={user}
                 setProject={setProject}
@@ -45,23 +41,25 @@ const Editor = ({ project, user, setProject, addCollaborator, setTitle, setConte
                 setModalContents={setModalContents}
             />
 
-            {/* Main Content + Chat Panels */}
+            {/* Main Layout */}
             <div className="flex gap-6 mt-4">
                 {/* Main Content Panel */}
-                <ContentPanel 
-                    project={project}
-                    user={user}
-                    setProject={setProject}
-                    setContent={setContent}
-                    setModalContents={setModalContents}
-                />*
+                <div className="flex-1">
+                    <ContentPanel
+                        project={project}
+                        user={user}
+                        setProject={setProject}
+                        setContent={setContent}
+                        setModalContents={setModalContents}
+                    />
+                </div>
 
-                {/* Chat Panel */}
-                <ChatPanel 
-                    project={project}
-                    setProject={setProject}
-                />
+                {/* Chat Panel - left side & vertically centered */}
+                <div className="sticky top-1/2 -translate-y-1/2 self-start">
+                    <ChatPanel project={project} setProject={setProject} />
+                </div>
             </div>
+
 
             {/* Modal */}
             <Modal
