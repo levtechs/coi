@@ -42,8 +42,12 @@ export default function AuthPage({ signUpDefault }: AuthPageParams) {
             }
 
             router.push("/dashboard");
-        } catch (err: any) {
-            alert(err.message);
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err.message);
+            } else {
+                console.error("An unknown error occurred.");
+            }
         }
     }
 
@@ -65,8 +69,12 @@ export default function AuthPage({ signUpDefault }: AuthPageParams) {
             }
 
             router.push("/dashboard");
-        } catch (err: any) {
-            alert(err.message);
+        } catch (err) {
+            if (err instanceof Error) {
+                console.error(err.message);
+            } else {
+                console.error("An unknown error occurred.");
+            }
         }
     }
 

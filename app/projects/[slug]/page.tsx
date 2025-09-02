@@ -17,7 +17,6 @@ export default function ProjectPage() {
 
     const slugParam = params?.slug;
     const projectId = Array.isArray(slugParam) ? slugParam[0] : slugParam;
-    if (!projectId) return; // early return if undefined
 
     const [project, setProject] = useState<Project | null>(null);
 
@@ -45,6 +44,7 @@ export default function ProjectPage() {
         fetchProject();
     }, [user, params?.slug]);
 
+    if (!projectId) return; // early return if undefined
 
     if (!user) {
         return (

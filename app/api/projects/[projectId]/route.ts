@@ -4,11 +4,12 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { getVerifiedUid } from "../../helpers";
 
-export async function GET(req: NextRequest, { params }: { params: { projectId: string } }) {
+
+export async function GET(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
     const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
-    const { projectId } = await params;
+    const { projectId } = await context.params;  // <- await here
 
     try {
         const projectRef = doc(db, "projects", projectId);
@@ -27,11 +28,11 @@ export async function GET(req: NextRequest, { params }: { params: { projectId: s
     }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { projectId: string } }) {
+export async function POST(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
     const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
-    const { projectId } = await params;
+    const { projectId } = await context.params;  // <- await here
     const body = await req.json();
 
     try {
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: { projectId: 
         }
 
         // Only allow certain fields to be updated
-        const updates: any = {};
+        const updates: {title?: string, content?: string} = {};
         if (body.title) updates.title = body.title;
         if (body.content) updates.content = body.content;
 
@@ -59,11 +60,11 @@ export async function POST(req: NextRequest, { params }: { params: { projectId: 
     }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { projectId: string } }) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
     const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
-    const { projectId } = await params;
+    const { projectId } = await context.params;  // <- await here
 
     try {
         const projectRef = doc(db, "projects", projectId);

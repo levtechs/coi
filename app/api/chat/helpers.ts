@@ -89,7 +89,7 @@ export const getChatResponse = async (message: string, messageHistory: Message[]
         role: "user",
         parts: [{ text: message }]
     });
-    const reponse = await useGemini(contents, chatResponseSystemInstruction, defaultGeneralConfig);
+    const reponse = await callGemini(contents, chatResponseSystemInstruction, defaultGeneralConfig);
     return reponse;
 }
 
@@ -125,7 +125,7 @@ export const getUpdatedContent = async (message: string, response: string) => {
                          try {
                             const parsed = JSON.parse(jsonResponseText);
                             return parsed;
-                        } catch (err) {
+                        } catch {
                             console.error("Failed to parse Gemini output as JSON:", jsonResponseText);
                             throw new Error("Invalid JSON returned from Gemini");
                         }
@@ -170,7 +170,7 @@ if (!GEMINI_API_KEY) {
     throw new Error("GEMINI_API_KEY is not defined in environment variables.");
 }
 
-export const useGemini = async (contents: Contents, systemInstruction: {parts: {text: string}[]}, generalConfig: {temperature: number, maxOutputTokens: number}) => {
+export const callGemini = async (contents: Contents, systemInstruction: {parts: {text: string}[]}, generalConfig: {temperature: number, maxOutputTokens: number}) => {
     // Loop for retries with exponential backoff
     for (let i = 0; i < MAX_RETRIES; i++) {
         try {

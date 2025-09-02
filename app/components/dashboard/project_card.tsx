@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
 
 import { FiEdit2 } from "react-icons/fi";
 import { Project } from "@/lib/types";
@@ -12,8 +11,6 @@ type ProjectCardProps = {
 };
 
 export default function ProjectCard({ project, onEdit }: ProjectCardProps) {
-    const router = useRouter();
-
     return (
         <div
             className="relative border border-[var(--neutral-300)] rounded-lg p-6 bg-[var(--neutral-200)] shadow hover:shadow-md transition cursor-pointer group"

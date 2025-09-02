@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from "react";
 import { FiSend } from "react-icons/fi";
 
 import { Project, Message } from "@/lib/types";
-import { ModalContents } from "../types";
 import ChatMessages from "./chat_messages";
 
 import { getResponse, getChatHistory } from "@/app/views/chat";
@@ -18,21 +17,6 @@ const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
     const [input, setInput] = useState("");
     const [isLoading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement | null>(null); // New ref for the scrollable container
-
-    const loadHistory = async () => {
-        try {
-            const history = await getChatHistory(project.id);
-            // Assuming your getChatHistory function returns objects without an ID,
-            // we add a unique ID here to make the list stable for React.
-            const messagesWithIds = history.map((msg) => ({
-                ...msg,
-                id: crypto.randomUUID(),
-            }));
-            setMessages(messagesWithIds);
-        } catch (err) {
-            console.error("Error loading chat history:", err);
-        }
-    };
 
     const onSend = async () => {
         if (!input.trim()) return;
@@ -76,9 +60,25 @@ const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
     }, [messages]);
 
     // Load chat history on mount
+    // Load chat history on mount or when project ID changes
     useEffect(() => {
+        const loadHistory = async () => {
+            try {
+                const history = await getChatHistory(project.id);
+                // Assuming your getChatHistory function returns objects without an ID,
+                // we add a unique ID here to make the list stable for React.
+                const messagesWithIds = history.map((msg) => ({
+                    ...msg,
+                    id: crypto.randomUUID(),
+                }));
+                setMessages(messagesWithIds);
+            } catch (err) {
+                console.error("Error loading chat history:", err);
+            }
+        };
+        
         loadHistory();
-    }, [project.id]);
+    }, [project.id]); // `loadHistory` is now a dependency
 
     return (
         <div className="bg-[var(--neutral-200)] rounded-md p-3 flex flex-col h-[75vh] w-[50vw]">

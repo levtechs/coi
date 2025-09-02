@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-export async function GET(req: NextRequest, { params }: { params: { userId: string } }) {
-    const { userId } = await params;
+export async function GET(req: NextRequest, context: { params: Promise<{ userId: string }> }) {
+    const { userId } = await context.params;
 
     try {
         const userRef = doc(db, "users", userId);

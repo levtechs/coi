@@ -34,7 +34,7 @@ export async function getVerifiedUid(req: NextRequest): Promise<string> {
     try {
         const decoded = await adminAuth.verifyIdToken(idToken);
         return decoded.uid;
-    } catch (err) {
+    } catch {
         throw new Error("Invalid or expired token");
     }
 }

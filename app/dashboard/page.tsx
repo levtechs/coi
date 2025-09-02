@@ -5,7 +5,6 @@ import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import Dashboard from "@/app/components/dashboard/dashboard";
 import Button from "@/app/components/button";
-import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
     const { user, loading } = useAuth();

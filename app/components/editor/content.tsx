@@ -4,12 +4,19 @@ import { Project } from "@/lib/types"
 import { ModalContents } from "./types"
 import { FiEdit2 } from "react-icons/fi"
 
+// Defines a structured content node which can be nested
+interface StructuredContent {
+    title?: string
+    details: (string | StructuredContent)[]
+}
+
 interface StructuredContentProps {
-    data: any
+    data: StructuredContent
     level?: number
 }
 
 const renderStructuredContent = ({ data, level = 2 }: StructuredContentProps) => {
+    // Correctly handles a non-existent or null data object
     if (!data) {
         return <p className="text-[var(--neutral-500)]">(No content)</p>
     }
@@ -23,7 +30,7 @@ const renderStructuredContent = ({ data, level = 2 }: StructuredContentProps) =>
                 },
                 data.title
             )}
-            {Array.isArray(data.details) && data.details.map((item, index) => {
+            {Array.isArray(data.details) && data.details.map((item: string | StructuredContent, index: number) => {
                 if (typeof item === "string") {
                     return (
                         <div key={index} className="mb-2 prose prose-sm max-w-none">
@@ -53,6 +60,8 @@ interface ContentPanelProps {
 }
 
 const ContentPanel = ({ project, user, setProject, setContent, setModalContents }: ContentPanelProps) => {
+    const content = project.content as unknown as StructuredContent;
+    
     return (
         <div className="flex-1">
             <div className="relative group p-3 rounded-md text-[var(--foreground)] whitespace-pre-wrap h-full">
@@ -74,13 +83,11 @@ const ContentPanel = ({ project, user, setProject, setContent, setModalContents 
                             }
                         })}
                         className="text-[var(--accent-500)] cursor-pointer hover:text-[var(--accent-600)] text-xl"
-                    >
-                        ✏️
-                    </FiEdit2>
+                    />
                 </div>
 
                 {/* Render content */}
-                {renderStructuredContent({ data: project.content })}
+                {renderStructuredContent({ data: content })}
             </div>
         </div>
     )

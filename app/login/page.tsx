@@ -3,18 +3,22 @@
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { auth } from "@/lib/firebase";
+import { Suspense } from "react";
 import AuthPage from "../components/auth_page";
 
-const LoginPage = () => {
-    const router = useRouter();
+const AuthPageWrapper = () => {
     const searchParams = useSearchParams();
     const param = searchParams.get("signup");
     const signup: boolean = param === "true";
+    return <AuthPage signUpDefault={signup} />;
+};
+
+const LoginPage = () => {
+    const router = useRouter();
 
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
-                // User is already logged in → redirect
                 router.replace("/dashboard");
             }
         });
@@ -22,8 +26,11 @@ const LoginPage = () => {
         return () => unsubscribe();
     }, [router]);
 
-    // Only render AuthPage if user is not logged in
-    return <AuthPage signUpDefault={signup} />;
+    return (
+        <Suspense>
+            <AuthPageWrapper />
+        </Suspense>
+    );
 };
 
 export default LoginPage;

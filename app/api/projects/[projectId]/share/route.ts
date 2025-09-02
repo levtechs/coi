@@ -6,14 +6,11 @@ import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firest
 import { getUserRefByEmail, getVerifiedUid } from "@/app/api/helpers"
 
 // Same result as if you were to get the project, then check who it's shared with 
-export async function GET(
-    req: NextRequest,
-    { params }: { params: { projectId: string } }
-) {
+export async function GET(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
     const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
-    const { projectId } = await params;
+    const { projectId } = await context.params;
 
     try {
         const projectRef = doc(db, "projects", projectId);
@@ -35,11 +32,11 @@ export async function GET(
     }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { projectId: string } }) {
+export async function POST(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
     const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
-    const { projectId } = await params;
+    const { projectId } = await context.params;
     const body = await req.json();
     const email = body.email;
 
@@ -81,11 +78,11 @@ export async function POST(req: NextRequest, { params }: { params: { projectId: 
     }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { projectId: string } }) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
     const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
-    const { projectId } = await params;
+    const { projectId } = await context.params;
     const body = await req.json();
     const email = body.email;
 

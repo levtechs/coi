@@ -54,7 +54,7 @@ export default function CollaboratorsDropdown({ collaborators, ownerId }: Collab
         };
 
         fetchOwnerEmail();
-    }, [ownerId, currentUserEmail]);
+    }, [ownerId, owner, currentUserEmail]);
 
     // Render nothing until owner is loaded
     if (loading) return <FiLoader className="animate-spin w-5 h-5 text-[var(--foreground)]" />;
