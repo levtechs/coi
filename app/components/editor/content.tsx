@@ -1,50 +1,89 @@
-import { FiEdit2 } from "react-icons/fi";
+import React from "react"
+import ReactMarkdown from "react-markdown"
+import { Project } from "@/lib/types"
+import { ModalContents } from "./types"
+import { FiEdit2 } from "react-icons/fi"
 
-import { Project } from "@/lib/types";
+interface StructuredContentProps {
+    data: any
+    level?: number
+}
 
-import { ModalContents } from "./types";
+const renderStructuredContent = ({ data, level = 2 }: StructuredContentProps) => {
+    if (!data) {
+        return <p className="text-[var(--neutral-500)]">(No content)</p>
+    }
+
+    return (
+        <div>
+            {data.title && React.createElement(
+                `h${level}`,
+                {
+                    className: `text-[var(--foreground)] text-${2 + (5 - level)}xl font-semibold mb-2 mt-4`
+                },
+                data.title
+            )}
+            {Array.isArray(data.details) && data.details.map((item, index) => {
+                if (typeof item === "string") {
+                    return (
+                        <div key={index} className="mb-2 prose prose-sm max-w-none">
+                            <ReactMarkdown>{item}</ReactMarkdown>
+                        </div>
+                    )
+                }
+                if (typeof item === "object" && item !== null) {
+                    return (
+                        <div key={index} className="ml-4">
+                            {renderStructuredContent({ data: item, level: level < 5 ? level + 1 : 5 })}
+                        </div>
+                    )
+                }
+                return null
+            })}
+        </div>
+    )
+}
 
 interface ContentPanelProps {
-    project: Project;
-    user: { uid: string } | null;
-    setProject: (updater: (prev: Project | null) => Project | null) => void;
-    setContent: (projectId: string, newContent: string) => Promise<void>;
+    project: Project
+    user: { uid: string } | null
+    setProject: (updater: (prev: Project | null) => Project | null) => void
+    setContent: (projectId: string, newContent: string) => Promise<void>
     setModalContents: (newContent: ModalContents) => void
 }
 
-const ContentPanel = ( {project, user, setProject, setContent, setModalContents} : ContentPanelProps) => {
+const ContentPanel = ({ project, user, setProject, setContent, setModalContents }: ContentPanelProps) => {
     return (
         <div className="flex-1">
             <div className="relative group p-3 bg-[var(--neutral-200)] rounded-md text-[var(--foreground)] whitespace-pre-wrap">
                 {/* Edit Icon */}
                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition">
                     <FiEdit2
-                        className="text-[var(--accent-500)] cursor-pointer hover:text-[var(--accent-600)]"
-                        size={20}
-                        onClick={() => setModalContents({ isOpen: true, title: "New content", initialValue: "", placeholder: "Enter new content", onSubmit: async (input) =>{
-                            if (!user) return;
+                        onClick={() => setModalContents({
+                            isOpen: true,
+                            title: "New content",
+                            initialValue: "",
+                            placeholder: "Enter new content",
+                            onSubmit: async (input) => {
+                                if (!user) return
 
-                            // Add collaborator in DB
-                            await setContent(project.id, input);
-
-                            // Update local state
-                            setProject((prev) =>
-                                prev
-                                    ? {
-                                        ...prev,
-                                        content: input,
-                                    }
-                                    : prev
-                            );
-
-                        }})}                            />
+                                await setContent(project.id, input)
+                                setProject(prev =>
+                                    prev ? { ...prev, content: input } : prev
+                                )
+                            }
+                        })}
+                        className="text-[var(--accent-500)] cursor-pointer hover:text-[var(--accent-600)] text-xl"
+                    >
+                        ✏️
+                    </FiEdit2>
                 </div>
 
-                <h2 className="text-[var(--foreground)] text-xl font-semibold mb-2">Content</h2>
-                {project.content || "(No content)"}
+                {/* Render content */}
+                {renderStructuredContent({ data: project.content })}
             </div>
         </div>
-    );
+    )
 }
 
 export default ContentPanel

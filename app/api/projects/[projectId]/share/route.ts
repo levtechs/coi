@@ -3,14 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 
-import { getUserRefByEmail } from "@/app/api/helpers"
+import { getUserRefByEmail, getVerifiedUid } from "@/app/api/helpers"
 
 // Same result as if you were to get the project, then check who it's shared with 
 export async function GET(
     req: NextRequest,
     { params }: { params: { projectId: string } }
 ) {
-    const uid = req.headers.get("x-user-id");
+    const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
     const { projectId } = await params;
@@ -36,7 +36,7 @@ export async function GET(
 }
 
 export async function POST(req: NextRequest, { params }: { params: { projectId: string } }) {
-    const uid = req.headers.get("x-user-id");
+    const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
     const { projectId } = await params;
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest, { params }: { params: { projectId: 
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { projectId: string } }) {
-    const uid = req.headers.get("x-user-id");
+    const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
     const { projectId } = await params;

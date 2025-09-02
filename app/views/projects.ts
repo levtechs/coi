@@ -1,23 +1,5 @@
-import { auth } from "@/lib/firebase";
-
 import { Project } from "@/lib/types";
-
-// Helper: include current user ID in headers
-async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
-    const user = auth.currentUser;
-    if (!user) throw new Error("User not authenticated");
-
-    const res = await fetch(url, {
-        ...options,
-        headers: {
-            "Content-Type": "application/json",
-            "x-user-id": user.uid,
-            ...(options?.headers || {}),
-        },
-    });
-    if (!res.ok) throw new Error(`API request failed: ${res.status}`);
-    return res.json() as Promise<T>;
-}
+import { apiFetch } from "./helpers";
 
 /** Fetch all projects for current user */
 export async function getProjects(): Promise<Project[]> {

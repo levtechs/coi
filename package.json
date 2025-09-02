@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "firebase": "^12.2.1",
+    "firebase-admin": "^13.5.0",
     "katex": "^0.16.22",
     "next": "15.5.2",
     "react": "^19.1.1",

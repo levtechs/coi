@@ -1,107 +1,95 @@
 import { useState, useEffect, useRef } from "react";
 
 import { FiSend } from "react-icons/fi";
-import { FiLoader } from "react-icons/fi";
 
-import ReactMarkdown from "react-markdown";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-
-import { Project, Message} from "@/lib/types";
+import { Project, Message } from "@/lib/types";
 import { ModalContents } from "../types";
+import ChatMessages from "./chat_messages";
 
-import { getResponse } from "@/app/views/chat"
+import { getResponse, getChatHistory } from "@/app/views/chat";
 
 interface ChatPanelProps {
     project: Project;
-    user: { uid: string } | null;
     setProject: (updater: (prev: Project | null) => Project | null) => void;
-    setContent: (uid: string, projectId: string, newContent: string) => Promise<void>;
-    setModalContents: (newContent: ModalContents) => void;
 }
 
-const ChatPanel = ({ project, user, setProject, setContent, setModalContents }: ChatPanelProps) => {
+const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [isLoading, setLoading] = useState(false);
     const bottomRef = useRef<HTMLDivElement | null>(null);
 
+    const loadHistory = async () => {
+        try {
+            const history = await getChatHistory(project.id);
+            // Assuming your getChatHistory function returns objects without an ID,
+            // we add a unique ID here to make the list stable for React.
+            const messagesWithIds = history.map((msg) => ({
+                ...msg,
+                id: crypto.randomUUID(),
+            }));
+            setMessages(messagesWithIds);
+        } catch (err) {
+            console.error("Error loading chat history:", err);
+        }
+    };
+
     const onSend = async () => {
         if (!input.trim()) return;
 
         const userInput = input.trim();
-        // Create the updated messages array including the new user input
-        const updatedMessages = [...messages, { content: userInput, isResponse: false }];
+        const updatedMessages = [...messages, { content: userInput, isResponse: false, id: crypto.randomUUID() }];
         setMessages(updatedMessages);
         setInput("");
 
         try {
             setLoading(true);
-            const MAX_HISTORY = 10; // last 10 messages only
-
+            const MAX_HISTORY = 10;
             const recentMessages = updatedMessages.slice(-MAX_HISTORY);
-            const aiResponse = await getResponse(userInput, recentMessages, project.id);
+            const response = await getResponse(userInput, recentMessages, project.id);
+            const aiResponse = response.response;
+            const newContent = response.newContent;
+            setProject(prev => prev ? { ...prev, content: newContent } : null);
+
             setLoading(false);
 
-            setMessages((prev) => [...prev, { content: aiResponse, isResponse: true }]);
+            setMessages((prev) => [...prev, { content: aiResponse, isResponse: true, id: crypto.randomUUID() }]);
         } catch (err) {
             setLoading(false);
             console.error("Error fetching AI response:", err);
-            setMessages((prev) => [...prev, { content: "Error generating response", isResponse: true }]);
+            setMessages((prev) => [...prev, { content: "Error generating response", isResponse: true, id: crypto.randomUUID() }]);
         }
     };
 
-
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault(); // prevent newline
+            e.preventDefault();
             onSend();
         }
     };
 
-
+    // Scroll to bottom whenever messages change
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
+
+    // Load chat history on mount
+    useEffect(() => {
+        loadHistory();
+    }, [project.id]);
 
     return (
         <div className="w-[50%] bg-[var(--neutral-200)] rounded-md p-3 flex flex-col h-[75vh]">
             <h2 className="text-[var(--foreground)] text-xl font-semibold mb-2">Chat</h2>
 
-            {/* Messages area */}
             <div className="flex-1 overflow-y-auto bg-[var(--neutral-100)] rounded-md p-2 mb-2 flex flex-col">
-                {messages.length === 0 ? (
-                    <p className="text-[var(--neutral-500)] text-sm">No messages yet</p>
-                ) : (
-                    messages.map((msg, idx) => (
-                        <div
-                            key={idx}
-                            className={`p-2 rounded-md mb-2 max-w-[70%] break-words prose prose-sm
-                                ${msg.isResponse
-                                    ? "self-start bg-[var(--neutral-300)] text-[var(--foreground)]"
-                                    : "self-end bg-[var(--accent-400)] text-white"
-                                }`}
-                        >
-                            <ReactMarkdown
-                                remarkPlugins={[remarkMath]}
-                                rehypePlugins={[rehypeKatex]}
-                            >
-                                {msg.content}
-                            </ReactMarkdown>
-                        </div>
-                    ))
-                )}
-                {/* Loading / thinking message */}
-                {isLoading && (
-                    <div className="self-start bg-[var(--neutral-300)] text-[var(--foreground)] p-2 rounded-md mb-2 max-w-[70%] flex items-center space-x-2">
-                        <FiLoader className="animate-spin w-5 h-5 text-[var(--foreground)]" />
-                        <span>Thinking...</span>
-                    </div>
-                )}
+                <ChatMessages 
+                    messages={messages}
+                    isLoading={isLoading}
+                />
                 <div ref={bottomRef} />
             </div>
 
-            {/* Input area */}
             <div className="flex items-center bg-[var(--neutral-100)] rounded-md px-2 py-1">
                 <textarea
                     value={input}
@@ -116,7 +104,6 @@ const ChatPanel = ({ project, user, setProject, setContent, setModalContents }: 
                     className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
                 />
             </div>
-
         </div>
     );
 };

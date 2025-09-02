@@ -3,9 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { Project } from "@/lib/types";
 import { doc, getDoc, collection, updateDoc, addDoc} from "firebase/firestore";
+import { getVerifiedUid } from "../helpers";
 
 export async function GET(req: NextRequest) {
-    const uid = req.headers.get("x-user-id");
+    const uid = await getVerifiedUid(req);
     if (!uid) {
         return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
     }

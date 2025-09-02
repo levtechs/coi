@@ -2,9 +2,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { getVerifiedUid } from "../../helpers";
 
 export async function GET(req: NextRequest, { params }: { params: { projectId: string } }) {
-    const uid = req.headers.get("x-user-id");
+    const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
     const { projectId } = await params;
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: { projectId: s
 }
 
 export async function POST(req: NextRequest, { params }: { params: { projectId: string } }) {
-    const uid = req.headers.get("x-user-id");
+    const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
     const { projectId } = await params;
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest, { params }: { params: { projectId: 
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { projectId: string } }) {
-    const uid = req.headers.get("x-user-id");
+    const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
     const { projectId } = await params;

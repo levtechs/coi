@@ -54,19 +54,16 @@ const Editor = ({ project, user, setProject, addCollaborator, setTitle, setConte
                     setProject={setProject}
                     setContent={setContent}
                     setModalContents={setModalContents}
-                />
+                />*
 
                 {/* Chat Panel */}
                 <ChatPanel 
                     project={project}
-                    user={user}
                     setProject={setProject}
-                    setContent={setContent}
-                    setModalContents={setModalContents}
                 />
             </div>
 
-            {/* Share Modal */}
+            {/* Modal */}
             <Modal
                 isOpen={modalContents.isOpen}
                 onClose={closeModal}

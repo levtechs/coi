@@ -11,7 +11,7 @@ import { Project } from "@/lib/types";
 interface MenuBarProps {
     project: Project;
     user: { uid: string } | null;
-    setProject: (updater: (prev: Project | null) => Project | null) => void;
+    setProject: (newProject: Project) => void;
     addCollaborator: (projectId: string, email: string) => Promise<void>;
     setTitle: (projectId: string, newTitle: string) => Promise<void>;
     setModalContents: (newContent: ModalContents) => void

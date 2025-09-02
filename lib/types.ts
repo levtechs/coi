@@ -7,6 +7,7 @@ export type Project = {
 };
 
 export interface Message {
+    id?: string
     content: string; //markdown
     isResponse: boolean;
 }

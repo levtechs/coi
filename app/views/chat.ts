@@ -1,6 +1,5 @@
 import { Message } from "@/lib/types";
-
-import { auth } from "@/lib/firebase";
+import { apiFetch } from "./helpers"; // adjust path if needed
 
 /**
  * Sends a new message and the full conversation history to the API.
@@ -11,36 +10,49 @@ import { auth } from "@/lib/firebase";
 export async function getResponse(
     message: string,
     messageHistory: Message[],
-    projectId: string
-): Promise<string> {
-    const user = auth.currentUser;
-    if (!user) throw new Error("User not authenticated");
-
+    projectId: string,
+): Promise<{response: string, newContent: string}> {
     try {
-        const response = await fetch("/api/chat", {
+        const data = await apiFetch<{ response: string, newContent: string}>("/api/chat", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "x-user-id": user.uid,
-            },
             body: JSON.stringify({
-                // Pass the full messageHistory array directly.
-                // The API route needs the structured objects to determine message roles.
                 message,
                 messageHistory,
                 projectId,
-            })
+            }),
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Chat API error: ${response.status} ${errorText}`);
-        }
-
-        const data = await response.json();
-        return data.response || "No response from API.";
+        // Corrected the return statement to create a valid object with key-value pairs
+        return {
+            response: data.response || "No response from API.",
+            newContent: data.newContent || ""
+        };
     } catch (err) {
         console.error("Error fetching chat response:", err);
         throw err;
+    }
+}
+
+
+/**
+ * Get full chat history for the current user in a given project.
+ * @param projectId The project ID to fetch chat history for.
+ * @returns Promise resolving to array of messages.
+ */
+export async function getChatHistory(
+    projectId: string
+): Promise<Message[]> {
+    try {
+        const data = await apiFetch<{ messages: Message[] }>(
+            `/api/chat?projectId=${encodeURIComponent(projectId)}`,
+            {
+                method: "GET",
+            }
+        );
+
+        return data.messages || [];
+    } catch (err) {
+        console.error("Error fetching chat history:", err);
+        return [];
     }
 }
