@@ -1,5 +1,4 @@
 import { User } from "@/lib/types";
-import { auth } from "@/lib/firebase";
 
 import { apiFetch } from "./helpers";
 

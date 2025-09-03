@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { Project } from "@/lib/types";
-import { getProjects, getTitle, getContent, getCollaborators, addCollaborator, getOwnerId, setTitle, setContent, getProject } from "@/app/views/projects"
+import { addCollaborator, setTitle, setContent, getProject } from "@/app/views/projects"
 
 import { FiLoader } from "react-icons/fi";
 

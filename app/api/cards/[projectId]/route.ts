@@ -5,13 +5,13 @@ import { Card, Project } from "@/lib/types";
 import { getVerifiedUid } from "@/app/api/helpers";
 
 
-export async function GET(req: NextRequest, context: { params: { projectId: string } }) {
+export async function GET(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
     const uid = await getVerifiedUid(req);
     if (!uid) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { projectId } = context.params;
+    const { projectId } = await context.params;
 
     try {
         const projectRef = doc(db, "projects", projectId);
