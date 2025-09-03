@@ -33,7 +33,8 @@ const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
             const response = await getResponse(userInput, recentMessages, project.id);
             const aiResponse = response.response;
             const newContent = response.newContent;
-            setProject(prev => prev ? { ...prev, content: newContent } : null);
+            const allCards = response.allCards;
+            setProject(prev => prev ? { ...prev, content: newContent, cards: allCards } : null);
 
             setLoading(false);
 
@@ -76,7 +77,7 @@ const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
                 console.error("Error loading chat history:", err);
             }
         };
-        
+
         loadHistory();
     }, [project.id]); // `loadHistory` is now a dependency
 

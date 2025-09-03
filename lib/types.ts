@@ -5,6 +5,7 @@ export type Project = {
     collaborators: string[]; // emails
     sharedWith: string[]; // ids
     content: string; // JSON
+    cards: Card[]; //List of ids of the cards
 };
 
 export interface Message {
@@ -17,4 +18,10 @@ export interface User {
     id: string
     email: string;
     displayName: string;
+}
+
+export interface Card {
+    id: string;
+    title: string;
+    details: string[];
 }

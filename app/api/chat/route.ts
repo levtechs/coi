@@ -1,9 +1,10 @@
-import { writeChatPairToDb, writeNewContentToDb, getChatResponse, getUpdatedContent } from "./helpers";
+import { writeChatPairToDb, writeNewContentToDb, getPreviousContent, getChatResponse, getUpdatedContent } from "./helpers";
+import { extractWriteCards } from "../cards/helpers";
 
 import { NextRequest, NextResponse } from "next/server";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Message } from "@/lib/types";
+import { Card, Message } from "@/lib/types";
 import { getVerifiedUid } from "../helpers";
 
 export async function POST(req: NextRequest) {
@@ -14,13 +15,17 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const { message, messageHistory, projectId } = body as { message: string, messageHistory: Message[], projectId: string };
         
-        const result = await getChatResponse(message, messageHistory) || "";
+        const chatResponse = await getChatResponse(message, messageHistory) || "";
+        writeChatPairToDb(message, chatResponse, projectId, uid);
 
-        writeChatPairToDb(message, result, projectId, uid);
-        const newContent: string = await getUpdatedContent(projectId, message, result);
+        const previousContent = await getPreviousContent(projectId);
+        const newContent: string = await getUpdatedContent(previousContent, message, chatResponse);
+
+        const allCards: Card[] = await extractWriteCards(projectId, newContent) || [];
+
         await writeNewContentToDb(newContent, projectId);
 
-        return NextResponse.json({ response: result || "" , newContent}); 
+        return NextResponse.json({ response: chatResponse || "" , newContent, allCards}); 
         
     } catch (err) {
         console.error("Error in /api/chat:", err);

@@ -1,4 +1,4 @@
-import { Message } from "@/lib/types";
+import { Message, Card } from "@/lib/types";
 import { apiFetch } from "./helpers"; // adjust path if needed
 
 /**
@@ -11,9 +11,9 @@ export async function getResponse(
     message: string,
     messageHistory: Message[],
     projectId: string,
-): Promise<{response: string, newContent: string}> {
+): Promise<{response: string, newContent: string, allCards: Card[]}> {
     try {
-        const data = await apiFetch<{ response: string, newContent: string}>("/api/chat", {
+        const data = await apiFetch<{ response: string, newContent: string, allCards: Card[]}>("/api/chat", {
             method: "POST",
             body: JSON.stringify({
                 message,
@@ -25,7 +25,8 @@ export async function getResponse(
         // Corrected the return statement to create a valid object with key-value pairs
         return {
             response: data.response || "No response from API.",
-            newContent: data.newContent || ""
+            newContent: data.newContent || "",
+            allCards: data.allCards || []
         };
     } catch (err) {
         console.error("Error fetching chat response:", err);

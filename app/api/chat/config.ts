@@ -8,6 +8,10 @@ export const INITIAL_DELAY_MS = 300;
 
 export const defaultGeneralConfig = {
     temperature: 0.7,
+}
+
+export const limitedGeneralConfig = {
+    temperature: 0.7,
     maxOutputTokens: 4096
 }
 

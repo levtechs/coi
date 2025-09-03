@@ -1,6 +1,8 @@
 import { Project } from "@/lib/types";
 import { apiFetch } from "./helpers";
 
+import { getCards } from "./cards";
+
 /** Fetch all projects for current user */
 export async function getProjects(): Promise<Project[]> {
     const data = await apiFetch<{ projects: Project[] }>("/api/projects");
@@ -23,12 +25,31 @@ export async function saveProject(project: Project): Promise<void> {
     });
 }
 
-/** Fetch project */
+/**
+ * Fetches the complete project object, including the cards.
+ * @param projectId The ID of the project to fetch.
+ * @returns A promise that resolves to the complete Project object.
+ */
 export async function getProject(projectId: string): Promise<Project> {
-    const project = await apiFetch<Project>(`/api/projects/${projectId}`);
-    return project;
-}
+    try {
+        // Step 1: Fetch the main project document.
+        const project = await apiFetch<Project>(`/api/projects/${projectId}`);
 
+        // Step 2: Fetch the cards from the subcollection using the getCards function.
+        const cards = await getCards(projectId);
+
+        // Step 3: Combine the project data and cards into a single object.
+        const completeProject: Project = {
+            ...project,
+            cards: cards,
+        };
+
+        return completeProject;
+    } catch (err) {
+        console.error("Error fetching project or cards:", err);
+        throw err;
+    }
+}
 /** Fetch owner */
 export async function getOwnerId(projectId: string): Promise<string> {
     const project = await apiFetch<Project>(`/api/projects/${projectId}`);

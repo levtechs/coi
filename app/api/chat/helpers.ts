@@ -1,7 +1,7 @@
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, setDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { Message } from "@/lib/types"; // { content: string; isResponse: boolean }
-import { GEMINI_API_URL, chatResponseSystemInstruction, genContentSystemInstruction, updateContentSystemInstruction, defaultGeneralConfig, INITIAL_DELAY_MS, MAX_RETRIES} from "./config";
+import { GEMINI_API_URL, chatResponseSystemInstruction, genContentSystemInstruction, updateContentSystemInstruction, defaultGeneralConfig, limitedGeneralConfig, INITIAL_DELAY_MS, MAX_RETRIES} from "./config";
 import { Contents } from "./types";
 
 export const writeChatPairToDb = async (
@@ -64,6 +64,24 @@ export const writeNewContentToDb = async (
         console.log("New content written successfully to history and main document.");
     } catch (err) {
         console.error("Error writing new content to DB:", err);
+        throw err;
+    }
+};
+
+export const getPreviousContent = async (projectId: string): Promise<string | null> => {
+    try {
+        const docRef = doc(db, "projects", projectId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            return data.content || null;
+        } else {
+            console.log("No previous content found for this project.");
+            return null;
+        }
+    } catch (err) {
+        console.error("Error getting previous content:", err);
         throw err;
     }
 };
@@ -136,7 +154,7 @@ export const getChatResponse = async (message: string, messageHistory: Message[]
     const body = {
         contents,
         systemInstruction: chatResponseSystemInstruction,
-        generationConfig: defaultGeneralConfig,
+        generationConfig: limitedGeneralConfig,
     };
 
     const response = await callGeminiApi(body);
@@ -144,27 +162,7 @@ export const getChatResponse = async (message: string, messageHistory: Message[]
     return result;
 };
 
-export const getPreviousContent = async (projectId: string): Promise<string | null> => {
-    try {
-        const docRef = doc(db, "projects", projectId);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            return data.content || null;
-        } else {
-            console.log("No previous content found for this project.");
-            return null;
-        }
-    } catch (err) {
-        console.error("Error getting previous content:", err);
-        throw err;
-    }
-};
-
-export const getUpdatedContent = async (projectId: string, message: string, response: string) => {
-    const previousContent = await getPreviousContent(projectId);
-
+export const getUpdatedContent = async (previousContent: string | null, message: string, response: string) => {
     let body: object = {}
     if (previousContent) {
         // We add the previous content to the history to give the model full context.
