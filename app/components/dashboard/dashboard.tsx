@@ -4,13 +4,17 @@ import { useEffect, useState } from "react";
 
 import { useAuth } from "@/lib/AuthContext";
 import { Project } from "@/lib/types";
-import { getProjects, saveProject, createProject } from "@/app/views/projects"
+import { getProjects, saveProject, createProject, deleteProject } from "@/app/views/projects"
+
+import { FiLoader } from "react-icons/fi";
 
 import ProjectCard from "./project_card";
 import Modal from "@/app/components/modal";
 
 const Dashboard = () => {
     const { user } = useAuth();
+
+    const [isLoading, setLoading] = useState(false);
     const [projects, setProjects] = useState<Project[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -19,11 +23,15 @@ const Dashboard = () => {
         if (!user) return;
 
         const fetchProjects = async () => {
+            setLoading(true);
             try {
                 const projects: Project[] = await getProjects();
                 setProjects(projects);
             } catch (err) {
                 console.error("Failed to fetch projects:", err);
+            }
+            finally {
+                setLoading(false);
             }
         };
 
@@ -31,6 +39,8 @@ const Dashboard = () => {
     }, [user]);
 
     if (!user) return null;
+
+    if (isLoading) return <FiLoader className="animate-spin w-5 h-5 text-[var(--foreground)]" />;
 
     function openCreateModal() {
         setEditingProject(null);
@@ -77,7 +87,12 @@ const Dashboard = () => {
 
                 {/* Project Cards */}
                 {projects.map((project) => (
-                    <ProjectCard key={project.id} project={project} onEdit={openEditModal} />
+                    <ProjectCard 
+                        key={project.id} 
+                        project={project} 
+                        onEdit={openEditModal} 
+                        setProjects={setProjects}
+                    />
                 ))}
             </div>
 

@@ -60,10 +60,6 @@ const Editor = ({
                     {tab === "content" ? (
                         <ContentPanel
                             project={project}
-                            user={user}
-                            setProject={setProject}
-                            setContent={setContent}
-                            setModalContents={setModalContents}
                         />
                     ) : (
                         <CardsPanel 

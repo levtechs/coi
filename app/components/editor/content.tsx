@@ -4,10 +4,9 @@ import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
-import { FiEdit2, FiChevronRight, FiChevronDown } from "react-icons/fi";
+import { FiChevronRight, FiChevronDown } from "react-icons/fi";
 
 import { Project } from "@/lib/types";
-import { ModalContents } from "./types";
 
 
 // Defines a structured content node which can be nested
@@ -46,7 +45,12 @@ const StructuredContentRenderer = ({ data, level = 2 }: StructuredContentProps) 
                         {
                             className: `text-[var(--foreground)] text-${2 + (5 - level)}xl font-semibold`
                         },
-                        data.title
+                        <ReactMarkdown
+                            remarkPlugins={[remarkMath]}
+                            rehypePlugins={[rehypeKatex]}
+                        >
+                            {data.title}
+                        </ReactMarkdown>
                     )}
                 </div>
             )}
@@ -55,14 +59,14 @@ const StructuredContentRenderer = ({ data, level = 2 }: StructuredContentProps) 
                     {Array.isArray(data.details) && data.details.map((item, index) => {
                         if (typeof item === 'string') {
                             return (
-                                <p key={index} className="mb-2 prose prose-sm max-w-none">
+                                <div key={index} className="mb-2 prose prose-sm max-w-none">
                                     <ReactMarkdown
                                         remarkPlugins={[remarkMath]}
                                         rehypePlugins={[rehypeKatex]}
                                     >
                                         {item}
                                     </ReactMarkdown>
-                                </p>
+                                </div>
                             );
                         }
                         if (typeof item === 'object' && item !== null) {
@@ -85,36 +89,14 @@ const StructuredContentRenderer = ({ data, level = 2 }: StructuredContentProps) 
 
 interface ContentPanelProps {
     project: Project;
-    user: { uid: string } | null;
-    setProject: (updater: (prev: Project | null) => Project | null) => void;
-    setContent: (projectId: string, newContent: string) => Promise<void>;
-    setModalContents: (newContent: ModalContents) => void;
 }
 
-const ContentPanel = ({ project, user, setProject, setContent, setModalContents }: ContentPanelProps) => {
+const ContentPanel = ({ project }: ContentPanelProps) => {
     const content = project.content ? (JSON.parse(JSON.stringify(project.content)) as unknown as StructuredContent) : null;
     
     return (
         <div className="flex-1 min-h-[75vh]">
             <div className="relative group p-3 rounded-md text-[var(--foreground)] whitespace-pre-wrap h-full">
-                {/* Edit Icon */}
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition">
-                    <FiEdit2
-                        onClick={() => setModalContents({
-                            isOpen: true,
-                            title: "New content",
-                            initialValue: project.content,
-                            placeholder: "Enter new content",
-                            onSubmit: async (input) => {
-                                if (!user) return;
-                                await setContent(project.id, input);
-                                setProject(prev => prev ? { ...prev, content: input } : prev);
-                            }
-                        })}
-                        className="text-[var(--accent-500)] cursor-pointer hover:text-[var(--accent-600)] text-xl"
-                    />
-                </div>
-
                 {/* Render content */}
                 {content ? (
                     <StructuredContentRenderer data={content} />

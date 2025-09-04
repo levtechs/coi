@@ -50,6 +50,24 @@ export async function getProject(projectId: string): Promise<Project> {
         throw err;
     }
 }
+
+/**
+ * Deletes a project by its ID.
+ * @param projectId The ID of the project to delete.
+ * @returns A promise that resolves when the project is successfully deleted.
+ */
+export async function deleteProject(projectId: string): Promise<void> {
+    try {
+        await apiFetch(`/api/projects/${projectId}`, {
+            method: "DELETE",
+        });
+        console.log(`Project with ID ${projectId} successfully deleted.`);
+    } catch (error) {
+        console.error("Failed to delete project:", error);
+        throw error;
+    }
+}
+
 /** Fetch owner */
 export async function getOwnerId(projectId: string): Promise<string> {
     const project = await apiFetch<Project>(`/api/projects/${projectId}`);

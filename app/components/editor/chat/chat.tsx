@@ -34,7 +34,15 @@ const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
             const aiResponse = response.response;
             const newContent = response.newContent;
             const allCards = response.allCards;
-            setProject(prev => prev ? { ...prev, content: newContent, cards: allCards } : null);
+            if (newContent && allCards){
+                setProject(prev => prev ? { ...prev, content: newContent, cards: allCards } : null);
+            }
+            else if (newContent) {
+                setProject(prev => prev ? { ...prev, content: newContent } : null);
+            }
+            else if (allCards) {
+                setProject(prev => prev ? { ...prev, cards: allCards } : null);
+            }
 
             setLoading(false);
 

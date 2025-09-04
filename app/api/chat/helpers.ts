@@ -134,6 +134,12 @@ const callGeminiApi = async (body: object) => {
     throw new Error("Failed to get a response from Gemini API after all retries.");
 };
 
+/**
+ * Calls the Gemini API to get a structured JSON response.
+ * @param message The user's current message.
+ * @param messageHistory The history of the conversation.
+ * @returns A promise that resolves to an object with a response message and a boolean indicating new information.
+ */
 export const getChatResponse = async (message: string, messageHistory: Message[]) => {
     if (!message || message.trim() === "") {
         throw new Error("Message is required.");
@@ -151,15 +157,46 @@ export const getChatResponse = async (message: string, messageHistory: Message[]
         parts: [{ text: message }]
     });
 
+    // Define the schema for the expected JSON response.
+    const generationConfig = {
+        ...limitedGeneralConfig,
+        responseMimeType: "application/json",
+        responseSchema: {
+            type: "OBJECT",
+            properties: {
+                "responseMessage": { "type": "STRING" },
+                "hasNewInfo": { "type": "BOOLEAN" }
+            },
+            propertyOrdering: ["responseMessage", "hasNewInfo"]
+        },
+    };
+
     const body = {
         contents,
         systemInstruction: chatResponseSystemInstruction,
-        generationConfig: limitedGeneralConfig,
+        generationConfig: generationConfig,
     };
 
-    const response = await callGeminiApi(body);
-    const result = response?.candidates?.[0]?.content?.parts?.[0]?.text;
-    return result;
+    try {
+        const response = await callGeminiApi(body);
+        const jsonString = response?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!jsonString) {
+            console.error("No JSON content found in API response.");
+            return null;
+        }
+
+        const parsedResponse = JSON.parse(jsonString);
+
+        // Return the structured object directly.
+        return {
+            responseMessage: parsedResponse.responseMessage,
+            hasNewInfo: parsedResponse.hasNewInfo,
+        };
+    } catch (err) {
+        console.error("Error calling Gemini API or parsing response:", err);
+        return null;
+    }
 };
 
 export const getUpdatedContent = async (previousContent: string | null, message: string, response: string) => {
@@ -198,7 +235,7 @@ export const getUpdatedContent = async (previousContent: string | null, message:
     }
 
     const apiResponse = await callGeminiApi(body);
-    const jsonResponseText = apiResponse?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const jsonResponseText = JSON.parse(JSON.stringify(apiResponse?.candidates?.[0]?.content?.parts?.[0]?.text));
 
     if (!jsonResponseText) {
         throw new Error("No JSON text returned from API.");

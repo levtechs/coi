@@ -15,17 +15,24 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const { message, messageHistory, projectId } = body as { message: string, messageHistory: Message[], projectId: string };
         
-        const chatResponse = await getChatResponse(message, messageHistory) || "";
-        writeChatPairToDb(message, chatResponse, projectId, uid);
+        const chatResponse = await getChatResponse(message, messageHistory) || {responseMessage: "Sorry, I couldn't generate a response.", hasNewInfo: false};
+        const responseMessage = chatResponse.responseMessage;
+        writeChatPairToDb(message, responseMessage, projectId, uid);
 
-        const previousContent = await getPreviousContent(projectId);
-        const newContent: string = await getUpdatedContent(previousContent, message, chatResponse);
+        if (chatResponse.hasNewInfo) {
+            const previousContent = await getPreviousContent(projectId);
+            const newContent: string = await getUpdatedContent(previousContent, message, responseMessage);
+            writeNewContentToDb(newContent, projectId);
+            const allCards: Card[] = await extractWriteCards(projectId, newContent) || [];
 
-        const allCards: Card[] = await extractWriteCards(projectId, newContent) || [];
+            console.log("New content generated and stored.");
+            return NextResponse.json({ response: responseMessage , newContent, allCards}); 
+        }
+        else {
+            console.log("No new content generated.");
+            return NextResponse.json({ response: responseMessage });
+        }
 
-        await writeNewContentToDb(newContent, projectId);
-
-        return NextResponse.json({ response: chatResponse || "" , newContent, allCards}); 
         
     } catch (err) {
         console.error("Error in /api/chat:", err);

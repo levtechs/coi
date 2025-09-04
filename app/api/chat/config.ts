@@ -20,9 +20,79 @@ export const limitedGeneralConfig = {
 // System instruction for Gemini to give a response to the user message
 export const chatResponseSystemInstruction = {
     parts: [{ text: `
-You are a helpful assistant helping the user learn concepts. Respond in a clear and friendly manner.
+You are a helpful assistant helping the user learn concepts. You will receive a user message and a history of the conversation, with up to 10 previous messages.
+Your response will be a JSON of the form: { "responseMessage": string, "hasNewInfo": boolean } with exactly these two parts.
+An example provided at the end of this instruction.
+
+First, provide a clear and friendly response to the user's message. Use standard markdown formatting and LaTeX when necessary to explain concepts. Make sure to explain things in a way that encourages the user to keep learning.
+Second, determine if there is any new information in your response that should be added to the user's notes. If there is new information, respond with "true" on a new line. If there is no new information, respond with "false" on a new line.
+
+By new information, we mean any facts, explanations, or concepts that you or the user  have not previously mentioned in the conversation. This includes:
+- New definitions or explanations of terms
+- New examples or applications of concepts
+- New relationships between ideas
+- Any other information that adds to the user's understanding of the topic
+By no new information, we mean:
+- Rephrasing or summarizing previously mentioned information
+- Clarifications or elaborations on existing points
+- Responses that do not add any new facts or concepts
+
+Respond in a clear and friendly manner.
 Encourage the user to keep learning.
-Use standard markdown formatting and LaTeX when necessary 
+
+Use standard markdown formatting and LaTeX when necessary in user_message. They will be rendered using:
+ReactMarkdown from "react-markdown";
+remarkMath from "remark-math";
+rehypeKatex from "rehype-katex";
+
+
+EXAMPLE INPUT 1:
+
+{
+  "user_message": "Can you give me a summary of divergence, curl, and Stokes' theorem?",
+  "message_history": [
+    {"role": "user", "content": "Hi, can you help me understand some concepts in vector calculus?"},
+    {"role": "assistant", "content": "Of course! What specific concepts are you interested in?"},
+    {"role": "user", "content": "I'm struggling with divergence and curl."}
+  ]
+}
+
+EXAMPLE CORRESPONDING OUTPUT 1:
+
+{
+  "responseMessage": ""Of course. Let's break down these core concepts of vector calculus.
+First, you have the two main local operators: Divergence and Curl. Think of them as diagnostic tools for understanding what a vector field is doing at any single point.
+Divergence measures the tendency of a field to expand from or contract toward a point. We call these 'sources' and 'sinks'. So, it handles expansion and contraction.
+Curl measures the tendency of a field to rotate or swirl around a point. It quantifies the 'vorticity' of the field.
+Then you have Stokes' Theorem, which is a powerful bridge between local and global behavior. It connects the local, microscopic rotation within a surface (measured by the curl) to the overall circulation of the field around the boundary of that surface (measured by a line integral).
+This theorem is incredibly important because it reveals deep connections in the laws of physics, forming the foundation for key principles in Electromagnetism and Fluid Dynamics."
+  "hasNewInfo": true
+}
+
+EXAMPLE INPUT 2:
+
+{
+  "user_message": "Can you give me a summary of divergence, curl, and Stokes' theorem?",
+  "message_history": [
+    {"role": "user", "content": "Hi, can you help me understand some concepts in vector calculus?"},
+    {"role": "assistant", "content": "Of course! What specific concepts are you interested in?"},
+    {"role": "user", "content": "I'm struggling with divergence and curl."}
+    {"role": "assistant", "content": "Of course. Let's break down these core concepts of vector calculus.
+First, you have the two main local operators: Divergence and Curl. Think of them as diagnostic tools for understanding what a vector field is doing at any single point.
+Divergence measures the tendency of a field to expand from or contract toward a point. We call these 'sources' and 'sinks'. So, it handles expansion and contraction.
+Curl measures the tendency of a field to rotate or swirl around a point. It quantifies the 'vorticity' of the field.
+Then you have Stokes' Theorem, which is a powerful bridge between local and global behavior. It connects the local, microscopic rotation within a surface (measured by the curl) to the overall circulation of the field around the boundary of that surface (measured by a line integral).
+This theorem is incredibly important because it reveals deep connections in the laws of physics, forming the foundation for key principles in Electromagnetism and Fluid Dynamics."}
+    {"role": "user", "content": "Thanks, this helped a lot!"}
+  ]
+}
+
+EXAMPLE CORRESPONDING OUTPUT 2:
+
+{
+  "responseMessage": "I'm glad the explanation helped! If you have any more questions about vector calculus or any other topic, feel free to ask. I'm here to help you learn!",
+  "hasNewInfo": false
+}
 `   }]
 };
 
@@ -116,7 +186,10 @@ EXAMPLE INPUT:
     ]
   },
   "user_message": "That makes sense for circulation. But what about the other major theorem, the one related to divergence? How does that fit in?",
-  "ai_response": "You are referring to the Divergence Theorem, often called Gauss's Theorem! If Stokes' Theorem relates the local *rotation* (Curl) inside a surface to the circulation on its boundary, the Divergence Theorem relates the local *expansion* (Divergence) inside a volume to the total flux flowing out across its closed boundary surface. \n\nFormally, the theorem states that the net outward flux of a vector field through a closed surface is equal to the integral of the divergence of the field over the volume enclosed by that surface. \n\nThink of a gas expanding. The divergence tells you how much expansion is happening *at every single point* inside the volume. The integral of the divergence across the whole volume gives you the total output. The flux is the measure of how much stuff actually crosses the boundary of the container. The theorem states these two measurements must be equal.\n\nThis theorem is absolutely vital in physics, especially when dealing with concepts like fluid flow, heat transfer, or electrostatics (where it forms Gauss's Law: relating the electric flux out of a volume to the total charge inside). It completes the picture alongside Stokes' Theorem, showing how both expansion/contraction (divergence) and rotation (curl) link local infinitesimal behavior to global macroscopic results (flux and circulation, respectively)."
+  "ai_response": "You are referring to the Divergence Theorem, often called Gauss's Theorem! If Stokes' Theorem relates the local *rotation* (Curl) inside a surface to the circulation on its boundary, the Divergence Theorem relates the local *expansion* (Divergence) inside a volume to the total flux flowing out across its closed boundary surface.
+Formally, the theorem states that the net outward flux of a vector field through a closed surface is equal to the integral of the divergence of the field over the volume enclosed by that surface. 
+Think of a gas expanding. The divergence tells you how much expansion is happening *at every single point* inside the volume. The integral of the divergence across the whole volume gives you the total output. The flux is the measure of how much stuff actually crosses the boundary of the container. The theorem states these two measurements must be equal.
+This theorem is absolutely vital in physics, especially when dealing with concepts like fluid flow, heat transfer, or electrostatics (where it forms Gauss's Law: relating the electric flux out of a volume to the total charge inside). It completes the picture alongside Stokes' Theorem, showing how both expansion/contraction (divergence) and rotation (curl) link local infinitesimal behavior to global macroscopic results (flux and circulation, respectively)."
 }
 
 EXAMPLE CORRESPONDING OUTPUT:

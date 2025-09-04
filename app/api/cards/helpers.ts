@@ -1,7 +1,7 @@
-import { collection, addDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-import { Card } from "@/lib/types";
+import { Project, Card } from "@/lib/types";
 /**
  * Recursively searches a nested object for "card" objects, which are
  * defined as having a 'title' and a 'details' array where every element is a string.
@@ -75,3 +75,44 @@ export const extractWriteCards = async (projectId: string, content: string): Pro
         return null;
     }
 };
+
+export const fetchCardsFromProject = async (projectId: string, uid: string): Promise<Card[] | null> => {
+    try {
+        const projectRef = doc(db, "projects", projectId);
+        const projectSnap = await getDoc(projectRef);
+
+        if (!projectSnap.exists()) {
+            throw new Error("Project not found");
+        }
+
+        const projectData = projectSnap.data() as Project;
+
+        // Check if the user is the owner or a collaborator
+        const isOwner = projectData.ownerId === uid;
+        const isCollaborator = projectData.sharedWith.includes(uid);
+        
+        if (!isOwner && !isCollaborator) {
+            throw new Error("Forbidden: You do not have access to this project");
+        }
+
+        // Reference the 'cards' subcollection within the project document.
+        const cardsCollectionRef = collection(db, "projects", projectId, "cards");
+
+        // Fetch all documents from the subcollection.
+        const querySnapshot = await getDocs(cardsCollectionRef);
+
+        // Map the Firestore documents to the Card interface.
+        // It is critical to include the document's id in the returned object.
+        const cards: Card[] = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data() as Omit<Card, 'id'>,
+        }));
+
+        // Return the list of cards.
+        return cards;
+
+    } catch (err) {
+        console.error("Error fetching cards:", err);
+        throw err;
+    }
+}
