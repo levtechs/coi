@@ -3,9 +3,9 @@ import Link from "next/link";
 import { FiEdit2 } from "react-icons/fi";
 import { FiHome } from "react-icons/fi";
 
-import Button from "../button";
 import CollaboratorsDropdown from "./collabs_dd";
-import { ModalContents } from "./types";
+import ShareMenu from "./share";
+import { ModalContents } from "../types";
 import { Project } from "@/lib/types";
 
 interface MenuBarProps {
@@ -62,38 +62,13 @@ const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setModa
                     sharedWith={project.sharedWith || []} 
                     ownerId={project.ownerId}
                 />
-                <Button
-                    onClick={() =>
-                        setModalContents({
-                            isOpen: true,
-                            title: "Share Project",
-                            initialValue: "",
-                            placeholder: "Enter email",
-                            onSubmit: async (input) => {
-                                if (!user) return;
-
-                                // Add collaborator in DB
-                                await addCollaborator(project.id, input);
-
-                                // Update local state
-                                setProject((prev) =>
-                                    prev
-                                        ? {
-                                            ...prev,
-                                            collaborators: [
-                                                ...(prev.collaborators ?? []),
-                                                input,
-                                            ],
-                                        }
-                                        : prev
-                                );
-                            },
-                        })
-                    }
-                    color="var(--accent-500)"
-                >
-                    Share
-                </Button>
+                <ShareMenu 
+                    project={project} 
+                    user={user} 
+                    setModalContents={setModalContents}
+                    addCollaborator={addCollaborator}
+                    setProject={setProject}
+                />
             </div>
         </div>
 

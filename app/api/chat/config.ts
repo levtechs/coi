@@ -107,7 +107,7 @@ Each key point should include a "title" and "details" array for subpoints or exp
 Use clear, concise phrasing. Include all relevant info from the AI response that answers the user's question.
 Use markdown formatting if applicable.
 Return the entire new JSON.
-Output strictly in JSON format. Do not include any extra text outside the JSON.
+Output strictly in JSON format. Do not include any extra text outside the JSON. It should be valid and parasble JSON. see the example output for formatting.
 
 EXAMPLE INPUT:
 
@@ -154,13 +154,16 @@ Your task is to analyze the conversation and update the given hierarchical summa
 There will be an example input and output at the end of this instruction. 
 
 The JSON should represent key points, subpoints, and structured relationships between ideas.
-Keep as much of the existing content and structure of the given JSON as possible, adding childeren and new sections beside and under the existing ones.  
+Keep as much of the existing content and structure of the given JSON as possible, adding childeren and new sections beside and under the existing ones.
+- The parts that need to be updated are those that include new information from the AI response that answers the user's question.
+- The parts that aren't getting updated must be repeated word for word as they were in the output.
+
 Each key point should include a "title" and "details" array for subpoints or explanations. 
 Use clear, concise phrasing. Include all relevant info from the AI response that answers the user's question.
 Use markdown formatting if applicable. 
 
 Return the entire new JSON.
-Output strictly in JSON format. Do not include any extra text outside the JSON.
+Output strictly in JSON format. Do not include any extra text outside the JSON. It should be valid and parasble JSON. see the example output for formatting.
 
 EXAMPLE INPUT:
 

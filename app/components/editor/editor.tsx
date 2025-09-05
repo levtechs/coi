@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Project, Card } from "@/lib/types";
 
 import Modal from "../modal";
-import MenuBar from "./menu";
+import MenuBar from "./menu/menu";
 import ContentPanel from "./content";
 import ChatPanel from "./chat/chat";
 import { noModal } from "./types";
@@ -19,7 +19,6 @@ interface EditorProps {
     setProject: (updater: (prev: Project | null) => Project | null) => void;
     addCollaborator: (projectId: string, email: string) => Promise<void>;
     setTitle: (projectId: string, newTitle: string) => Promise<void>;
-    setContent: (projectId: string, newContent: string) => Promise<void>;
 }
 
 const Editor = ({
@@ -28,7 +27,6 @@ const Editor = ({
     setProject,
     addCollaborator,
     setTitle,
-    setContent,
 }: EditorProps) => {
     const [tab, setTab] = useState<"content" | "cards">("content"); // "content" or "cards"
 

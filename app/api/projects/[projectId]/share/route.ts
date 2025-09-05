@@ -1,4 +1,4 @@
-// app/api/projects/[projectId]/collaborators/route.ts
+// app/api/projects/[projectId]/share/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";

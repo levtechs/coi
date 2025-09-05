@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchCardsFromProject } from "../helpers";
 import { getVerifiedUid } from "@/app/api/helpers";
 
-import { Card } from "@/lib/types";
-
 export async function GET(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
     const uid = await getVerifiedUid(req);
     if (!uid) {

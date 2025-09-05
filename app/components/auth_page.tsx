@@ -11,9 +11,10 @@ import Button from "@/app/components/button";
 
 interface AuthPageParams {
     signUpDefault: boolean;
+    forward?: string;
 }
 
-export default function AuthPage({ signUpDefault }: AuthPageParams) {
+export default function AuthPage({ signUpDefault, forward}: AuthPageParams) {
     const [email, setEmail] = useState("");
     const [dn, setDN] = useState("");
     const [password, setPassword] = useState("");
@@ -41,7 +42,7 @@ export default function AuthPage({ signUpDefault }: AuthPageParams) {
                 await signInWithEmailAndPassword(auth, email, password);
             }
 
-            router.push("/dashboard");
+            router.replace(window.location.origin + "/" + (forward ? forward : "dashboard"));
         } catch (err) {
             if (err instanceof Error) {
                 console.error(err.message);
@@ -68,7 +69,8 @@ export default function AuthPage({ signUpDefault }: AuthPageParams) {
                 });
             }
 
-            router.push("/dashboard");
+            
+            router.replace(window.location.origin + "/" + (forward ? forward : "dashboard"));
         } catch (err) {
             if (err instanceof Error) {
                 console.error(err.message);

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { useAuth } from "@/lib/AuthContext";
 import { Project } from "@/lib/types";
-import { getProjects, saveProject, createProject, deleteProject } from "@/app/views/projects"
+import { getProjects, saveProject, createProject } from "@/app/views/projects"
 
 import { FiLoader } from "react-icons/fi";
 
