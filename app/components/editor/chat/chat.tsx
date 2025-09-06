@@ -1,22 +1,23 @@
 import { useState, useEffect, useRef } from "react";
-
-import { FiSend } from "react-icons/fi";
-
-import { Project, Message } from "@/lib/types";
+import { FiSend, FiX } from "react-icons/fi";
+import Button from "@/app/components/button";
 import ChatMessages from "./chat_messages";
 
+import { Project, Message } from "@/lib/types";
 import { getResponse, getChatHistory } from "@/app/views/chat";
 
 interface ChatPanelProps {
     project: Project;
     setProject: (updater: (prev: Project | null) => Project | null) => void;
+    toggleChat: (open: boolean) => void;
 }
 
-const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
+const ChatPanel = ({ project, setProject, toggleChat}: ChatPanelProps) => {
+    const [chatToggled, setChatToggled] = useState(true);
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [isLoading, setLoading] = useState(false);
-    const messagesEndRef = useRef<HTMLDivElement | null>(null); // New ref for the scrollable container
+    const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
     const onSend = async () => {
         if (!input.trim()) return;
@@ -33,16 +34,14 @@ const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
             const response = await getResponse(userInput, recentMessages, project.id);
             const aiResponse = response.response;
             const newContent = response.newContent;
-            const allCards = response.allCards;
-            if (newContent && allCards){
-                setProject(prev => prev ? { ...prev, content: newContent, cards: allCards } : null);
-            }
-            else if (newContent) {
+            // NOTE: `allCards` is not returned by `getResponse`, this may cause an issue
+            // const allCards = response.allCards; 
+            if (newContent) {
                 setProject(prev => prev ? { ...prev, content: newContent } : null);
             }
-            else if (allCards) {
-                setProject(prev => prev ? { ...prev, cards: allCards } : null);
-            }
+            // else if (allCards) {
+            //     setProject(prev => prev ? { ...prev, cards: allCards } : null);
+            // }
 
             setLoading(false);
 
@@ -68,7 +67,13 @@ const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
         }
     }, [messages]);
 
-    // Load chat history on mount
+    // NEW: Scroll to the bottom when the chat is opened
+    useEffect(() => {
+        if (chatToggled && messagesEndRef.current) {
+            messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+        }
+    }, [chatToggled]);
+
     // Load chat history on mount or when project ID changes
     useEffect(() => {
         const loadHistory = async () => {
@@ -87,35 +92,58 @@ const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
         };
 
         loadHistory();
-    }, [project.id]); // `loadHistory` is now a dependency
+    }, [project.id]);
 
     return (
-        <div className="bg-[var(--neutral-200)] rounded-md p-3 flex flex-col h-[75vh] w-[50vw]">
-            <h2 className="text-[var(--foreground)] text-xl font-semibold mb-2">Chat</h2>
-
-            {/* This is the new scrollable container with the ref attached */}
-            <div ref={messagesEndRef} className="flex-1 overflow-y-auto bg-[var(--neutral-100)] rounded-md p-2 mb-2 flex flex-col">
-                <ChatMessages 
-                    messages={messages}
-                    isLoading={isLoading}
-                />
-            </div>
-
-            <div className="flex items-center bg-[var(--neutral-100)] rounded-md px-2 py-1">
-                <textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Type a message..."
-                    className="flex-1 bg-transparent outline-none p-2 text-[var(--foreground)] resize-none max-h-100 overflow-y-auto"
-                />
-                <FiSend
-                    size={20}
-                    onClick={onSend}
-                    className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
-                />
-            </div>
+        <div className="transition-all duration-300">
+            {chatToggled ? (
+                <div className="bg-[var(--neutral-200)] rounded-md p-3 flex flex-col h-[75vh] w-[50vw]">
+                    <div className="flex justify-between items-center mb-2">
+                        <h2 className="text-[var(--foreground)] text-xl font-semibold">Chat</h2>
+                        <FiX
+                            size={24}
+                            className="text-[var(--neutral-500)] cursor-pointer hover:text-[var(--foreground)]"
+                            onClick={() => {
+                                setChatToggled(false);
+                                toggleChat(false);
+                            }}
+                        />
+                    </div>
+                    {/* This is the new scrollable container with the ref attached */}
+                    <div ref={messagesEndRef} className="flex-1 overflow-y-auto bg-[var(--neutral-100)] rounded-md p-2 mb-2 flex flex-col">
+                        <ChatMessages 
+                            messages={messages}
+                            isLoading={isLoading}
+                        />
+                    </div>
+                    <div className="flex items-center bg-[var(--neutral-100)] rounded-md px-2 py-1">
+                        <textarea
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder="Type a message..."
+                            className="flex-1 bg-transparent outline-none p-2 text-[var(--foreground)] resize-none max-h-100 overflow-y-auto"
+                        />
+                        <FiSend
+                            size={20}
+                            onClick={onSend}
+                            className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
+                        />
+                    </div>
+                </div>
+            ) : (
+                <Button 
+                    color="var(--accent-500)"
+                    onClick={() => {
+                        setChatToggled(true);
+                        toggleChat(true);
+                    }}
+                >
+                    Open chat
+                </Button>
+            )}
         </div>
+
     );
 };
 
