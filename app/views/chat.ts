@@ -21,8 +21,6 @@ export async function getResponse(
                 projectId,
             }),
         });
-
-        // Corrected the return statement to create a valid object with key-value pairs
         return {
             response: data.response,
             newContent: data.newContent || null,
