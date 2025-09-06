@@ -49,7 +49,7 @@ const ChatPanel = ({ project, setProject, toggleChat}: ChatPanelProps) => {
         } catch (err) {
             setLoading(false);
             console.error("Error fetching AI response:", err);
-            setMessages((prev) => [...prev, { content: "Error generating response", isResponse: true, id: crypto.randomUUID() }]);
+            setMessages((prev) => [...prev, { content: "I couldn't generate a response. Please again later", isResponse: true, id: crypto.randomUUID() }]);
         }
     };
 

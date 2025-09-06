@@ -83,6 +83,8 @@ const Editor = ({
             {/* Modal */}
             <Modal
                 isOpen={modalContents.isOpen}
+                type={modalContents.type}
+                message={modalContents.message}
                 onClose={closeModal}
                 onSubmit={async (input: string) => {
                     modalContents.onSubmit?.(input);

@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-
 import Button from "../../button";
 import InvitePanel from "./invite_panel";
-
+import { FiShare2 } from "react-icons/fi";
 import { Project } from "@/lib/types";
 import { ModalContents } from "../types";
 
@@ -20,7 +19,7 @@ const ShareMenu = ({ project, user, setModalContents, addCollaborator, setProjec
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
-    const [isInviteOpen, setIsInviteOpen] = useState(false);
+    const isOwner = user?.uid === project.ownerId;
 
     // Handles closing the menu when a click occurs outside of it.
     useEffect(() => {
@@ -36,10 +35,11 @@ const ShareMenu = ({ project, user, setModalContents, addCollaborator, setProjec
         };
     }, []);
 
-    const handleAddCollaborator = () => {
+    const handleOpenShareModal = () => {
         setIsMenuOpen(false); // Close menu after selection
         setModalContents({
             isOpen: true,
+            type: "input",
             title: "Share Project",
             initialValue: "",
             placeholder: "Enter email",
@@ -61,52 +61,50 @@ const ShareMenu = ({ project, user, setModalContents, addCollaborator, setProjec
         });
     };
 
-    const handleInvite = () => {
-        setIsMenuOpen(false); // Close menu after selection
-        setIsInviteOpen(true);
-        // TODO: Implement invite logic here
-        console.log("Invite option clicked");
+    const handleShareClick = () => {
+        if (!isOwner) {
+            setModalContents({
+                isOpen: true,
+                type: "error",
+                title: "Permission Denied",
+                message: "Only the project owner can share this project.",
+                placeholder: "",
+                onSubmit: () => {},
+            });
+        } else {
+            setIsMenuOpen(!isMenuOpen);
+        }
     };
 
     return (
-        <>
-            <div className="relative">
-                <Button
-                    onClick={() => {
-                        setIsMenuOpen(!isMenuOpen);
-                    }}
-                    color="var(--accent-500)"
+        <div className="relative" ref={menuRef}>
+            <Button
+                onClick={handleShareClick}
+                color={isOwner ? "var(--accent-500)" : "var(--neutral-500)"}
+                className="flex items-center gap-2"
+            >
+                <FiShare2 className="text-lg" />
+                Share
+            </Button>
+            {isMenuOpen && (
+                <div
+                    className="absolute right-0 mt-2 w-48 bg-[var(--neutral-400)] rounded-md shadow-lg py-1 z-10"
                 >
-                    Share
-                </Button>
-
-                {isMenuOpen && (
                     <div
-                        ref={menuRef}
-                        className="absolute right-0 mt-2 w-48 bg-[var(--neutral-400)] rounded-md shadow-lg py-1 z-10"
+                        onClick={() => alert("Invite option clicked")}
+                        className="flex items-center gap-2 px-4 py-2 text-[var(--accent-500)] hover:bg-[var(--neutral-200)] cursor-pointer font-bold"
                     >
-                        <div
-                            onClick={handleInvite}
-                            className="flex items-center gap-2 px-4 py-2 text-[var(--accent-500)] hover:bg-[var(--neutral-200)] cursor-pointer font-bold"
-                        >
-                            Invite
-                        </div>
-                        <div
-                            onClick={handleAddCollaborator}
-                            className="flex items-center gap-2 px-4 py-2 text-[var(--neutral-800)] hover:bg-[var(--neutral-200)] cursor-pointer"
-                        >
-                            Add Collaborator
-                        </div>
+                        Invite
                     </div>
-                )}
-            </div>
-            {isInviteOpen && (
-                <InvitePanel
-                    project={project}
-                    onClose={() => setIsInviteOpen(false)}
-                />
+                    <div
+                        onClick={handleOpenShareModal}
+                        className="flex items-center gap-2 px-4 py-2 text-[var(--neutral-800)] hover:bg-[var(--neutral-200)] cursor-pointer"
+                    >
+                        Add Collaborator
+                    </div>
+                </div>
             )}
-        </>
+        </div>
     );
 }
 

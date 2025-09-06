@@ -5,7 +5,7 @@ import Link from 'next/link';
 export default function NotFound() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen text-[var(--foreground)] bg-[var(--background)]">
-        <img src="/404.png" alt="Not Found" className="w-64 h-64 mb-8" />
+        <img src="/error.png" alt="Not Found" className="w-64 h-64 mb-8" />
         <h1 className="text-6xl font-bold mb-4">404</h1>
         <h2 className="text-3xl font-semibold mb-2">Page Not Found</h2>
         <p className="mb-8">Could not find the requested resource.</p>

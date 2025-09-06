@@ -19,10 +19,13 @@ export default function AuthPage({ signUpDefault, forward}: AuthPageParams) {
     const [dn, setDN] = useState("");
     const [password, setPassword] = useState("");
     const [isSignup, setIsSignup] = useState(signUpDefault);
+    const [errorMessage, setErrorMessage] = useState("");
     const router = useRouter();
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
+        setErrorMessage(""); // Clear any previous errors
+
         try {
             if (isSignup) {
                 const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -43,16 +46,19 @@ export default function AuthPage({ signUpDefault, forward}: AuthPageParams) {
             }
 
             router.replace(window.location.origin + "/" + (forward ? forward : "dashboard"));
-        } catch (err) {
-            if (err instanceof Error) {
-                console.error(err.message);
+        } catch (err: any) {
+            if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+                setErrorMessage("Incorrect password. Please try again.");
             } else {
-                console.error("An unknown error occurred.");
+                setErrorMessage("An error occurred. Please try again.");
+                console.error(err.message);
             }
         }
     }
 
     async function handleGoogleLogin() {
+        setErrorMessage(""); // Clear any previous errors
+
         try {
             const provider = new GoogleAuthProvider();
             const result = await signInWithPopup(auth, provider);
@@ -69,14 +75,10 @@ export default function AuthPage({ signUpDefault, forward}: AuthPageParams) {
                 });
             }
 
-            
             router.replace(window.location.origin + "/" + (forward ? forward : "dashboard"));
-        } catch (err) {
-            if (err instanceof Error) {
-                console.error(err.message);
-            } else {
-                console.error("An unknown error occurred.");
-            }
+        } catch (err: any) {
+            setErrorMessage("Failed to sign in with Google. Please try again.");
+            console.error(err.message);
         }
     }
 
@@ -95,7 +97,7 @@ export default function AuthPage({ signUpDefault, forward}: AuthPageParams) {
                 />
                 {isSignup && (
                     <input
-                        type="Display name"
+                        type="text"
                         placeholder="Display name"
                         className="border border-[var(--neutral-300)] rounded-md p-2 focus:outline-none focus:border-[var(--accent-500)] bg-[var(--background)] text-[var(--foreground)]"
                         value={dn}
@@ -114,6 +116,10 @@ export default function AuthPage({ signUpDefault, forward}: AuthPageParams) {
                     {isSignup ? "Sign Up" : "Login"}
                 </Button>
             </form>
+
+            {errorMessage && (
+                <p className="text-[var(--error)] mt-2 text-center">{errorMessage}</p>
+            )}
 
             <button
                 onClick={() => setIsSignup(!isSignup)}

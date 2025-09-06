@@ -5,6 +5,8 @@ import Button from "@/app/components/button";
 
 type ProjectModalProps = {
     isOpen: boolean;
+    type: "input" | "confirm" | "info" | "error";
+    message?: string;
     initialValue?: string;
     onClose: () => void;
     onSubmit: (value: string) => void;
@@ -14,6 +16,8 @@ type ProjectModalProps = {
 
 export default function Modal({
     isOpen,
+    type,
+    message = "",
     initialValue = "",
     onClose,
     onSubmit,
@@ -37,25 +41,46 @@ export default function Modal({
                     {title}
                 </h2>
 
-                <form
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        if (!value.trim()) return;
-                        onSubmit(value.trim());
-                        setValue(initialValue);
-                    }}
-                    className="flex flex-col gap-4"
-                >
-                    <input
-                        type="text"
-                        value={value}
-                        onChange={(e) => setValue(e.target.value)}
-                        className="border border-[var(--neutral-300)] rounded-md p-2 bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] transition"
-                        placeholder={placeholder}
-                        autoFocus
-                    />
+                {(!type || type === "input") ? (
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            if (!value.trim()) return;
+                            onSubmit(value.trim());
+                            setValue(initialValue);
+                        }}
+                        className="flex flex-col gap-4"
+                    >
+                        <input
+                            type="text"
+                            value={value}
+                            onChange={(e) => setValue(e.target.value)}
+                            className="border border-[var(--neutral-300)] rounded-md p-2 bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] transition"
+                            placeholder={placeholder}
+                            autoFocus
+                        />
 
-                    <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                color="var(--neutral-300)"
+                                type="button"
+                                onClick={() => {
+                                    onClose();
+                                    setValue(initialValue);
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                            <Button color="var(--accent-500)" type="submit">
+                                Save
+                            </Button>
+                        </div>
+                    </form>
+                ) : (
+                    <>
+                        <p className={`text-[var(${(type === "error") ? "--error" : "--foreground"})]`}>
+                            {message}
+                        </p>
                         <Button
                             color="var(--neutral-300)"
                             type="button"
@@ -64,13 +89,11 @@ export default function Modal({
                                 setValue(initialValue);
                             }}
                         >
-                            Cancel
+                            {type === "confirm" ? "ok" : "close"}
                         </Button>
-                        <Button color="var(--accent-500)" type="submit">
-                            Save
-                        </Button>
-                    </div>
-                </form>
+                    </>
+                )}
+
             </div>
         </div>
     );

@@ -99,6 +99,7 @@ const Dashboard = () => {
             {/* Modal for Create/Edit */}
             <Modal
                 isOpen={modalVisible}
+                type = "input"
                 initialValue={editingProject?.title || ""}
                 onClose={() => setModalVisible(false)}
                 onSubmit={handleModalSubmit}
