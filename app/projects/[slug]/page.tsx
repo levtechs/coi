@@ -13,6 +13,8 @@ import Editor from "@/app/components/editor/editor";
 import LoadingComponent from "@/app/components/loading";
 
 export default function ProjectPage() {
+    const [isLoading, setLoading] = useState(true);
+
     const { user } = useAuth();
     const params = useParams();
 
@@ -22,6 +24,7 @@ export default function ProjectPage() {
     const [project, setProject] = useState<Project | null>(null);
 
     useEffect(() => {
+        setLoading(true);
         if (!user) return;
 
         const slugParam = params?.slug;
@@ -29,14 +32,28 @@ export default function ProjectPage() {
         if (!projectId) return;
 
         async function fetchProject() {
-            const project = await getProject(projectId!);
-            setProject(project);
+            try {
+                const project = await getProject(projectId!);
+                setProject(project);
+            }
+            catch (err) {
+                console.error("Failed to fetch project:", err);
+            }
+            finally {
+                setLoading(false);
+            }
         }
 
         fetchProject();
     }, [user, params?.slug]);
 
     if (!projectId) return; // early return if undefined
+
+    if (isLoading || !project) {
+        return (
+            <LoadingComponent loadingText="Loading project" />
+        );
+    }
 
     if (!user) {
         return (
@@ -47,12 +64,6 @@ export default function ProjectPage() {
                     Go to Login Page
                 </Button>
             </div>
-        );
-    }
-
-    if (!project) {
-        return (
-            <LoadingComponent />
         );
     }
 

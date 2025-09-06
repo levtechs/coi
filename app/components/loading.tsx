@@ -1,10 +1,33 @@
-import { FiLoader } from "react-icons/fi";
+"use client";
 
-const LoadingComponent = () => {
+import { useState, useEffect } from "react";
+
+interface LoadingComponentProps {
+    loadingText?: string;
+}
+
+const LoadingComponent = ({ loadingText } : LoadingComponentProps) => {
+    const [dots, setDots] = useState("");
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setDots(prevDots => {
+                if (prevDots.length < 3) {
+                    return prevDots + ".";
+                }
+                return "";
+            });
+        }, 500); // Change dot every 500ms
+
+        return () => clearInterval(interval);
+    }, []);
+
     return (
         <div className="flex flex-col items-center justify-center h-screen space-y-4">
-            <img src="/bookraw-unscreen.gif" alt="Loading animation" className="w-20 h-20" />
-            <p className="text-[var(--foreground)] text-xl">Loading project...</p>
+            <img src="/square.gif" alt="Loading animation" className="w-40 h-40" />
+            <div>
+                <p className="text-[var(--foreground)] text-xl">{loadingText ? loadingText : "Loading"}{dots}</p>
+            </div>
         </div>
     );
 }
