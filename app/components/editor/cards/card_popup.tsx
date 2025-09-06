@@ -4,9 +4,8 @@ import React from "react";
 import { Card } from "@/lib/types";
 
 import { FiX } from "react-icons/fi";
-import ReactMarkdown from "react-markdown";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
+
+import MarkdownArticle from "../../md";
 
 type CardPopupProps = {
     card: Card;
@@ -44,12 +43,7 @@ export default function CardPopup({ card, onClose }: CardPopupProps) {
                     <ul className="list-disc space-y-2 text-[var(--neutral-800)]">
                         {card.details.map((detail, index) => (
                             <li key={index} className="border-l-4 border-[var(--neutral-400)] pl-4">
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkMath]}
-                                    rehypePlugins={[rehypeKatex]}
-                                >
-                                    {detail}
-                                </ReactMarkdown>
+                                <MarkdownArticle markdown={detail} />
                             </li>
                         ))}
                     </ul>

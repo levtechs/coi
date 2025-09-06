@@ -40,10 +40,7 @@ By no new information, we mean:
 Respond in a clear and friendly manner.
 Encourage the user to keep learning.
 
-Use standard markdown formatting and LaTeX when necessary in user_message. They will be rendered using:
-ReactMarkdown from "react-markdown";
-remarkMath from "remark-math";
-rehypeKatex from "rehype-katex";
+Use standard markdown formatting and LaTeX when necessary in user_message.
 
 
 EXAMPLE INPUT 1:
