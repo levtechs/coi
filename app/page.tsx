@@ -141,6 +141,33 @@ const DetailsComponent = () => {
                     <RxDiscordLogo size={32} />
                 </a>
             </div>
+            <h3 className="text-center text-lg max-w-xl text-[var(--neutral-500)] mt-8">
+                Interested in contributing?
+                <h4 className="text-[var(--foreground)] font-semibold">
+                    Check out the 
+                    <a 
+                        className="text-[var(--accent-500)] hover:underline mr-1 ml-1"
+                        href="https://github.com/levtechs/coi" 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                    >
+                        GitHub repository
+                    </a>
+                </h4>
+                Everything is open-source and contributions are welcome!
+            </h3>
+            <h3 className="text-center text-lg max-w-xl text-[var(--neutral-500)] mt-8">
+                Please report bugs or suggest features via the
+                <a 
+                    className="text-[var(--accent-500)] hover:underline mr-1 ml-1"
+                    href="https://github.com/levtechs/coi/issues" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                >
+                    GitHub issues page
+                </a>
+                or by reaching out to me directly on X or Discord!
+            </h3>
         </div>
     );
 };

@@ -46,12 +46,25 @@ export default function AuthPage({ signUpDefault, forward}: AuthPageParams) {
             }
 
             router.replace(window.location.origin + "/" + (forward ? forward : "dashboard"));
-        } catch (err: any) {
-            if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+        } catch (err: unknown) {
+            if (
+                typeof err === "object" &&
+                err !== null &&
+                "code" in err &&
+                (err as { code?: string }).code &&
+                (
+                    (err as { code: string }).code === "auth/wrong-password" ||
+                    (err as { code: string }).code === "auth/invalid-credential"
+                )
+            ) {
                 setErrorMessage("Incorrect password. Please try again.");
             } else {
                 setErrorMessage("An error occurred. Please try again.");
-                console.error(err.message);
+                if (err instanceof Error) {
+                    console.error(err.message);
+                } else {
+                    console.error(err);
+                }
             }
         }
     }
@@ -76,9 +89,9 @@ export default function AuthPage({ signUpDefault, forward}: AuthPageParams) {
             }
 
             router.replace(window.location.origin + "/" + (forward ? forward : "dashboard"));
-        } catch (err: any) {
+        } catch (err) {
             setErrorMessage("Failed to sign in with Google. Please try again.");
-            console.error(err.message);
+            console.error(err);
         }
     }
 
