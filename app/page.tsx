@@ -84,13 +84,13 @@ const LandingPage = () => {
                 </div>
 
                 {/* Oscillating text */}
-                <div className="flex flex-col items-center mt-8" >
+                <button className="flex flex-col items-center mt-8" >
                     <div className="text-sm font-semibold text-[var(--neutral-600)] animate-bounce flex items-center gap-1" onClick={scrollToDetails}>
                         <FiChevronDown size={20} />
                         details 
                         <FiChevronDown size={20} />
                     </div>
-                </div>
+                </button>
             </div>
 
             {/* Details Section */}
@@ -143,7 +143,7 @@ const DetailsComponent = () => {
             </div>
             <h3 className="text-center text-lg max-w-xl text-[var(--neutral-500)] mt-8">
                 Interested in contributing?
-                <h4 className="text-[var(--foreground)] font-semibold">
+                <div className="text-[var(--foreground)] font-semibold">
                     Check out the 
                     <a 
                         className="text-[var(--accent-500)] hover:underline mr-1 ml-1"
@@ -153,7 +153,7 @@ const DetailsComponent = () => {
                     >
                         GitHub repository
                     </a>
-                </h4>
+                </div>
                 Everything is open-source and contributions are welcome!
             </h3>
             <h3 className="text-center text-lg max-w-xl text-[var(--neutral-500)] mt-8">
