@@ -43,7 +43,7 @@ export const writeChatPairToDb = async (
  * @param projectId The ID of the project where this content belongs.
  */
 export const writeNewContentToDb = async (
-    newContent: string,
+    newContent: JSON,
     projectId: string
 ) => {
     if (!newContent || !projectId) throw new Error("Missing content or projectId");
@@ -199,7 +199,7 @@ export const getChatResponse = async (message: string, messageHistory: Message[]
     }
 };
 
-export const getUpdatedContent = async (previousContent: string | null, message: string, response: string) => {
+export const getUpdatedContent = async (previousContent: string | null, message: string, response: string): Promise<JSON> => {
     let body: object = {}
     if (previousContent) {
         // We add the previous content to the history to give the model full context.
@@ -235,17 +235,15 @@ export const getUpdatedContent = async (previousContent: string | null, message:
     }
 
     const apiResponse = await callGeminiApi(body);
-    const jsonResponseText = JSON.parse(apiResponse?.candidates?.[0]?.content?.parts?.[0]?.text);
-
-    if (!jsonResponseText) {
-        throw new Error("No JSON text returned from API.");
+    if (!apiResponse) {
+        throw new Error("No response from Gemini API");
     }
-
     try {
-        const parsed = jsonResponseText;
-        return parsed;
-    } catch {
-        console.error("Failed to parse Gemini output as JSON:", jsonResponseText);
+        const jsonResponseText = JSON.parse(apiResponse?.candidates?.[0]?.content?.parts?.[0]?.text);
+        return jsonResponseText;
+    }
+    catch {
+        console.error("Failed to parse Gemini output as JSON:", apiResponse?.candidates?.[0]?.content?.parts?.[0]?.text);
         throw new Error("Invalid JSON returned from Gemini");
     }
 };
