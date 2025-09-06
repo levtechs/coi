@@ -19,7 +19,7 @@ export default function CardsPanel({ project, onCardClick }: CardsPanelProps) {
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4 min-h-[75vh]">
+        <div className="flex flex-wrap w-full gap-8 p-4">
             {project.cards.map((card) => (
                 <DetailCard key={card.id} card={card} onClick={onCardClick} />
             ))}

@@ -52,7 +52,7 @@ const Editor = ({
             {/* Main Layout */}
             <div className="relative mt-4">
                 {/* Main Content Panel - occupies the available space with a right margin */}
-                <div className={`mr-80 md:mr-96 ${chatToggled ? "max-w-[40vw]": "w-full"} transition-all duration-300`}>
+                <div className={`mr-80 md:mr-96 ${chatToggled ? "max-w-[50vw]": "w-full"} transition-all duration-300`}>
                     <TabSelector
                         tabs={["content", "cards"]}
                         onTabChange={(tabName) => setTab(tabName as "content" | "cards")}
