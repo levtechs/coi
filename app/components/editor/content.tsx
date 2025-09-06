@@ -8,7 +8,6 @@ import { FiChevronRight, FiChevronDown } from "react-icons/fi";
 
 import { Project } from "@/lib/types";
 
-
 // Defines a structured content node which can be nested
 interface StructuredContent {
     title?: string;
@@ -28,12 +27,16 @@ const StructuredContentRenderer = ({ data, level = 2 }: StructuredContentProps) 
         return <p className="text-[var(--neutral-500)]">(No content)</p>;
     }
 
+    // Determine the heading size based on the nesting level
+    const headingSize = level > 5 ? 5 : level;
+    const headingClass = `text-${2 + (5 - headingSize)}xl font-semibold`;
+
     return (
         <div className="flex flex-col">
             {data.title && (
                 <div 
                     onClick={() => setIsCollapsed(!isCollapsed)}
-                    className="flex items-center gap-2 cursor-pointer mb-2 mt-4"
+                    className="flex items-center gap-2 cursor-pointer mb-2"
                 >
                     {isCollapsed ? (
                         <FiChevronRight className="text-[var(--neutral-500)]" size={24} />
@@ -41,9 +44,9 @@ const StructuredContentRenderer = ({ data, level = 2 }: StructuredContentProps) 
                         <FiChevronDown className="text-[var(--neutral-500)]" size={24} />
                     )}
                     {React.createElement(
-                        `h${level}`,
+                        `h${headingSize}`,
                         {
-                            className: `text-[var(--foreground)] text-${2 + (5 - level)}xl font-semibold`
+                            className: `text-[var(--foreground)] ${headingClass}`
                         },
                         <ReactMarkdown
                             remarkPlugins={[remarkMath]}
@@ -55,11 +58,13 @@ const StructuredContentRenderer = ({ data, level = 2 }: StructuredContentProps) 
                 </div>
             )}
             {!isCollapsed && (
-                <div className="ml-4">
+                <div className="ml-4 space-y-4"> {/* Use space-y for consistent vertical spacing */}
                     {Array.isArray(data.details) && data.details.map((item, index) => {
                         if (typeof item === 'string') {
+                            // Render string content inside a single ReactMarkdown block
+                            // The `prose` class will now handle all internal formatting (bullets, lists, paragraphs)
                             return (
-                                <div key={index} className="mb-2 prose prose-sm max-w-none">
+                                <div key={index} className="prose prose-sm max-w-none text-[var(--foreground)]">
                                     <ReactMarkdown
                                         remarkPlugins={[remarkMath]}
                                         rehypePlugins={[rehypeKatex]}
@@ -96,7 +101,7 @@ const ContentPanel = ({ project }: ContentPanelProps) => {
     
     return (
         <div className="flex-1 min-h-[75vh]">
-            <div className="relative group p-3 rounded-md text-[var(--foreground)] whitespace-pre-wrap h-full">
+            <div className="relative p-3 rounded-md text-[var(--foreground)] h-full">
                 {/* Render content */}
                 {content ? (
                     <StructuredContentRenderer data={content} />
