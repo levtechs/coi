@@ -1,7 +1,19 @@
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, setDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
+
 import { Message } from "@/lib/types"; // { content: string; isResponse: boolean }
-import { GEMINI_API_URL, chatResponseSystemInstruction, genContentSystemInstruction, updateContentSystemInstruction, defaultGeneralConfig, limitedGeneralConfig, INITIAL_DELAY_MS, MAX_RETRIES} from "./config";
+import { 
+    GEMINI_API_URL, 
+    chatResponseSystemInstruction, 
+    firstChatResponseSystemInstruction, 
+    genContentSystemInstruction, 
+    updateContentSystemInstruction, 
+    defaultGeneralConfig, 
+    limitedGeneralConfig, 
+    INITIAL_DELAY_MS, 
+    MAX_RETRIES
+} from "./config";
+
 import { Contents } from "./types";
 
 export const writeChatPairToDb = async (
@@ -140,7 +152,7 @@ const callGeminiApi = async (body: object) => {
  * @param messageHistory The history of the conversation.
  * @returns A promise that resolves to an object with a response message and a boolean indicating new information.
  */
-export const getChatResponse = async (message: string, messageHistory: Message[]) => {
+export const getChatResponse = async (message: string, messageHistory: Message[], prevContent: string | null) => {
     if (!message || message.trim() === "") {
         throw new Error("Message is required.");
     }
@@ -170,10 +182,9 @@ export const getChatResponse = async (message: string, messageHistory: Message[]
             propertyOrdering: ["responseMessage", "hasNewInfo"]
         },
     };
-
     const body = {
         contents,
-        systemInstruction: chatResponseSystemInstruction,
+        systemInstruction: (prevContent ? chatResponseSystemInstruction(JSON.stringify(prevContent)) : firstChatResponseSystemInstruction),
         generationConfig: generationConfig,
     };
 
@@ -204,14 +215,13 @@ export const getUpdatedContent = async (previousContent: string | null, message:
     if (previousContent) {
         // We add the previous content to the history to give the model full context.
         const contents: Contents = [
-            { role: "user", parts: [{ text: (JSON.stringify(previousContent)) }] },
             { role: "user", parts: [{ text: message }] },
             { role: "model", parts: [{ text: response }] }
         ];
 
         body = {
             contents,
-            systemInstruction: updateContentSystemInstruction,
+            systemInstruction: updateContentSystemInstruction(JSON.stringify(previousContent)),
             generationConfig: {
                 ...defaultGeneralConfig,
                 responseMimeType: "application/json",

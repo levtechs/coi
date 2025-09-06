@@ -14,13 +14,14 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
         const { message, messageHistory, projectId } = body as { message: string, messageHistory: Message[], projectId: string };
-        
-        const chatResponse = await getChatResponse(message, messageHistory) || {responseMessage: "Sorry, I couldn't generate a response.", hasNewInfo: false};
+    
+        const previousContent = await getPreviousContent(projectId);
+
+        const chatResponse = await getChatResponse(message, messageHistory, previousContent) || {responseMessage: "Sorry, I couldn't generate a response.", hasNewInfo: false};
         const responseMessage = chatResponse.responseMessage;
         writeChatPairToDb(message, responseMessage, projectId, uid);
 
         if (chatResponse.hasNewInfo) {
-            const previousContent = await getPreviousContent(projectId);
             const newContent: JSON = await getUpdatedContent(previousContent, message, responseMessage);
             writeNewContentToDb(newContent, projectId);
             const allCards: Card[] = await extractWriteCards(projectId, newContent) || [];

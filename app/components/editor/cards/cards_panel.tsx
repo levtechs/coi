@@ -13,7 +13,7 @@ type CardsPanelProps = {
 export default function CardsPanel({ project, onCardClick, hidden }: CardsPanelProps) {
     if (!project || !project.cards || project.cards.length === 0) {
         return (
-            <div className="text-[var(--neutral-600)] text-center p-8">
+            <div className={`text-[var(--neutral-600)] text-center p-8 ${hidden ? 'hidden' : ''}`}>
                 No cards found for this project.
             </div>
         );
