@@ -12,6 +12,7 @@ import { noModal } from "./types";
 import TabSelector from "./tab_selector";
 import CardsPanel from "./cards/cards_panel";
 import CardPopup from "./cards/card_popup";
+import Button from "../button";
 
 interface EditorProps {
     project: Project;
@@ -29,6 +30,7 @@ const Editor = ({
     setTitle,
 }: EditorProps) => {
     const [tab, setTab] = useState<"content" | "cards">("content"); // "content" or "cards"
+    const [chatToggled, setChatToggled] = useState(true);
 
     const [modalContents, setModalContents] = useState(noModal);
     const closeModal = () => setModalContents(noModal);
@@ -50,7 +52,7 @@ const Editor = ({
             {/* Main Layout */}
             <div className="relative mt-4">
                 {/* Main Content Panel - occupies the available space with a right margin */}
-                <div className="mr-80 md:mr-96 max-w-[40vw]">
+                <div className={`mr-80 md:mr-96 ${chatToggled ? "max-w-[40vw]": "w-full"} transition-all duration-300`}>
                     <TabSelector
                         tabs={["content", "cards"]}
                         onTabChange={(tabName) => setTab(tabName as "content" | "cards")}
@@ -70,7 +72,11 @@ const Editor = ({
 
                 {/* Chat Panel - fixed to the viewport and always centered */}
                 <div className="fixed top-1/2 -translate-y-1/2 right-6">
-                    <ChatPanel project={project} setProject={setProject} />
+                    <ChatPanel 
+                        project={project} 
+                        setProject={setProject}
+                        toggleChat={setChatToggled} 
+                    />
                 </div>
             </div>
 
