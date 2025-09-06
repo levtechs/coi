@@ -91,8 +91,8 @@ const ContentPanel = ({ project, hidden }: ContentPanelProps) => {
     const content = project.content ? project.content as unknown as StructuredContent : null;
     
     return (
-        <div className={`flex-1 min-h-[75vh] max-w-[95%] ${hidden ? 'hidden' : ''}`}>
-            <div className="relative p-3 rounded-md text-[var(--foreground)] h-full">
+        <div className={`flex-1 w-full ${hidden ? 'hidden' : ''}`}>
+            <div className="relative p-3 rounded-md text-[var(--foreground)]">
                 {/* Render content */}
                 {content ? (
                     <StructuredContentRenderer data={content} />

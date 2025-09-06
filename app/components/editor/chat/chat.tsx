@@ -6,17 +6,14 @@ import ChatMessages from "./chat_messages";
 
 import { Project, Message } from "@/lib/types";
 
-import { getProject } from "@/app/views/projects";
 import { getResponse, getChatHistory } from "@/app/views/chat";
-import { get } from "http";
 
 interface ChatPanelProps {
     project: Project;
     setProject: (updater: (prev: Project | null) => Project | null) => void;
-    toggleChat: (open: boolean) => void;
 }
 
-const ChatPanel = ({ project, setProject, toggleChat}: ChatPanelProps) => {
+const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
     const [chatToggled, setChatToggled] = useState(true);
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
@@ -100,16 +97,13 @@ const ChatPanel = ({ project, setProject, toggleChat}: ChatPanelProps) => {
     return (
         <div className="transition-all duration-300">
             {chatToggled ? (
-                <div className="bg-[var(--neutral-200)] rounded-md p-3 flex flex-col h-[75vh] w-[45vw]">
+                <div className="bg-[var(--neutral-200)] rounded-md p-3 flex flex-col h-[100%] w-[45vw]">
                     <div className="flex justify-between items-center mb-2">
                         <h2 className="text-[var(--foreground)] text-xl font-semibold">Chat</h2>
                         <FiX
                             size={24}
                             className="text-[var(--neutral-500)] cursor-pointer hover:text-[var(--foreground)]"
-                            onClick={() => {
-                                setChatToggled(false);
-                                toggleChat(false);
-                            }}
+                            onClick={() => {setChatToggled(false);}}
                         />
                     </div>
                     {/* This is the new scrollable container with the ref attached */}
@@ -135,15 +129,14 @@ const ChatPanel = ({ project, setProject, toggleChat}: ChatPanelProps) => {
                     </div>
                 </div>
             ) : (
-                <Button 
-                    color="var(--accent-500)"
-                    onClick={() => {
-                        setChatToggled(true);
-                        toggleChat(true);
-                    }}
-                >
-                    Open chat
-                </Button>
+                <div className="absolute top-0 right-0 m-4"> 
+                    <Button 
+                        color="var(--accent-500)"
+                        onClick={() => {setChatToggled(true)}}
+                    >
+                        Open chat
+                    </Button>
+                </div>
             )}
         </div>
 

@@ -93,3 +93,19 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Target WebKit-based browsers (Chrome, Safari, Edge, etc.) */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+/* The scrollbar track */
+::-webkit-scrollbar-track {
+}
+
+/* The scrollbar thumb (the draggable part) */
+::-webkit-scrollbar-thumb {
+  background-color: var(--neutral-400);
+  border-radius: 6px;
+  border: 2px solid var(--neutral-100);
+}
