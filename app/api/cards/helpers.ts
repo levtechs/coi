@@ -1,6 +1,13 @@
-import { collection, doc, getDoc, getDocs, addDoc } from "firebase/firestore";
+import {
+    collection,
+    addDoc,
+    getDocs,
+    deleteDoc,
+    doc,
+    writeBatch,
+    getDoc,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
-
 import { Project, Card } from "@/lib/types";
 
 /**
@@ -43,38 +50,86 @@ const recursivelyFindCards = (obj: unknown, foundCards: Omit<Card, 'id'>[]) => {
 };
 
 /**
- * Extracts card objects from a nested JSON string, writes them to Firestore,
- * and returns the list of cards with their new document IDs.
+ * Extracts card objects from a nested JSON string, compares them to existing
+ * cards in Firestore, and performs a series of batched write operations
+ * (add, update, delete) to synchronize the data.
  * @param projectId The ID of the project to write the cards to.
  * @param content The JSON string containing the nested card data.
  * @returns An array of Card objects with their assigned IDs, or null on error.
  */
-export const extractWriteCards = async (projectId: string, content: string): Promise<Card[] | null> => {
+export const extractWriteCards = async (projectId: string, content: JSON): Promise<Card[] | null> => {
+    const batch = writeBatch(db);
+
     try {
-        // Step 1: Parse the JSON content string
+        // Step 1: Parse the JSON content and extract new cards.
         const parsedContent = content;
-        const extractedCards: Omit<Card, 'id'>[] = [];
+        const newExtractedCards: Omit<Card, 'id'>[] = [];
+        recursivelyFindCards(parsedContent, newExtractedCards);
 
-        // Step 2: Recursively find and extract all cards
-        recursivelyFindCards(parsedContent, extractedCards);
-
-        if (extractedCards.length === 0) {
-            console.warn("No cards found in the provided content.");
-            return [];
-        }
-
-        // Step 3: Write each extracted card to the 'cards' subcollection
+        // Step 2: Fetch all existing cards from Firestore.
         const cardsCollectionRef = collection(db, "projects", projectId, "cards");
-        const writePromises = extractedCards.map(async (card) => {
-            const docRef = await addDoc(cardsCollectionRef, card);
-            return { id: docRef.id, ...card };
+        const existingDocs = await getDocs(cardsCollectionRef);
+        
+        // Use a Map for efficient lookup of existing cards.
+        const existingCardMap = new Map<string, { id: string, details: string[] }>();
+        existingDocs.forEach(doc => {
+            const cardData = doc.data() as Omit<Card, 'id'>;
+            // Create a unique key for each card based on its title and details.
+            // This allows us to compare and identify cards easily.
+            const cardKey = `${cardData.title}-${JSON.stringify(cardData.details)}`;
+            existingCardMap.set(cardKey, { id: doc.id, details: cardData.details });
         });
 
-        // Use Promise.all to write concurrently and get all new document IDs
-        const newCards = await Promise.all(writePromises);
+        const updatedCardIds = new Set<string>();
 
-        console.log(`Successfully wrote ${newCards.length} cards to Firestore.`);
-        return newCards as Card[];
+        // Step 3: Iterate through new cards to identify additions and updates.
+        for (const newCard of newExtractedCards) {
+            const newCardKey = `${newCard.title}-${JSON.stringify(newCard.details)}`;
+            
+            if (existingCardMap.has(newCardKey)) {
+                // If a card with this content already exists, do nothing, but mark it as seen.
+                const existing = existingCardMap.get(newCardKey);
+                if (existing) {
+                    updatedCardIds.add(existing.id);
+                }
+            } else {
+                // If the card is new, add it to the database.
+                const newDocRef = doc(cardsCollectionRef);
+                batch.set(newDocRef, newCard);
+                updatedCardIds.add(newDocRef.id);
+            }
+        }
+
+        // Step 4: Identify cards to be deleted.
+        const deletedCardIds: string[] = [];
+        existingDocs.forEach(doc => {
+            if (!updatedCardIds.has(doc.id)) {
+                deletedCardIds.push(doc.id);
+            }
+        });
+
+        // Step 5: Perform the delete operations in the batch.
+        deletedCardIds.forEach(id => {
+            const docRef = doc(cardsCollectionRef, id);
+            batch.delete(docRef);
+        });
+
+        // Step 6: Commit the batch to Firestore.
+        await batch.commit();
+
+        console.log(
+            `Successfully synchronized cards. Added: ${newExtractedCards.length - updatedCardIds.size}, ` +
+            `Updated: 0 (not directly supported with this keying), Deleted: ${deletedCardIds.length}`
+        );
+        
+        // For a final list of cards, fetch again or re-construct.
+        const finalCards = await getDocs(cardsCollectionRef);
+        const allCards: Card[] = finalCards.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data() as Omit<Card, 'id'>
+        }));
+
+        return allCards;
 
     } catch (err) {
         console.error("Error extracting and writing cards:", err);

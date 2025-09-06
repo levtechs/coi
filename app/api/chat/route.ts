@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
         if (chatResponse.hasNewInfo) {
             const previousContent = await getPreviousContent(projectId);
-            const newContent: string = await getUpdatedContent(previousContent, message, responseMessage);
+            const newContent: JSON = await getUpdatedContent(previousContent, message, responseMessage);
             writeNewContentToDb(newContent, projectId);
             const allCards: Card[] = await extractWriteCards(projectId, newContent) || [];
 
