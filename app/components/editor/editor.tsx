@@ -57,16 +57,15 @@ const Editor = ({
                         tabs={["content", "cards"]}
                         onTabChange={(tabName) => setTab(tabName as "content" | "cards")}
                     />
-                    {tab === "content" ? (
-                        <ContentPanel
-                            project={project}
-                        />
-                    ) : (
-                        <CardsPanel 
-                            project={project} 
-                            onCardClick={(card: Card) => setCardPopup(card)}
-                        />
-                    )}
+                    <ContentPanel
+                        project={project}
+                        hidden={tab !== "content"}
+                    />
+                    <CardsPanel 
+                        project={project} 
+                        onCardClick={(card: Card) => setCardPopup(card)}
+                        hidden={tab === "content"}
+                    />
 
                 </div>
 

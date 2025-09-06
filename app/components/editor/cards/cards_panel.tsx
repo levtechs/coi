@@ -7,9 +7,10 @@ import DetailCard from "./detail_card";
 type CardsPanelProps = {
     project: Project;
     onCardClick: (cardId: Card) => void;
+    hidden: boolean;
 };
 
-export default function CardsPanel({ project, onCardClick }: CardsPanelProps) {
+export default function CardsPanel({ project, onCardClick, hidden }: CardsPanelProps) {
     if (!project || !project.cards || project.cards.length === 0) {
         return (
             <div className="text-[var(--neutral-600)] text-center p-8">
@@ -19,7 +20,7 @@ export default function CardsPanel({ project, onCardClick }: CardsPanelProps) {
     }
 
     return (
-        <div className="flex flex-wrap w-full gap-8 p-4">
+        <div className={`flex flex-wrap w-full gap-8 p-4 ${hidden ? 'hidden' : ''}`}>
             {project.cards.map((card) => (
                 <DetailCard key={card.id} card={card} onClick={onCardClick} />
             ))}
