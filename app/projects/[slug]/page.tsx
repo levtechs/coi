@@ -10,6 +10,7 @@ import { FiLoader } from "react-icons/fi";
 
 import Button from "@/app/components/button";
 import Editor from "@/app/components/editor/editor";
+import LoadingComponent from "@/app/components/loading";
 
 export default function ProjectPage() {
     const { user } = useAuth();
@@ -51,10 +52,7 @@ export default function ProjectPage() {
 
     if (!project) {
         return (
-            <div className="flex items-center justify-center h-screen">
-                <FiLoader className="animate-spin w-5 h-5 text-[var(--foreground)]" />
-                <p className="text-[var(--foreground)] text-xl">Loading project...</p>
-            </div>
+            <LoadingComponent />
         );
     }
 
