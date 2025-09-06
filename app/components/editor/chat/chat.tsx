@@ -97,7 +97,7 @@ const ChatPanel = ({ project, setProject, toggleChat}: ChatPanelProps) => {
     return (
         <div className="transition-all duration-300">
             {chatToggled ? (
-                <div className="bg-[var(--neutral-200)] rounded-md p-3 flex flex-col h-[75vh] w-[50vw]">
+                <div className="bg-[var(--neutral-200)] rounded-md p-3 flex flex-col h-[75vh] w-[45vw]">
                     <div className="flex justify-between items-center mb-2">
                         <h2 className="text-[var(--foreground)] text-xl font-semibold">Chat</h2>
                         <FiX
