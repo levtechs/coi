@@ -92,7 +92,7 @@ interface ContentPanelProps {
 }
 
 const ContentPanel = ({ project }: ContentPanelProps) => {
-    const content = project.content ? (JSON.parse(JSON.stringify(project.content)) as unknown as StructuredContent) : null;
+    const content = project.content ? project.content as unknown as StructuredContent : null;
     
     return (
         <div className="flex-1 min-h-[75vh]">

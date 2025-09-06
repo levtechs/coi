@@ -103,7 +103,7 @@ export async function getTitle(projectId: string): Promise<string> {
 }
 
 /** Fetch project content */
-export async function getContent(projectId: string): Promise<string> {
+export async function getContent(projectId: string): Promise<JSON> {
     const project = await apiFetch<Project>(`/api/projects/${projectId}`);
     return project.content;
 }
