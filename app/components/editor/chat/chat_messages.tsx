@@ -2,11 +2,9 @@ import React from "react"
 
 import { FiLoader } from "react-icons/fi";
 
-import ReactMarkdown from "react-markdown";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-
 import { Message } from "@/lib/types";
+
+import MarkdownArticle from "../../md";
 
 interface ChatMessagesProps {
     messages: Message[];
@@ -28,12 +26,7 @@ const ChatMessages = ({ messages, isLoading}: ChatMessagesProps) => {
                                 : "self-end bg-[var(--accent-400)] text-white"
                             }`}
                     >
-                        <ReactMarkdown
-                            remarkPlugins={[remarkMath]}
-                            rehypePlugins={[rehypeKatex]}
-                        >
-                            {msg.content}
-                        </ReactMarkdown>
+                        <MarkdownArticle markdown={msg.content} />
                     </div>
                 ))
             )}

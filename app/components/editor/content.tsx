@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
+
+import MarkdownArticle from "../md";
+
 import { FiChevronRight, FiChevronDown } from "react-icons/fi";
 
 import { Project } from "@/lib/types";
@@ -48,12 +48,7 @@ const StructuredContentRenderer = ({ data, level = 2 }: StructuredContentProps) 
                         {
                             className: `text-[var(--foreground)] ${headingClass}`
                         },
-                        <ReactMarkdown
-                            remarkPlugins={[remarkMath]}
-                            rehypePlugins={[rehypeKatex]}
-                        >
-                            {data.title}
-                        </ReactMarkdown>
+                        <MarkdownArticle markdown={data.title} />
                     )}
                 </div>
             )}
@@ -65,12 +60,7 @@ const StructuredContentRenderer = ({ data, level = 2 }: StructuredContentProps) 
                             // The `prose` class will now handle all internal formatting (bullets, lists, paragraphs)
                             return (
                                 <div key={index} className="prose prose-sm max-w-none text-[var(--foreground)]">
-                                    <ReactMarkdown
-                                        remarkPlugins={[remarkMath]}
-                                        rehypePlugins={[rehypeKatex]}
-                                    >
-                                        {item}
-                                    </ReactMarkdown>
+                                    <MarkdownArticle markdown={item} />
                                 </div>
                             );
                         }

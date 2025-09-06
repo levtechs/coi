@@ -1,10 +1,14 @@
 import { useState, useEffect, useRef } from "react";
+
 import { FiSend, FiX } from "react-icons/fi";
 import Button from "@/app/components/button";
 import ChatMessages from "./chat_messages";
 
 import { Project, Message } from "@/lib/types";
+
+import { getProject } from "@/app/views/projects";
 import { getResponse, getChatHistory } from "@/app/views/chat";
+import { get } from "http";
 
 interface ChatPanelProps {
     project: Project;
@@ -34,14 +38,13 @@ const ChatPanel = ({ project, setProject, toggleChat}: ChatPanelProps) => {
             const response = await getResponse(userInput, recentMessages, project.id);
             const aiResponse = response.response;
             const newContent = response.newContent;
-            // NOTE: `allCards` is not returned by `getResponse`, this may cause an issue
-            // const allCards = response.allCards; 
+            const allCards = response.allCards;
             if (newContent) {
                 setProject(prev => prev ? { ...prev, content: newContent } : null);
             }
-            // else if (allCards) {
-            //     setProject(prev => prev ? { ...prev, cards: allCards } : null);
-            // }
+            if (allCards) {
+                setProject(prev => prev ? { ...prev, cards: allCards } : null);
+            }
 
             setLoading(false);
 
