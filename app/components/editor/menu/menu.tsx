@@ -36,6 +36,7 @@ const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setModa
                         onClick={() =>
                             setModalContents({
                                 isOpen: true,
+                                type: "input",
                                 title: "Edit title",
                                 initialValue: "",
                                 placeholder: "Enter new title",
