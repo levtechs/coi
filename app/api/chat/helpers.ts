@@ -179,14 +179,14 @@ export const getChatResponse = async (message: string, messageHistory: Message[]
 
     try {
         const response = await callGeminiApi(body);
-        const jsonString = response?.candidates?.[0]?.content?.parts?.[0]?.text;
+        const jsonString = JSON.parse(response?.candidates?.[0]?.content?.parts?.[0]?.text);
 
         if (!jsonString) {
             console.error("No JSON content found in API response.");
             return null;
         }
 
-        const parsedResponse = JSON.parse(jsonString);
+        const parsedResponse = jsonString;
 
         // Return the structured object directly.
         return {
@@ -235,14 +235,14 @@ export const getUpdatedContent = async (previousContent: string | null, message:
     }
 
     const apiResponse = await callGeminiApi(body);
-    const jsonResponseText = JSON.parse(JSON.stringify(apiResponse?.candidates?.[0]?.content?.parts?.[0]?.text));
+    const jsonResponseText = JSON.parse(apiResponse?.candidates?.[0]?.content?.parts?.[0]?.text);
 
     if (!jsonResponseText) {
         throw new Error("No JSON text returned from API.");
     }
 
     try {
-        const parsed = JSON.parse(jsonResponseText);
+        const parsed = jsonResponseText;
         return parsed;
     } catch {
         console.error("Failed to parse Gemini output as JSON:", jsonResponseText);

@@ -4,7 +4,7 @@ export type Project = {
     ownerId: string;
     collaborators: string[]; // emails
     sharedWith: string[]; // ids
-    content: string; // JSON
+    content: JSON; // JSON
     cards: Card[]; //List of ids of the cards
 };
 

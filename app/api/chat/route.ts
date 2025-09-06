@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
         const { message, messageHistory, projectId } = body as { message: string, messageHistory: Message[], projectId: string };
         
         const chatResponse = await getChatResponse(message, messageHistory) || {responseMessage: "Sorry, I couldn't generate a response.", hasNewInfo: false};
+        console.log("Chat response: ", chatResponse, ", hasNewInfo: ", chatResponse.hasNewInfo);
         const responseMessage = chatResponse.responseMessage;
         writeChatPairToDb(message, responseMessage, projectId, uid);
 

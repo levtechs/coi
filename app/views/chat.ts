@@ -11,9 +11,9 @@ export async function getResponse(
     message: string,
     messageHistory: Message[],
     projectId: string,
-): Promise<{response: string, newContent: string | null, allCards: Card[] | null}> {
+): Promise<{response: string, newContent: JSON | null, allCards: Card[] | null}> {
     try {
-        const data = await apiFetch<{ response: string, newContent?: string, allCards?: Card[]}>("/api/chat", {
+        const data = await apiFetch<{ response: string, newContent?: JSON, allCards?: Card[]}>("/api/chat", {
             method: "POST",
             body: JSON.stringify({
                 message,
