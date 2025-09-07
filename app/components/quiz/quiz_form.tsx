@@ -25,7 +25,7 @@ const QuizForm = ({ quiz }: QuizFormProps) => {
     };
 
     return (
-        <div className="bg-[var(--neutral-100)] rounded-lg shadow-lg max-h-screen overflow-y-auto p-6 sm:p-12 text-[var(--foreground)]">
+        <div className="bg-[var(--neutral-100)] rounded-lg shadow-lg max-h-full mt-4 mb-4 mr-4 ml-4 overflow-y-auto p-6 sm:p-12 text-[var(--foreground)]">
             <h1 className="text-4xl font-bold mb-2 text-center text-[var(--neutral-800)]">{quiz.title}</h1>
             <p className="text-center mb-10 text-[var(--neutral-600)]">{quiz.description}</p>
 
