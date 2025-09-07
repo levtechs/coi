@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
 import { Card } from "@/lib/types";
 
@@ -31,26 +29,3 @@ export async function POST(req: NextRequest) {
     }
 }
 
-/** Retrieves a quiz by its ID.
- */
-export async function GET(req: NextRequest, { params }: { params: { quizId: string } }) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
-
-    const quizId = params.quizId;
-    if (!quizId) return NextResponse.json({ error: "No quiz ID provided" }, { status: 400 });
-
-    try {
-        const quizDocRef = doc(db, "quizes", quizId);
-        const quizDocSnap = await getDoc(quizDocRef);
-
-        if (!quizDocSnap.exists()) {
-            return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
-        }
-
-        const quizData = quizDocSnap.data();
-        return NextResponse.json(quizData.quiz);
-    } catch (err) {
-        return NextResponse.json({ error: (err as Error).message }, { status: 500 });
-    }
-}
