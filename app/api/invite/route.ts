@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, addDoc, deleteDoc } from "firebase/firestore";
 
-import { getUserRefByEmail, getVerifiedUid } from "@/app/api/helpers"
+import { getVerifiedUid } from "@/app/api/helpers"
 
 /**
  * Generates a random 6-digit string for the invitation token.

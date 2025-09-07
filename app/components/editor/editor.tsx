@@ -86,6 +86,7 @@ const Editor = ({
                     modalContents.onSubmit?.(input);
                     closeModal();
                 }}
+                onProceed={modalContents.onProceed}
                 title={modalContents.title}
                 initialValue={modalContents.initialValue || ""}
                 placeholder={modalContents.placeholder}

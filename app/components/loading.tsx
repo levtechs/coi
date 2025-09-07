@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 
 interface LoadingComponentProps {
     loadingText?: string;
+    small?: boolean
 }
 
-const LoadingComponent = ({ loadingText } : LoadingComponentProps) => {
+const LoadingComponent = ({ loadingText, small} : LoadingComponentProps) => {
     const [dots, setDots] = useState("");
 
     useEffect(() => {
@@ -23,7 +24,7 @@ const LoadingComponent = ({ loadingText } : LoadingComponentProps) => {
     }, []);
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen space-y-4">
+        <div className={`flex flex-col items-center justify-center ${small ? "" : "h-screen"} space-y-4`}>
             <img src="/square.gif" alt="Loading animation" className="w-40 h-40" />
             <div>
                 <p className="text-[var(--foreground)] text-xl">{loadingText ? loadingText : "Loading"}{dots}</p>

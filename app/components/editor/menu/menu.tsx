@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { FiEdit2 } from "react-icons/fi";
 import { FiHome } from "react-icons/fi";
@@ -18,6 +19,8 @@ interface MenuBarProps {
 }
 
 const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setModalContents} : MenuBarProps) => {
+    const router = useRouter();
+
     return (
         <div className="flex items-center justify-between mb-4 border-b border-[var(--neutral-300)] pb-4">
             {/* Left side: Home + Title + Edit */}
@@ -28,7 +31,7 @@ const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setModa
                         className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
                     />
                 </Link>
-                <div className="flex items-center gap-2 group">
+                <div className="flex items-center gap-2 group mr-4">
                     <h1 className="text-[var(--foreground)] text-2xl font-bold">{project.title}</h1>
                     <FiEdit2
                         className="text-[var(--accent-500)] cursor-pointer opacity-0 group-hover:opacity-100 hover:text-[var(--accent-600)] transition"
@@ -41,20 +44,32 @@ const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setModa
                                 initialValue: "",
                                 placeholder: "Enter new title",
                                 onSubmit: async (input) => {
-                                    if (!user || !input.trim()) return;
+                                    if (!user || !input!.trim()) return;
 
                                     // Update the title in the database
-                                    await setTitle(project.id, input);
+                                    await setTitle(project.id, input!);
 
                                     // Update local state
                                     setProject((prev) =>
-                                        prev ? { ...prev, title: input.trim() } : prev
+                                        prev ? { ...prev, title: input!.trim() } : prev
                                     );
                                 },
                             })
                         }
                     />
                 </div>
+                <h2 
+                    className="text-[var(--foreground)] text-l font-bold hover:underline cursor-pointer"
+                    onClick={() => {setModalContents({
+                        isOpen: true,
+                        type: "confirm",
+                        message: "Generate a quiz based on the content of this project. This may take a few moments.",
+                        title: "Create quiz",
+                        onProceed: async () => window.open(`/quiz?create=true&projectId=${project.id}`),
+                    })}}
+                >
+                    Quiz me!
+                </h2>
             </div>
 
             {/* Right side: Share + Collaborators */}

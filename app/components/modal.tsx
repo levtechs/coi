@@ -9,7 +9,8 @@ type ProjectModalProps = {
     message?: string;
     initialValue?: string;
     onClose: () => void;
-    onSubmit: (value: string) => void;
+    onSubmit?: (value: string) => void;
+    onProceed?: () => void;
     title?: string;
     placeholder?: string;
 };
@@ -21,6 +22,7 @@ export default function Modal({
     initialValue = "",
     onClose,
     onSubmit,
+    onProceed,
     title = "Project",
     placeholder = "Enter project title"
 }: ProjectModalProps) {
@@ -46,7 +48,7 @@ export default function Modal({
                         onSubmit={(e) => {
                             e.preventDefault();
                             if (!value.trim()) return;
-                            onSubmit(value.trim());
+                            onSubmit?.(value.trim());
                             setValue(initialValue);
                         }}
                         className="flex flex-col gap-4"
@@ -81,16 +83,24 @@ export default function Modal({
                         <p className={`text-[var(${(type === "error") ? "--error" : "--foreground"})]`}>
                             {message}
                         </p>
-                        <Button
-                            color="var(--neutral-300)"
-                            type="button"
-                            onClick={() => {
-                                onClose();
-                                setValue(initialValue);
-                            }}
-                        >
-                            {type === "confirm" ? "ok" : "close"}
-                        </Button>
+                        <div className="flex flex-row w-[100%] gap-4">
+                            <Button
+                                className="flex-1"
+                                color="var(--neutral-300)"
+                                type="button"
+                                onClick={onClose}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                className="flex-1"
+                                color="var(--accent-300)"
+                                type="button"
+                                onClick={onProceed ? onProceed : () => {}}
+                            >
+                                {type === "confirm" ? "Ok" : "close"}
+                            </Button>
+                        </div>
                     </>
                 )}
 
