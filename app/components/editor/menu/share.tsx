@@ -21,6 +21,8 @@ const ShareMenu = ({ project, user, setModalContents, addCollaborator, setProjec
 
     const isOwner = user?.uid === project.ownerId;
 
+    const [isInviteOpen, setIsInviteOpen] = useState(false);
+
     // Handles closing the menu when a click occurs outside of it.
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -77,34 +79,42 @@ const ShareMenu = ({ project, user, setModalContents, addCollaborator, setProjec
     };
 
     return (
-        <div className="relative" ref={menuRef}>
-            <Button
-                onClick={handleShareClick}
-                color={isOwner ? "var(--accent-500)" : "var(--neutral-500)"}
-                className="flex items-center gap-2"
-            >
-                <FiShare2 className="text-lg" />
-                Share
-            </Button>
-            {isMenuOpen && (
-                <div
-                    className="absolute right-0 mt-2 w-48 bg-[var(--neutral-400)] rounded-md shadow-lg py-1 z-10"
+        <>
+            <div className="relative">
+                <Button
+                    onClick={handleShareClick}
+                    color="var(--accent-500)"
                 >
+                    Share
+                </Button>
+
+                {isMenuOpen && (
                     <div
-                        onClick={() => alert("Invite option clicked")}
-                        className="flex items-center gap-2 px-4 py-2 text-[var(--accent-500)] hover:bg-[var(--neutral-200)] cursor-pointer font-bold"
+                        ref={menuRef}
+                        className="absolute right-0 mt-2 w-48 bg-[var(--neutral-400)] rounded-md shadow-lg py-1 z-10"
                     >
-                        Invite
+                        <div
+                            onClick={setIsInviteOpen.bind(this, true)}
+                            className="flex items-center gap-2 px-4 py-2 text-[var(--accent-500)] hover:bg-[var(--neutral-200)] cursor-pointer font-bold"
+                        >
+                            Invite
+                        </div>
+                        <div
+                            onClick={handleOpenShareModal}
+                            className="flex items-center gap-2 px-4 py-2 text-[var(--neutral-800)] hover:bg-[var(--neutral-200)] cursor-pointer"
+                        >
+                            Add Collaborator
+                        </div>
                     </div>
-                    <div
-                        onClick={handleOpenShareModal}
-                        className="flex items-center gap-2 px-4 py-2 text-[var(--neutral-800)] hover:bg-[var(--neutral-200)] cursor-pointer"
-                    >
-                        Add Collaborator
-                    </div>
-                </div>
+                )}
+            </div>
+            {isInviteOpen && (
+                <InvitePanel
+                    project={project}
+                    onClose={() => setIsInviteOpen(false)}
+                />
             )}
-        </div>
+        </>
     );
 }
 
