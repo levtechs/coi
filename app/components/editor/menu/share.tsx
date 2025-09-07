@@ -45,14 +45,14 @@ const ShareMenu = ({ project, user, setModalContents, addCollaborator, setProjec
             placeholder: "Enter email",
             onSubmit: async (input) => {
                 if (!user) return;
-                await addCollaborator(project.id, input);
+                await addCollaborator(project.id, input!);
                 setProject((prev) =>
                     prev
                         ? {
                             ...prev,
                             collaborators: [
                                 ...(prev.collaborators ?? []),
-                                input,
+                                input!,
                             ],
                         }
                         : prev
