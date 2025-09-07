@@ -1,3 +1,5 @@
+import { Timestamp } from "firebase/firestore";
+
 export type Project = {
     id: string;
     title: string;
@@ -24,4 +26,17 @@ export interface Card {
     id: string;
     title: string;
     details: string[];
+}
+
+export interface QuizQuestion {
+    question: string;
+    options: string[];
+    correctOptionIndex: number;
+}
+
+export interface Quiz {
+    createdAt?: string | Timestamp; // Optional createdAt timestamp
+    description: string;       // Quiz description
+    questions: QuizQuestion[]; // List of questions
+    title: string;             // Quiz title
 }

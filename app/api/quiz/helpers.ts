@@ -1,8 +1,93 @@
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, addDoc, deleteDoc } from "firebase/firestore";
 
+import { defaultGeneralConfig } from "../gemini/config";
+import { callGeminiApi } from "../gemini/helpers";
+import { createQuizFromCardsSystemInstruction } from "./config";
+
 import { Card } from "@/lib/types";
 
-export const createQuizFromCards = async (cards: Card[]) => {
-    return  "some_quiz_id";
-}
+/**
+ * Writes a new quiz entry to the project's quizes collection.
+ * @param quiz The quiz JSON object to store.
+ * @returns The ID of the newly created quiz document.
+ */
+export const writeQuizToDb = async (quiz: JSON): Promise<string> => {
+    if (!quiz) throw new Error("Missing quiz");
+
+    try {
+        const quizesColRef = collection(db, "quizzes");
+        const docRef = await addDoc(quizesColRef, {
+            ...quiz,
+            createdAt: new Date().toISOString(),
+        });
+
+        console.log("New quiz written successfully to DB with ID:", docRef.id);
+        return docRef.id; // <-- return the auto-generated ID
+    } catch (err) {
+        console.error("Error writing quiz to DB:", err);
+        throw err;
+    }
+};
+
+/**
+ * Calls the Gemini API to get a structured JSON response.
+ * @param cards The cards to base the quiz on.
+ * @returns A promise that resolves to a JSON with the quiz content.
+ */
+export const createQuizFromCards = async (cards: Card[]): Promise<JSON | null> => {
+    if (!cards || cards.length === 0) {
+        throw new Error("Must have at least one card to create a quiz.");
+    }
+
+    const contents = (cards)
+        .filter((card) => card.details && card.title.trim() !== "")
+        .map((card) => ({
+            role: "user",
+            parts: [{ text: (`Title: ${card.title}, Details: ${card.details}`) }]
+        }));
+
+    // Define the schema for the expected JSON response.
+    const generationConfig = {
+        ...defaultGeneralConfig,
+        responseMimeType: "application/json",
+        responseSchema: {
+            type: "OBJECT",
+            properties: {
+                "title": { "type": "STRING" },
+                "description": { "type": "string" },
+                "questions": { "type": "ARRAY", "items": {
+                    type: "OBJECT",
+                    properties: {
+                        "question": { "type": "STRING" },
+                        "options": { "type": "ARRAY", "items": { "type": "STRING" } },
+                        "correctOptionIndex": { "type": "NUMBER" }
+                    },
+                    required: ["question", "options", "correctOptionIndex"]
+                }}
+            },
+        },
+    };
+
+    const body = {
+        contents,
+        systemInstruction: createQuizFromCardsSystemInstruction(cards),
+        generationConfig: generationConfig,
+    };
+
+    try {
+        const response = await callGeminiApi(body);
+        const jsonString = JSON.parse(response?.candidates?.[0]?.content?.parts?.[0]?.text);
+
+        if (!jsonString) {
+            console.error("No JSON content found in API response.");
+            return null;
+        }
+
+        // Return the structured object directly.
+        return jsonString;
+    } catch (err) {
+        console.error("Error calling Gemini API or parsing response:", err);
+        return null;
+    }
+};
