@@ -1,20 +1,20 @@
-//app/api/quiz/[quizId]/route.ts
-
+// app/api/quiz/[quizId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-
 import { getVerifiedUid } from "../../helpers";
 
 /*
-* Retrieves a quiz by its ID.
-*/
-export async function GET(req: NextRequest, { params }: { params: { quizId: string } }) {
+ * Retrieves a quiz by its ID.
+ */
+export async function GET(
+    req: NextRequest,
+    context: { params: Promise<{ quizId: string }> } // <--- correct type
+) {
     const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
-    const quizId = await params.quizId;
+    const { quizId } = await context.params; // <--- await here
     if (!quizId) return NextResponse.json({ error: "No quiz ID provided" }, { status: 400 });
 
     try {
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest, { params }: { params: { quizId: stri
         }
 
         const quizData = quizDocSnap.data();
-        return NextResponse.json({ id: quizDocSnap.id, ...quizData }); // <-- include ID and all quiz fields
+        return NextResponse.json({ id: quizDocSnap.id, ...quizData });
     } catch (err) {
         return NextResponse.json({ error: (err as Error).message }, { status: 500 });
     }
