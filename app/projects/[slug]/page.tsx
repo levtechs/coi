@@ -6,8 +6,6 @@ import { useAuth } from "@/lib/AuthContext";
 import { Project } from "@/lib/types";
 import { addCollaborator, setTitle, getProject } from "@/app/views/projects"
 
-import { FiLoader } from "react-icons/fi";
-
 import Button from "@/app/components/button";
 import Editor from "@/app/components/editor/editor";
 import LoadingComponent from "@/app/components/loading";

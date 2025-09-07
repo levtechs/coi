@@ -3,7 +3,7 @@
 
 import { useSearchParams } from "next/navigation";
 
-import CreateQuizPanel from "../components/editor/quiz/create_quiz";
+import CreateQuizPage from "../components/quiz/create_quiz";
 
 const QuizPage = () => {
     const searchParams = useSearchParams();
@@ -18,7 +18,7 @@ const QuizPage = () => {
     }
 
     return (
-        <CreateQuizPanel projectId={projectId} />
+        <CreateQuizPage projectId={projectId} />
     );
 }
 

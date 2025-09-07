@@ -9,16 +9,16 @@ import { Card } from "@/lib/types";
 import { getCards } from "@/app/views/cards";
 import { createQuiz } from "@/app/views/quiz";
 
-import LoadingComponent from "../../loading";
-import DetailCard from "../cards/detail_card";
-import CardPopup from "../cards/card_popup";
-import Button from "../../button";
+import LoadingComponent from "../loading";
+import DetailCard from "../editor/cards/detail_card";
+import CardPopup from "../editor/cards/card_popup";
+import Button from "../button";
 
-interface CreateQuizPanelProps {
+interface CreateQuizPageProps {
     projectId: string;
 }
 
-const CreateQuizPanel = ({projectId} : CreateQuizPanelProps) => {
+const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
     const [isLoadingCards, setIsLoadingCards] = useState(false)
     const [isLoadingQuiz, setIsLoadingQuiz] = useState<boolean | string>(false)
 
@@ -143,4 +143,4 @@ const CreateQuizPanel = ({projectId} : CreateQuizPanelProps) => {
     );
 }
 
-export default CreateQuizPanel
+export default CreateQuizPage;
