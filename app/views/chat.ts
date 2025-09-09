@@ -1,5 +1,93 @@
-import { Message, Card } from "@/lib/types";
+//app/views/chat.ts
+
+import { auth } from "@/lib/firebase";
 import { apiFetch } from "./helpers"; // adjust path if needed
+
+import { Message, Card } from "@/lib/types";
+
+/**
+ * Streams a chat response from the API.
+ * @param message The new user message.
+ * @param messageHistory The recent conversation history.
+ * @param projectId The project ID for context.
+ * @param onToken Callback for each streamed token of the assistant's message.
+ * @returns Resolves with the final object (response + optional newContent/allCards).
+ */
+export async function streamChat(
+    message: string,
+    messageHistory: Message[],
+    projectId: string,
+    setPhase: (phase: null | "streaming" | "processing" | "generating content" | "generating cards") => void,
+    setFinalResponseMessage: (value: string) => void,
+    onToken: (token: string) => void,
+): Promise<{ responseMessage: string; newContent: JSON | null; allCards: Card[] | null }> {
+    const user = auth.currentUser;
+    if (!user) throw new Error("User not authenticated");
+
+    const idToken = await user.getIdToken();
+    const res = await fetch("/api/chat/stream", {
+        method: "POST",
+        body: JSON.stringify({ message, messageHistory, projectId }),
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`,
+        },
+    });
+
+    if (!res.body) throw new Error("No response body from stream");
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process complete lines
+        let newlineIndex;
+        while ((newlineIndex = buffer.indexOf("\n")) >= 0) {
+            const line = buffer.slice(0, newlineIndex).trim();
+            buffer = buffer.slice(newlineIndex + 1);
+
+            if (!line) continue;
+
+            // Try to parse JSON control message
+            try {
+                const obj = JSON.parse(line);
+
+                if (obj.type === "final") {
+                    return {
+                        responseMessage: obj.responseMessage,
+                        newContent: obj.newContent ?? null,
+                        allCards: obj.allCards ?? null,
+                    };
+                }
+
+                if (obj.type === "update") {
+                    if (obj.responseMessage) setFinalResponseMessage(obj.responseMessage);
+                    continue;
+                }
+
+                if (obj.phase) {
+                    setPhase(obj.phase);
+                    continue;
+                }
+
+                // If it was valid JSON but doesn’t match above, ignore or log
+                continue;
+            } catch {
+                // Not JSON → treat as streamed text token
+                onToken(line);
+            }
+        }
+    }
+
+    throw new Error("No final response received from stream");
+}
+
 
 /**
  * Sends a new message and the full conversation history to the API.

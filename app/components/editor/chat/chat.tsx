@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Dispatch, SetStateAction } from "react";
 
 import { FiSend, FiX } from "react-icons/fi";
 import Button from "@/app/components/button";
@@ -6,7 +7,8 @@ import ChatMessages from "./chat_messages";
 
 import { Project, Message } from "@/lib/types";
 
-import { getResponse, getChatHistory } from "@/app/views/chat";
+import { getChatHistory } from "@/app/views/chat";
+import { sendMessage } from "./helpers";
 
 interface ChatPanelProps {
     project: Project;
@@ -18,40 +20,18 @@ const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [isLoading, setLoading] = useState(false);
+    const [stream, setStream] = useState<string | null>(null);
+    const [streamPhase, setStreamPhase] = useState<null | "streaming" | "processing" | "generating content" | "generating cards">(null);
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-    const onSend = async () => {
-        if (!input.trim()) return;
+    const onSend = () => sendMessage(input, messages, project, addMessage, setStream, setStreamPhase, setProject, setInput, setLoading)
 
-        const userInput = input.trim();
-        const updatedMessages = [...messages, { content: userInput, isResponse: false, id: crypto.randomUUID() }];
-        setMessages(updatedMessages);
-        setInput("");
-
-        try {
-            setLoading(true);
-            const MAX_HISTORY = 10;
-            const recentMessages = updatedMessages.slice(-MAX_HISTORY);
-            const response = await getResponse(userInput, recentMessages, project.id);
-            const aiResponse = response.response;
-            const newContent = response.newContent;
-            const allCards = response.allCards;
-            if (newContent) {
-                setProject(prev => prev ? { ...prev, content: newContent } : null);
-            }
-            if (allCards) {
-                setProject(prev => prev ? { ...prev, cards: allCards } : null);
-            }
-
-            setLoading(false);
-
-            setMessages((prev) => [...prev, { content: aiResponse, isResponse: true, id: crypto.randomUUID() }]);
-        } catch (err) {
-            setLoading(false);
-            console.error("Error fetching AI response:", err);
-            setMessages((prev) => [...prev, { content: "I couldn't generate a response. Please again later", isResponse: true, id: crypto.randomUUID() }]);
-        }
-    };
+    const addMessage = (msg: Message) => {
+        setMessages(prev => [
+            ...prev,
+            msg
+        ]);
+    }
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Enter" && !e.shiftKey) {
@@ -110,7 +90,9 @@ const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
                     <div ref={messagesEndRef} className="flex-1 overflow-y-auto bg-[var(--neutral-100)] rounded-md p-2 mb-2 flex flex-col">
                         <ChatMessages 
                             messages={messages}
+                            stream={stream}
                             isLoading={isLoading}
+                            phase={streamPhase}
                         />
                     </div>
                     <div className="flex items-center bg-[var(--neutral-100)] rounded-md px-2 py-1">
