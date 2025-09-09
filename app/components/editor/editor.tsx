@@ -10,7 +10,6 @@ import { noModal } from "./types";
 import TabSelector from "./tab_selector";
 import CardsPanel from "./cards/cards_panel";
 import CardPopup from "./cards/card_popup";
-import Button from "../button";
 
 interface EditorProps {
     project: Project;

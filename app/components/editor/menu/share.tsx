@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import Button from "../../button";
 import InvitePanel from "./invite_panel";
-import { FiShare2 } from "react-icons/fi";
 import { Project } from "@/lib/types";
 import { ModalContents } from "../types";
 

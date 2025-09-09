@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { Dispatch, SetStateAction } from "react";
 
 import { FiSend, FiX } from "react-icons/fi";
 import Button from "@/app/components/button";

@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 
+import Image from "next/image";
 import { useAuth } from "@/lib/AuthContext";
 
-import { Quiz, QuizQuestion } from "@/lib/types";
+import { Quiz } from "@/lib/types";
 
 import { getQuiz } from "@/app/views/quiz";
 import LoadingComponent from "../loading";
@@ -46,7 +47,7 @@ const TakeQuizPage = ({ quizId }: TakeQuizPageProps) => {
     if (isLoading === "error" || quiz === false) {
         return (
             <div className="flex flex-col items-center justify-center h-screen p-6 bg-[var(--background)] text-[var(--foreground)] text-center">
-                <img src="/error.png" alt="Not Found" className="w-64 h-64 mb-8" />
+                <Image src="/error.png" alt="Not Found" width={200} height={200} className="mb-8" />
                 <p className="text-2xl font-semibold mb-4">Error loading quiz.</p>
                 <p className="text-lg mb-6">Please check the quiz ID or try again later.</p>
             </div>

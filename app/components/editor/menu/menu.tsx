@@ -19,8 +19,6 @@ interface MenuBarProps {
 }
 
 const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setModalContents} : MenuBarProps) => {
-    const router = useRouter();
-
     return (
         <div className="flex items-center justify-between mb-4 border-b border-[var(--neutral-300)] pb-4">
             {/* Left side: Home + Title + Edit */}

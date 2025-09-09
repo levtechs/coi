@@ -2,10 +2,6 @@
 
 // "Chunk" prompts
 
-const exampleChunk = `
-An example provided at the end of this instruction.
-`
-
 const personalityChunk = `
 You are a helpful assistant/tutor helping the user learn concepts. 
 You are clear and friendly when responding to the user's message.

@@ -9,6 +9,7 @@ import { addCollaborator, setTitle, getProject } from "@/app/views/projects"
 import Button from "@/app/components/button";
 import Editor from "@/app/components/editor/editor";
 import LoadingComponent from "@/app/components/loading";
+import Image from "next/image";
 
 export default function ProjectPage() {
     const [isLoading, setLoading] = useState<boolean | "error">(true);
@@ -49,7 +50,7 @@ export default function ProjectPage() {
     if (isLoading === "error") {
         return (
             <div className="flex flex-col items-center justify-center h-screen p-6 bg-[var(--background)] text-[var(--foreground)] text-center">
-                <img src="/error.png" alt="Not Found" className="w-64 h-64 mb-8" />
+                <Image src="/error.png" alt="Not Found" className="w-64 h-64 mb-8" />
                 <p className="text-2xl font-semibold mb-4">Error loading project.</p>
                 <p className="text-lg mb-6">Please check the project ID or try again later.</p>
                 <Button color="var(--accent-500)" onClick={() => (window.location.href = "/dashboard")}>

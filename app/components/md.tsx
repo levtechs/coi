@@ -85,14 +85,14 @@ export default function MarkdownArticle({ markdown }: Props) {
                 // component overrides to control spacing and avoid overly large gaps
                 components={{
                     // Tighten heading margins so multiple headings don't have huge gaps
-                    h1: ({ node, ...props }) => <h1 className="m-0 mb-2 text-[var(--foreground)]" {...props} />,
-                    h2: ({ node, ...props }) => <h2 className="m-0 mb-2 text-[var(--foreground)]" {...props} />,
-                    h3: ({ node, ...props }) => <h3 className="m-0 mb-2 text-[var(--foreground)]" {...props} />,
-                    h4: ({ node, ...props }) => <h4 className="m-0 mb-2 text-[var(--foreground)]" {...props} />,
-                    h5: ({ node, ...props }) => <h5 className="m-0 mb-2 text-[var(--foreground)]" {...props} />,
-                    h6: ({ node, ...props }) => <h6 className="m-0 mb-2 text-[var(--foreground)]" {...props} />,
+                    h1: ({ ...props }) => <h1 className="m-0 mb-2 text-[var(--foreground)]" {...props} />,
+                    h2: ({ ...props }) => <h2 className="m-0 mb-2 text-[var(--foreground)]" {...props} />,
+                    h3: ({ ...props }) => <h3 className="m-0 mb-2 text-[var(--foreground)]" {...props} />,
+                    h4: ({ ...props }) => <h4 className="m-0 mb-2 text-[var(--foreground)]" {...props} />,
+                    h5: ({ ...props }) => <h5 className="m-0 mb-2 text-[var(--foreground)]" {...props} />,
+                    h6: ({ ...props }) => <h6 className="m-0 mb-2 text-[var(--foreground)]" {...props} />,
                     // Slightly smaller gap for paragraphs
-                    p: ({ node, ...props }) => <p className="m-0 mb-3 text-[var(--foreground)]" {...props} />,
+                    p: ({ ...props }) => <p className="m-0 mb-3 text-[var(--foreground)]" {...props} />,
                     // Prevent code blocks from being sanitized away if using raw HTML
                     // (but we already use rehypeRaw; be mindful of XSS if content is untrusted)
                 }}
