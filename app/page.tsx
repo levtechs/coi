@@ -3,11 +3,11 @@
 import React, { useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-import { FaBook } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
 import { RxDiscordLogo } from "react-icons/rx";
 import { FiChevronDown, FiGithub } from "react-icons/fi";
 import Button from "./components/button";
+import Image from "next/image";
 
 const LandingPage = () => {
     const router = useRouter();
@@ -62,7 +62,7 @@ const LandingPage = () => {
                 ref={landingPageRef}
                 className="flex flex-col items-center justify-center min-h-screen bg-[var(--neutral-100)] text-[var(--foreground)] p-6 gap-6 transition-all duration-500"
             >
-                <img src="/logo.png" alt="Coi Logo" className="w-48 h-48 mb-4" />
+                <Image src="/logo.png" alt="Coi Logo"  width={150} height={150} className="w-48 h-48 mb-4" />
                 {/* Title with Book Icon */}
                 <h1 className="text-4xl font-bold flex items-center gap-2">
                     Learn with Coi

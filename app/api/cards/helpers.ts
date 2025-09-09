@@ -1,8 +1,6 @@
 import {
     collection,
-    addDoc,
     getDocs,
-    deleteDoc,
     doc,
     writeBatch,
     getDoc,

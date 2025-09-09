@@ -7,7 +7,6 @@ import { Contents } from "./types";
 import { 
     defaultGeneralConfig, 
     limitedGeneralConfig,
-    model,
 } from "../gemini/config";
 import {
     chatResponseSystemInstruction, 

@@ -40,7 +40,7 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
         }
         
         fetchCards();
-    }, [user])
+    }, [user, projectId])
 
     if (isLoadingCards) return (<LoadingComponent loadingText="Loading cards"/>)
 

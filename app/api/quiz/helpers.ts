@@ -1,5 +1,5 @@
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, addDoc, deleteDoc } from "firebase/firestore";
+import { collection, addDoc } from "firebase/firestore";
 
 import { defaultGeneralConfig } from "../gemini/config";
 import { callGeminiApi } from "../gemini/helpers";
@@ -71,7 +71,7 @@ export const createQuizFromCards = async (cards: Card[]): Promise<JSON | null> =
 
     const body = {
         contents,
-        systemInstruction: createQuizFromCardsSystemInstruction(cards),
+        systemInstruction: createQuizFromCardsSystemInstruction,
         generationConfig: generationConfig,
     };
 

@@ -10,7 +10,6 @@ import Button from "@/app/components/button";
 
 // These variables are provided by the hosting environment
 declare const __firebase_config: string;
-declare const __initial_auth_token: string;
 
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
 

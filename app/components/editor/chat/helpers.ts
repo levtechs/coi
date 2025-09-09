@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction } from "react";
-import { Message, Project, Card } from "@/lib/types";
+import { Message, Project } from "@/lib/types";
 import { streamChat } from "@/app/views/chat";
 
 export const sendMessage = async (

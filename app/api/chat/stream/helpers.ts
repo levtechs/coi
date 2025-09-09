@@ -1,13 +1,10 @@
 import {
     GenerateContentRequest,
-    SchemaType,
-    type Schema,
 } from "@google/generative-ai";
 
 import { Message } from "@/lib/types"; // { content: string; isResponse: boolean }
 
 import { 
-    defaultGeneralConfig, 
     limitedGeneralConfig,
     model,
 } from "@/app/api/gemini/config";
@@ -74,8 +71,8 @@ export async function streamChatResponse(
             // chunk shape varies by SDK; this attempts to read the usual shape
             const partText =
                 chunk?.candidates?.[0]?.content?.parts?.[0]?.text ||
-                chunk?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") || "";
-
+                chunk?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") || "";
+            
             if (partText) {
                 accumulated += partText;
                 await onToken(partText);
