@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 import { FiCheck } from "react-icons/fi";
 
@@ -28,6 +29,8 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
     const [clickedCard, setClickedCard] = useState<Card | null>(null);
 
     const [useFR, setUseFR] = useState(false)
+
+    const router = useRouter();
 
     useEffect(() => {
         setIsLoadingCards(true);
@@ -117,7 +120,7 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
                                 className="w-full mt-8"
                                 color="var(--accent-400)"
                                 onClick={()=>{
-                                    window.open(`/quiz/${isLoadingQuiz}`);
+                                    router.push(`/quiz/${isLoadingQuiz}`);
                                 }}
                                 type="submit"
                             >
