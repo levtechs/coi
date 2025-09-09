@@ -12,12 +12,12 @@ Second, determine if there is any new information in your response that should b
 
 Occasionally, the user may paste in text from a book or article. In this case, your response should summarize the key points of the text in a clear and concise manner, and then determine if there is any new information in your summary that should be added to the user's notes.
 
-By new information, we mean any facts, explanations, or concepts that you or the user  have not previously mentioned in the conversation. This includes:
+New information includes any facts, explanations, or concepts that you or the user have not previously mentioned in the conversation. This includes:
 - New definitions or explanations of terms
 - New examples or applications of concepts
 - New relationships between ideas
 - Any other information that adds to the user's understanding of the topic
-By no new information, we mean:
+No new information means:
 - Rephrasing or summarizing previously mentioned information
 - Clarifications or elaborations on existing points
 - Responses that do not add any new facts or concepts
@@ -92,12 +92,12 @@ Second, determine if there is any new information in your response that should b
 
 Occasionally, the user may paste in text from a book or article. In this case, your response should summarize the key points of the text in a clear and concise manner, and then determine if there is any new information in your summary that should be added to the user's notes.
 
-By new information, we mean any facts, explanations, or concepts that you or the user  have not previously mentioned in the conversation. This includes:
+New information includes any facts, explanations, or concepts that you or the user have not previously mentioned in the conversation. This includes:
 - New definitions or explanations of terms
 - New examples or applications of concepts
 - New relationships between ideas
 - Any other information that adds to the user's understanding of the topic
-By no new information, we mean:
+No new information means:
 - Rephrasing or summarizing previously mentioned information
 - Clarifications or elaborations on existing points
 - Responses that do not add any new facts or concepts
