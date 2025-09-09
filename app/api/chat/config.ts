@@ -29,7 +29,7 @@ By new information, we mean any facts, explanations, or concepts that you or the
 - New examples or applications of concepts
 - New relationships between ideas
 - Any other information that adds to the user's understanding of the topic
-By no new information, we mean:
+No new information means:
 - Rephrasing or summarizing previously mentioned information
 - Clarifications or elaborations on existing points
 - Responses that do not add any new facts or concepts
