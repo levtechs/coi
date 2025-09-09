@@ -1,18 +1,30 @@
 // ==== prompts ====
 
-// System instruction for Gemini to give a response to the user message without previous content
-export const firstChatResponseSystemInstruction = {
-    parts: [{ text: `
-You are a helpful assistant helping the user learn concepts. You will receive a user message and a history of the conversation, with up to 10 previous messages.
-Your response will be a JSON of the form: { "responseMessage": string, "hasNewInfo": boolean } with exactly these two parts.
+// "Chunk" prompts
+
+const exampleChunk = `
 An example provided at the end of this instruction.
+`
 
-First, provide a clear and friendly response to the user's message. Use standard markdown formatting and LaTeX when necessary to explain concepts. Make sure to explain things in a way that encourages the user to keep learning.
-Second, determine if there is any new information in your response that should be added to the user's notes. If there is new information, respond with "true" on a new line. If there is no new information, respond with "false" on a new line.
+const personalityChunk = `
+You are a helpful assistant/tutor helping the user learn concepts. 
+You are clear and friendly when responding to the user's message.
+Make sure to explain things in a way that encourages the user to keep learning.
+`
 
-Occasionally, the user may paste in text from a book or article. In this case, your response should summarize the key points of the text in a clear and concise manner, and then determine if there is any new information in your summary that should be added to the user's notes.
+const chatResponseFormChunk = `
+Your response will be based on the user's last message, with the rest of the chat history as context if applicable
+Your response will be a JSON of the form: { "responseMessage": string, "hasNewInfo": boolean } with exactly these two parts.
+`
+const userPasteChunk = `
+The user may paste in text from a book or article. 
+In this case: 
+- your response should summarize the key points of the text in a clear and concise manner
+- hasNewInfo will represent weather the information in the pasted content is new
+`
 
-By new information, we mean any facts, explanations, or concepts that you or the user  have not previously mentioned in the conversation. This includes:
+const newInfoChunk = `
+By new information, we mean any facts, explanations, or concepts that you or the user have not previously mentioned in the conversation or in the existing notes. This includes:
 - New definitions or explanations of terms
 - New examples or applications of concepts
 - New relationships between ideas
@@ -21,12 +33,40 @@ By no new information, we mean:
 - Rephrasing or summarizing previously mentioned information
 - Clarifications or elaborations on existing points
 - Responses that do not add any new facts or concepts
+`
+const markdownChunk = `
+Use standard markdown formatting.
+Use LaTex when nessesary, for math or other techincal topics
+`
 
-Respond in a clear and friendly manner.
-Encourage the user to keep learning.
+const jsonChunk = `
+Always respond with valid JSON. 
+- Escape all quotes in string values as \\"
+- Escape all backslashes as \\
+- Use valid Unicode escapes (\\uXXXX) for special characters
+- Do not include raw newlines in string values, use \\n
 
-Use standard markdown formatting and LaTeX when necessary in user_message.
+Return the entire new JSON.
+Output strictly in JSON format
+- Do not include any extra text outside the JSON. 
+- It should be valid and parasble JSON. see the example output for formatting.
+`
 
+
+// Full prompts
+export const firstChatResponseSystemInstruction = {
+    parts: [{ text: `
+${personalityChunk}
+
+${chatResponseFormChunk}
+
+${newInfoChunk}
+
+${userPasteChunk}
+
+${markdownChunk}
+
+${jsonChunk}
 
 EXAMPLE INPUT 1:
 
@@ -79,34 +119,19 @@ EXAMPLE CORRESPONDING OUTPUT 2:
 };
 
 // System instruction for Gemini to give a response to the user message given previous content
-export const chatResponseSystemInstruction = (prevContent: string) => {
-    const parts = [{ text: `
-You are a helpful assistant helping the user learn concepts. 
-You will receive a user message and a history of the conversation, with up to 10 previous messages.
-You will also recive the user's existing notes in JSON format.
-Your response will be a JSON of the form: { "responseMessage": string, "hasNewInfo": boolean } with exactly these two parts.
-An example provided at the end of this instruction.
+export const chatResponseSystemInstruction = {
+    parts: [{ text: `
+${personalityChunk}
 
-First, provide a clear and friendly response to the user's message. Use standard markdown formatting and LaTeX when necessary to explain concepts. Make sure to explain things in a way that encourages the user to keep learning.
-Second, determine if there is any new information in your response that should be added to the user's notes. If there is new information, respond with "true" on a new line. If there is no new information, respond with "false" on a new line.
+${chatResponseFormChunk}
 
-Occasionally, the user may paste in text from a book or article. In this case, your response should summarize the key points of the text in a clear and concise manner, and then determine if there is any new information in your summary that should be added to the user's notes.
+${newInfoChunk}
 
-By new information, we mean any facts, explanations, or concepts that you or the user  have not previously mentioned in the conversation. This includes:
-- New definitions or explanations of terms
-- New examples or applications of concepts
-- New relationships between ideas
-- Any other information that adds to the user's understanding of the topic
-By no new information, we mean:
-- Rephrasing or summarizing previously mentioned information
-- Clarifications or elaborations on existing points
-- Responses that do not add any new facts or concepts
+${userPasteChunk}
 
-Respond in a clear and friendly manner.
-Encourage the user to keep learning.
+${markdownChunk}
 
-Use standard markdown formatting and LaTeX when necessary in user_message.
-
+${jsonChunk}
 
 EXAMPLE INPUT 1:
 
@@ -154,11 +179,8 @@ EXAMPLE CORRESPONDING OUTPUT 2:
 {
   "responseMessage": "I'm glad the explanation helped! If you have any more questions about vector calculus or any other topic, feel free to ask. I'm here to help you learn!",
   "hasNewInfo": false
-}
-
-EXISTING NOTES: ${prevContent}`
+}`
    }]
-   return {parts};
 };
 
 // System instruction for Gemini to generate structured hierarchical notes
@@ -302,3 +324,4 @@ EXISTING NOTES: ${prevContent}`
     }]
     return {parts};
 };
+

@@ -6,7 +6,8 @@ import { Contents } from "./types";
 
 import { 
     defaultGeneralConfig, 
-    limitedGeneralConfig
+    limitedGeneralConfig,
+    model,
 } from "../gemini/config";
 import {
     chatResponseSystemInstruction, 
@@ -122,6 +123,13 @@ export const getChatResponse = async (message: string, messageHistory: Message[]
         parts: [{ text: message }]
     });
 
+    if (prevContent) {
+        contents.push({
+            role: "user",
+            parts: [{text: `EXISTING NOTES: ${JSON.stringify(prevContent)}`}]
+        })
+    }
+
     // Define the schema for the expected JSON response.
     const generationConfig = {
         ...limitedGeneralConfig,
@@ -137,7 +145,7 @@ export const getChatResponse = async (message: string, messageHistory: Message[]
     };
     const body = {
         contents,
-        systemInstruction: (prevContent ? chatResponseSystemInstruction(JSON.stringify(prevContent)) : firstChatResponseSystemInstruction),
+        systemInstruction: (prevContent ? chatResponseSystemInstruction : firstChatResponseSystemInstruction),
         generationConfig: generationConfig,
     };
 

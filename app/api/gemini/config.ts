@@ -1,3 +1,5 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
 export const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
 
 // ==== settings ====
@@ -15,3 +17,6 @@ export const limitedGeneralConfig = {
     maxOutputTokens: 4096
 }
 
+
+export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+export const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
