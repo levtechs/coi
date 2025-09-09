@@ -25,11 +25,11 @@ const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setModa
             <div className="flex items-center gap-2">
                 <Link href="/dashboard">
                     <FiHome
-                        size={22}
+                        size={32}
                         className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
                     />
                 </Link>
-                <div className="flex items-center gap-2 group mr-4">
+                <div className="flex items-center gap-2 group mr-4 ml-4">
                     <h1 className="text-[var(--foreground)] text-2xl font-bold">{project.title}</h1>
                     <FiEdit2
                         className="text-[var(--accent-500)] cursor-pointer opacity-0 group-hover:opacity-100 hover:text-[var(--accent-600)] transition"
