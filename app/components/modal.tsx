@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Button from "@/app/components/button";
+import LoadingComponent from "./loading";
 
 type ProjectModalProps = {
     isOpen: boolean;
@@ -27,6 +28,7 @@ export default function Modal({
     placeholder = "Enter project title"
 }: ProjectModalProps) {
     const [value, setValue] = useState(initialValue);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         setValue(initialValue);
@@ -48,35 +50,49 @@ export default function Modal({
                         onSubmit={(e) => {
                             e.preventDefault();
                             if (!value.trim()) return;
-                            onSubmit?.(value.trim());
-                            setValue(initialValue);
+                            
+                            const asyncOnSubmit = async (value: string) => {
+                                setIsLoading(true);
+                                await onSubmit?.(value.trim());
+                                setValue(initialValue);
+                                setIsLoading(false);
+                                onClose();
+                            } 
+                            
+                            asyncOnSubmit(value);
                         }}
                         className="flex flex-col gap-4"
                     >
-                        <input
-                            type="text"
-                            value={value}
-                            onChange={(e) => setValue(e.target.value)}
-                            className="border border-[var(--neutral-300)] rounded-md p-2 bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] transition"
-                            placeholder={placeholder}
-                            autoFocus
-                        />
+                        {isLoading ? (
+                            <LoadingComponent loadingText="Submitting" small={true}/>
+                        ) : (
+                            <>
+                                <input
+                                    type="text"
+                                    value={value}
+                                    onChange={(e) => setValue(e.target.value)}
+                                    className="border border-[var(--neutral-300)] rounded-md p-2 bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] transition"
+                                    placeholder={placeholder}
+                                    autoFocus
+                                />
 
-                        <div className="flex justify-end gap-2">
-                            <Button
-                                color="var(--neutral-300)"
-                                type="button"
-                                onClick={() => {
-                                    onClose();
-                                    setValue(initialValue);
-                                }}
-                            >
-                                Cancel
-                            </Button>
-                            <Button color="var(--accent-500)" type="submit">
-                                Save
-                            </Button>
-                        </div>
+                                <div className="flex justify-end gap-2">
+                                    <Button
+                                        color="var(--neutral-300)"
+                                        type="button"
+                                        onClick={() => {
+                                            setValue(initialValue);
+                                            onClose();
+                                        }}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button color="var(--accent-500)" type="submit">
+                                        Save
+                                    </Button>
+                                </div>
+                            </>
+                        )}
                     </form>
                 ) : (
                     <>
