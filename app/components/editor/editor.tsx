@@ -90,8 +90,8 @@ const Editor = ({
                 title={modalContents.title}
                 initialValue={modalContents.initialValue || ""}
                 placeholder={modalContents.placeholder}
-                children={modalContents.children}
-            />
+            >{modalContents.children}</Modal>
+
 
             {/* Card Popup */}
             {cardPopup && (
