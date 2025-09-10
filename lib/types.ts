@@ -7,7 +7,8 @@ export type Project = {
     collaborators: string[]; // emails
     sharedWith: string[]; // ids
     content: JSON; // JSON
-    cards: Card[]; //List of ids of the cards
+    cards: Card[]; 
+    quizIds?: string[]; // ids of quizzes 
 };
 
 export interface Message {
@@ -35,6 +36,7 @@ export interface QuizQuestion {
 }
 
 export interface Quiz {
+    id?: string;
     createdAt?: string | Timestamp; // Optional createdAt timestamp
     description: string;       // Quiz description
     questions: QuizQuestion[]; // List of questions

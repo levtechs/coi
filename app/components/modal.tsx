@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, ReactNode } from "react";
 import Button from "@/app/components/button";
 import LoadingComponent from "./loading";
 
 type ProjectModalProps = {
     isOpen: boolean;
     type: "input" | "confirm" | "info" | "error";
+    width?: string,
     message?: string;
     initialValue?: string;
     onClose: () => void;
@@ -14,18 +15,21 @@ type ProjectModalProps = {
     onProceed?: () => void;
     title?: string;
     placeholder?: string;
+    children?: ReactNode;
 };
 
 export default function Modal({
     isOpen,
     type,
+    width,
     message = "",
     initialValue = "",
     onClose,
     onSubmit,
     onProceed,
-    title = "Project",
-    placeholder = "Enter project title"
+    title,
+    placeholder = "Enter project title",
+    children
 }: ProjectModalProps) {
     const [value, setValue] = useState(initialValue);
     const [isLoading, setIsLoading] = useState(false);
@@ -40,10 +44,8 @@ export default function Modal({
         // This is the new full-screen overlay container
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/50">
             {/* This is your existing modal content */}
-            <div className="bg-[var(--neutral-100)] p-6 rounded-lg shadow-lg w-80 flex flex-col gap-4">
-                <h2 className="text-[var(--foreground)] font-semibold text-xl">
-                    {title}
-                </h2>
+            <div className={`bg-[var(--neutral-100)] p-6 rounded-lg shadow-lg w-${width ?? "80"} flex flex-col gap-4`}>
+                {title && <h2 className="text-[var(--foreground)] font-semibold text-xl">{title}</h2>}
 
                 {(!type || type === "input") ? (
                     <form
@@ -96,27 +98,45 @@ export default function Modal({
                     </form>
                 ) : (
                     <>
-                        <p className={`text-[var(${(type === "error") ? "--error" : "--foreground"})]`}>
-                            {message}
-                        </p>
-                        <div className="flex flex-row w-[100%] gap-4">
-                            <Button
-                                className="flex-1"
-                                color="var(--neutral-300)"
-                                type="button"
-                                onClick={onClose}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                className="flex-1"
-                                color="var(--accent-300)"
-                                type="button"
-                                onClick={onProceed ? onProceed : () => {}}
-                            >
-                                {type === "confirm" ? "Ok" : "close"}
-                            </Button>
-                        </div>
+                        {message && (<p className={`text-[var(${(type === "error") ? "--error" : "--foreground"})]`}>{message}</p>)}
+                        {type === "info" ? (
+                            <div className="flex flex-col">
+                                {children}
+                                <div className="flex flex-row w-[100%] gap-4">
+                                    <Button
+                                        className="flex-1"
+                                        color="var(--accent-300)"
+                                        type="button"
+                                        onClick={onClose}
+                                    >
+                                        close
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+
+                                <div className="flex flex-row w-[100%] gap-4">
+                                    <Button
+                                        className="flex-1"
+                                        color="var(--neutral-300)"
+                                        type="button"
+                                        onClick={onClose}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        className="flex-1"
+                                        color="var(--accent-300)"
+                                        type="button"
+                                        onClick={onProceed ? onProceed : () => {}}
+                                    >
+                                        {type === "confirm" ? "Ok" : "close"}
+                                    </Button>
+                                </div>
+                            </>
+                        )}
+
                     </>
                 )}
 
