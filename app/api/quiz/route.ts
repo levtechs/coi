@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
-    const cards = await req.json() as Card[];
+    const { cards, projectId } = await req.json() as { cards: Card[]; projectId: string };
 
     if (!cards) return NextResponse.json({ error: "No cards provided" }, { status: 400 });
 
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
         if (!quizJson) {
             return NextResponse.json({ error: "Gemini API failed" }, { status: 500 });
         }
-        const quizId = await writeQuizToDb(quizJson);
+        const quizId = await writeQuizToDb(quizJson, projectId);
         return NextResponse.json({ quizId });
     } catch (err) {
         return NextResponse.json({ error: (err as Error).message }, { status: 500 });

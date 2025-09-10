@@ -3,11 +3,11 @@ import { apiFetch } from "./helpers";
 import { Card, Quiz } from "@/lib/types";
 
 // Creates a quiz with cards
-export async function createQuiz(cards: Card[]): Promise<string> {
+export async function createQuiz(cards: Card[], projectId: string): Promise<string> {
     try {
         const data = await apiFetch<{ quizId: string }>(`/api/quiz`, {
             method: "POST",
-            body: JSON.stringify(cards),
+            body: JSON.stringify({cards, projectId}),
         });
         return data.quizId;
     } catch (err) {
@@ -21,6 +21,7 @@ export async function getQuiz(quizId: string): Promise<Quiz | null> {
         const data = await apiFetch<Quiz>(`/api/quiz/${quizId}`, {
             method: "GET",
         });
+        if (data) data.id = quizId
         return data;
     }
     catch (err) {

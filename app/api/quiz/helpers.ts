@@ -1,5 +1,5 @@
 import { db } from "@/lib/firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, arrayUnion } from "firebase/firestore";
 
 import { defaultGeneralConfig } from "../gemini/config";
 import { callGeminiApi } from "../gemini/helpers";
@@ -12,20 +12,29 @@ import { Card } from "@/lib/types";
  * @param quiz The quiz JSON object to store.
  * @returns The ID of the newly created quiz document.
  */
-export const writeQuizToDb = async (quiz: JSON): Promise<string> => {
+export const writeQuizToDb = async (quiz: object, projectId: string): Promise<string> => {
     if (!quiz) throw new Error("Missing quiz");
 
     try {
-        const quizesColRef = collection(db, "quizzes");
-        const docRef = await addDoc(quizesColRef, {
+        // 1. Write quiz to quizzes collection
+        const quizzesColRef = collection(db, "quizzes");
+        const docRef = await addDoc(quizzesColRef, {
             ...quiz,
             createdAt: new Date().toISOString(),
         });
 
-        console.log("New quiz written successfully to DB with ID:", docRef.id);
-        return docRef.id; // <-- return the auto-generated ID
+        console.log("New quiz written successfully with ID:", docRef.id);
+
+        // 2. Add quizId to the project document's quizIds array
+        const projectRef = doc(db, "projects", projectId);
+        await updateDoc(projectRef, {
+            quizIds: arrayUnion(docRef.id),
+        });
+
+        console.log(`Quiz ID ${docRef.id} added to project ${projectId}`);
+        return docRef.id;
     } catch (err) {
-        console.error("Error writing quiz to DB:", err);
+        console.error("Error writing quiz to DB or updating project:", err);
         throw err;
     }
 };

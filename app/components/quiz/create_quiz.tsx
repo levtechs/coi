@@ -108,7 +108,7 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
                                 color={isLoadingQuiz ?  ("var(--neutral-400)") : ("var(--accent-400)")}
                                 onClick={async ()=>{
                                     setIsLoadingQuiz(true);
-                                    const quizId = await createQuiz(cards);
+                                    const quizId = await createQuiz(cards, projectId);
                                     setIsLoadingQuiz(quizId);
                                 }}
                                 type="submit"

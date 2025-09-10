@@ -79,6 +79,7 @@ const Editor = ({
             <Modal
                 isOpen={modalContents.isOpen}
                 type={modalContents.type}
+                width={modalContents.width}
                 message={modalContents.message}
                 onClose={closeModal}
                 onSubmit={async (input: string) => {
@@ -89,6 +90,7 @@ const Editor = ({
                 title={modalContents.title}
                 initialValue={modalContents.initialValue || ""}
                 placeholder={modalContents.placeholder}
+                children={modalContents.children}
             />
 
             {/* Card Popup */}
