@@ -18,19 +18,16 @@ const TakeQuizPage = ({ quizId }: TakeQuizPageProps) => {
 
     const { user } = useAuth();
 
-    const [quiz, setQuiz] = useState<Quiz | false>(false);
+    const [quiz, setQuiz] = useState<Quiz | null>(null);
 
 
     useEffect(() => {
         setLoading(true);
         if (!user || !quizId) return;
 
-        async function fetchProject() {
+        async function fetchQuiz() {
             try {
                 const fetchedQuiz = await getQuiz(quizId);
-                if (!fetchedQuiz) {
-                    throw new Error("Quiz not found");
-                }
                 setQuiz(fetchedQuiz);
                 setLoading(false);
             }
@@ -40,11 +37,11 @@ const TakeQuizPage = ({ quizId }: TakeQuizPageProps) => {
             }
         }
 
-        fetchProject();
+        fetchQuiz();
     }, [user, quizId]);
 
     if (isLoading === true) return <LoadingComponent loadingText="Loading quiz..." />;
-    if (isLoading === "error" || quiz === false) return (<Error h2="Error loading quiz." p="Please check the quiz ID or try again later." />);
+    if (isLoading === "error" || quiz === null) return (<Error h2="Error loading quiz." p="Please check the quiz ID or try again later." />);
 
     return (<QuizForm quiz={quiz} />);
 };
