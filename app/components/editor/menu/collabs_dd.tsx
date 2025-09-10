@@ -86,6 +86,7 @@ export default function CollaboratorsDropdown({ sharedWith, ownerId }: Collabora
                     {/* Owner */}
                     <li
                         key={owner?.id || "owner-placeholder"}
+                        onClick={owner ? () => window.open(`/profile/user/${owner?.id}`) : ()=>{}}
                         className="flex items-center gap-x-2 px-4 py-2 text-[var(--foreground)] hover:bg-[var(--neutral-200)] cursor-default transition"
                     >
                         <span className="flex items-center gap-x-1">
@@ -102,6 +103,7 @@ export default function CollaboratorsDropdown({ sharedWith, ownerId }: Collabora
                             <li
                                 key={user.id}
                                 className="flex items-center gap-x-2 px-4 py-2 text-[var(--foreground)] hover:bg-[var(--neutral-200)] cursor-default transition"
+                                onClick={() => window.open(`/profile/user/${user.id}`)}
                             >
                                 {user.displayName}
                                 {user.email.toLowerCase() === currentUserEmail.toLowerCase() && (
