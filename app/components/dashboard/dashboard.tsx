@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { useAuth } from "@/lib/AuthContext";
+import { User } from "firebase/auth";
 import { Project } from "@/lib/types";
 import { getProjects, saveProject, createProject } from "@/app/views/projects"
 
@@ -11,8 +11,11 @@ import { FiLoader } from "react-icons/fi";
 import ProjectCard from "./project_card";
 import Modal from "@/app/components/modal";
 
-const Dashboard = () => {
-    const { user } = useAuth();
+interface DashboardProps {
+    user: User | null;
+}
+
+const Dashboard = ({ user }: DashboardProps) => {
 
     const [isLoading, setLoading] = useState(false);
     const [projects, setProjects] = useState<Project[]>([]);

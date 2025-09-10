@@ -1,4 +1,3 @@
-// app/quiz/page.tsx
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -6,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import CreateQuizPage from "../components/quiz/create_quiz";
 import LoadingComponent from "../components/loading";
+import Error from "../components/error";
 
 const QuizPage = () => {
     return (
@@ -22,13 +22,7 @@ const QuizPageInner = () => {
     const searchParams = useSearchParams();
     const projectId = searchParams.get("projectId");
 
-    if (!projectId) {
-        return (
-            <div className="flex flex-col items-center justify-center h-screen">
-                <p>No Quiz ID provided</p>
-            </div>
-        );
-    }
+    if (!projectId) return (<Error h2="No Quiz ID provided." p="Please check the URL or try again later."/>)
 
     return <CreateQuizPage projectId={projectId} />;
 };

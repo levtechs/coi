@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 
-import Image from "next/image";
 import { useAuth } from "@/lib/AuthContext";
 
 import { Quiz } from "@/lib/types";
@@ -8,6 +7,7 @@ import { Quiz } from "@/lib/types";
 import { getQuiz } from "@/app/views/quiz";
 import LoadingComponent from "../loading";
 import QuizForm from "./quiz_form";
+import Error from "../error";
 
 interface TakeQuizPageProps {
     quizId: string;
@@ -44,15 +44,7 @@ const TakeQuizPage = ({ quizId }: TakeQuizPageProps) => {
     }, [user, quizId]);
 
     if (isLoading === true) return <LoadingComponent loadingText="Loading quiz..." />;
-    if (isLoading === "error" || quiz === false) {
-        return (
-            <div className="flex flex-col items-center justify-center h-screen p-6 bg-[var(--background)] text-[var(--foreground)] text-center">
-                <Image src="/error.png" alt="Not Found" width={200} height={200} className="mb-8" />
-                <p className="text-2xl font-semibold mb-4">Error loading quiz.</p>
-                <p className="text-lg mb-6">Please check the quiz ID or try again later.</p>
-            </div>
-        );
-    }
+    if (isLoading === "error" || quiz === false) return (<Error h2="Error loading quiz." p="Please check the quiz ID or try again later." />);
 
     return (<QuizForm quiz={quiz} />);
 };

@@ -5,6 +5,8 @@ import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import Dashboard from "@/app/components/dashboard/dashboard";
 import Button from "@/app/components/button";
+import LoginPrompt from "../components/login_prompt";
+import { FiLogOut, FiUser } from "react-icons/fi";
 
 export default function DashboardPage() {
     const { user, loading } = useAuth();
@@ -18,15 +20,7 @@ export default function DashboardPage() {
     }
 
     if (!user) {
-        return (
-            <div className="flex flex-col items-center justify-center h-screen p-6 bg-[var(--background)] text-[var(--foreground)] text-center">
-                <p className="text-2xl font-semibold mb-4">You are not logged in.</p>
-                <p className="text-lg mb-6">Please log in to access the dashboard.</p>
-                <Button color="var(--accent-500)" onClick={() => (window.location.href = "/login")}>
-                    Go to Login Page
-                </Button>
-            </div>
-        );
+        return (<LoginPrompt page={"the dashboard"}/>);
     }
 
     return (
@@ -36,9 +30,14 @@ export default function DashboardPage() {
                     <h1 className="text-3xl font-extrabold text-[var(--foreground)]">
                         Welcome, {user.displayName}!
                     </h1>
-                    <Button color="var(--error)" onClick={() => signOut(auth)}>
-                        Logout
-                    </Button>
+                    <div className="flex flex-row gap-4" >
+                        <Button color="var(--error)" onClick={() => signOut(auth)}>
+                            <FiLogOut className="h-[25px] w-[25px]"/>
+                        </Button>
+                        <Button color="var(--accent-400)" onClick={() => window.location.href = "/profile"}>
+                            <FiUser className="h-[25px] w-[25px]"/>
+                        </Button>
+                    </div>
                 </div>
 
                 <hr/>
@@ -47,7 +46,7 @@ export default function DashboardPage() {
                     Your projects
                 </p>
 
-                <Dashboard />
+                <Dashboard user={user} />
             </div>
         </div>
     );
