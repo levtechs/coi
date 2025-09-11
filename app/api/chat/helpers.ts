@@ -1,21 +1,236 @@
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, setDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
 
-import { Message } from "@/lib/types"; // { content: string; isResponse: boolean }
-import { Contents } from "./types";
+import { Message, Card, ContentHierarchy} from "@/lib/types"; // { content: string; isResponse: boolean }
+import { Content, Contents } from "./types";
 
 import { 
+    model,
     defaultGeneralConfig, 
     limitedGeneralConfig,
 } from "../gemini/config";
 import {
     chatResponseSystemInstruction, 
-    firstChatResponseSystemInstruction, 
+    generateCardsSystemInstruction,
+    generateHierarchySystemInstruction,
+    //  === \/ below is depricated \/ 
+    firstChatResponseSystemInstruction,
     genContentSystemInstruction, 
     updateContentSystemInstruction, 
 } from "./config"
 import { callGeminiApi } from "../gemini/helpers";
+import { GenerateContentRequest } from "@google/generative-ai";
+import { writeCardsToDb } from "../cards/helpers"
 
+/**
+ * Recursively builds a JSON representation of a content hierarchy combined with its referenced cards.
+ *
+ * @param cards - The full list of available cards.
+ * @param hierarchy - The content hierarchy structure.
+ * @returns A JSON string that combines the hierarchy and card details, suitable for providing as context to an LLM.
+ */
+export const getStringFromHierarchyAndCards = async (
+    cards: Card[],
+    hierarchy: ContentHierarchy
+): Promise<string> => {
+    /**
+     * Recursively serialize a node or hierarchy.
+     */
+    const serializeHierarchy = (h: ContentHierarchy): any => {
+        return {
+            title: h.title,
+            children: h.children.map((child) => {
+                switch (child.type) {
+                    case "text":
+                        return { type: "text", text: child.text };
+
+                    case "card": {
+                        const card = cards.find((c) => c.id === child.cardId);
+                        if (card) {
+                            return {
+                                type: "card",
+                                id: card.id,
+                                title: card.title,
+                                details: card.details,
+                            };
+                        } else {
+                            return {
+                                type: "card",
+                                id: child.cardId,
+                                missing: true,
+                            };
+                        }
+                    }
+
+                    case "subcontent":
+                        return {
+                            type: "subcontent",
+                            content: serializeHierarchy(child.content),
+                        };
+                }
+            }),
+        };
+    };
+
+    const result = serializeHierarchy(hierarchy);
+    return JSON.stringify(result, null, 2);
+};
+
+/**
+ * Fetches the previous content hierarchy for a project from Firestore.
+ *
+ * @param projectId - The ID of the project.
+ * @returns The ContentHierarchy object if it exists, otherwise null.
+ */
+export const getPreviousHierarchy = async (
+    projectId: string,
+): Promise<ContentHierarchy | null> => {
+    try {
+        const projectDocRef = doc(db, "projects", projectId);
+        const projectSnap = await getDoc(projectDocRef);
+
+        if (!projectSnap.exists()) {
+            console.warn(`Project with ID ${projectId} does not exist.`);
+            return null;
+        }
+
+        const data = projectSnap.data();
+
+        if (!data.hierarchy) {
+            console.warn(`Project ${projectId} has no hierarchy field.`);
+            return null;
+        }
+
+        // If hierarchy is stored as a string (JSON), parse it
+        let hierarchy: ContentHierarchy;
+        if (typeof data.hierarchy === "string") {
+            hierarchy = JSON.parse(data.hierarchy) as ContentHierarchy;
+        } else {
+            hierarchy = data.hierarchy as ContentHierarchy;
+        }
+
+        return hierarchy;
+    } catch (err) {
+        console.error("Error fetching previous content hierarchy:", err);
+        return null;
+    }
+};
+
+/**
+ * Writes a content hierarchy to a Firestore project document.
+ *
+ * @param projectId - The ID of the project to update.
+ * @param hierarchy - The ContentHierarchy object to store.
+ */
+export const writeHierarchy = async (
+    projectId: string,
+    hierarchy: ContentHierarchy
+): Promise<void> => {
+    try {
+        const projectDocRef = doc(db, "projects", projectId);
+
+        // Store hierarchy as an object (Firestore supports nested objects)
+        await updateDoc(projectDocRef, {
+            hierarchy: hierarchy
+        });
+
+        console.log(`Hierarchy successfully written for project ${projectId}`);
+    } catch (err) {
+        console.error(`Error writing hierarchy for project ${projectId}:`, err);
+        throw err;
+    }
+};
+
+/**
+ * Generates new cards using Gemini, writes them to Firestore, and returns the full list of cards.
+ *
+ * @param projectId - The ID of the project.
+ * @param oldCards - Existing cards, if any (can be null).
+ * @returns Full list of Card objects including new ones.
+ */
+export const generateAndWriteNewCards = async (
+    projectId: string,
+    oldCards: Card[] | null,
+    userMessage: string,
+    responseMessage: string
+): Promise<Card[]> => {
+
+    const attatchments = {oldCards, userMessage, responseMessage}
+    const parts = [{ text: JSON.stringify(attatchments)}]
+
+    const requestBody: GenerateContentRequest = {
+        contents: [{
+            role: "user",
+            parts,
+        }],
+        systemInstruction: {
+            role: "system",
+            parts: generateCardsSystemInstruction.parts,
+        },
+        generationConfig: {
+            responseMimeType: "application/json",
+        },
+    };
+
+    // Call Gemini
+    const result = await model.generateContent(requestBody);
+    const jsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    let newCardsRaw: Omit<Card, "id">[];
+    try {
+        newCardsRaw = JSON.parse(jsonString!);
+    } catch (err) {
+        console.error("Failed to parse new cards from Gemini:", err, jsonString);
+        return oldCards || [];
+    }
+
+    // Write new cards to DB
+    const newCards = await writeCardsToDb(projectId, newCardsRaw);
+
+    // Return newCards
+    return newCards;
+};
+
+/**
+ * Generates a new content hierarchy from cards using Gemini.
+ *
+ * @param projectId - The ID of the project.
+ * @param oldHierarchy - Existing content hierarchy, if any (can be null).
+ * @returns The new ContentHierarchy object.
+ */
+export const generateNewHierarchyFromCards = async (
+    oldHierarchy: ContentHierarchy | null,
+    previousCards: Card[],
+    newCards: Card[],
+): Promise<ContentHierarchy> => {
+
+    const attatchments = {oldHierarchy, previousCards, newCards}
+    const parts = [{ text: JSON.stringify(attatchments)}]
+
+    const requestBody: GenerateContentRequest = {
+        contents: [{ role: "user", parts}],
+        systemInstruction: {
+            role: "system",
+            parts: generateHierarchySystemInstruction.parts,
+        },
+        generationConfig: {
+            responseMimeType: "application/json",
+        }
+    };
+
+    const result = await model.generateContent(requestBody);
+    const jsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    let hierarchy: ContentHierarchy;
+    try {
+        hierarchy = JSON.parse(jsonString!);
+    } catch (err) {
+        console.error("Failed to parse hierarchy from Gemini:", err, jsonString);
+        throw err;
+    }
+
+    return hierarchy;
+};
 
 export const writeChatPairToDb = async (
     message: string,
@@ -49,6 +264,16 @@ export const writeChatPairToDb = async (
         throw err;
     }
 };
+
+
+/*
+ * ========================================================
+ * ========================================================
+ * ============ EVERYTHING BELOW IS DEPRICATED ============
+ * ========================================================
+ * ========================================================
+ */
+
 
 /**
  * Writes a new content entry to the project's content collection.

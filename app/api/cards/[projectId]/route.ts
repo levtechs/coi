@@ -12,7 +12,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ project
     const { projectId } = await context.params;
 
     try {
-        const cards = await fetchCardsFromProject(projectId, uid);
+        const cards = await fetchCardsFromProject(projectId);
         return NextResponse.json(cards);
 
     } catch (err) {

@@ -1,40 +1,105 @@
 "use client";
 
-import React, { useState } from "react";
-
-import MarkdownArticle from "../md";
+import React, { useState, Dispatch, SetStateAction } from "react";
 
 import { FiChevronRight, FiChevronDown } from "react-icons/fi";
 
-import { Project } from "@/lib/types";
+import { Card, ContentHierarchy, ContentNode } from "@/lib/types";
 
-// Defines a structured content node which can be nested
-interface StructuredContent {
-    title?: string;
-    details: (string | StructuredContent)[];
-}
+import MarkdownArticle from "../md";
+import DetailCard from "./cards/detail_card";
+import CardPopup from "./cards/card_popup";
 
-// Recursive component to render structured content with collapsibility
-interface StructuredContentProps {
-    data: StructuredContent;
+interface ContentHierarchyRendererProps {
+    hierarchy: ContentHierarchy;
+    cards: Card[];
+    setClickedCard: React.Dispatch<React.SetStateAction<Card | null>>
     level?: number;
 }
 
-const StructuredContentRenderer = ({ data, level = 2 }: StructuredContentProps) => {
+const ContentHierarchyRenderer = ({ hierarchy, cards, setClickedCard, level = 2 }: ContentHierarchyRendererProps) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
 
-    if (!data) {
-        return <p className="text-[var(--neutral-500)]">(No content)</p>;
-    }
+    if (!hierarchy) return <p className="text-[var(--neutral-500)]">(No content)</p>;
 
-    // Determine the heading size based on the nesting level
     const headingSize = level > 5 ? 5 : level;
     const headingClass = `text-${2 + (5 - headingSize)}xl font-semibold`;
 
+    // Function to render children with consecutive cards in a row
+    const renderChildren = (children: ContentNode[]) => {
+        const elements: React.ReactNode[] = [];
+        let cardBuffer: Card[] = [];
+
+        const flushCardBuffer = () => {
+            if (cardBuffer.length > 0) {
+                const rowKey = cardBuffer.map(c => c.id).join("-");
+                elements.push(
+                    <div key={`row-${rowKey}`} className="flex flex-row gap-4 p-2 overflow-x-auto">
+                        {cardBuffer.map((card) => (
+                            <div key={card.id} className="shrink-0">
+                                <DetailCard card={card} onClick={() => setClickedCard(card)} />
+                            </div>
+                        ))}
+                    </div>
+                );
+                cardBuffer = [];
+            }
+        };
+
+        children.forEach((child) => {
+            switch (child.type) {
+                case "text":
+                    flushCardBuffer();
+                    elements.push(
+                        <div key={crypto.randomUUID().toString()} className="prose prose-sm max-w-none text-[var(--foreground)]">
+                            <MarkdownArticle markdown={child.text} />
+                        </div>
+                    );
+                    break;
+
+                case "card": {
+                    const card = cards.find((c) => c.id === child.cardId);
+                    if (card) {
+                        cardBuffer.push(card);
+                    } else {
+                        flushCardBuffer();
+                        elements.push(
+                            <div key={crypto.randomUUID().toString()} className="text-[var(--neutral-500)] italic">
+                                (Missing card: {child.cardId})
+                            </div>
+                        );
+                    }
+                    break;
+                }
+
+                case "subcontent":
+                    flushCardBuffer();
+                    elements.push(
+                        <div key={crypto.randomUUID().toString()} className="ml-4">
+                            <ContentHierarchyRenderer
+                                hierarchy={child.content}
+                                cards={cards}
+                                setClickedCard={setClickedCard}
+                                level={level < 5 ? level + 1 : 5}
+                            />
+                        </div>
+                    );
+                    break;
+
+                default:
+                    flushCardBuffer();
+                    break;
+            }
+        });
+
+        flushCardBuffer(); // flush any remaining cards at the end
+        return elements;
+    };
+
     return (
         <div className="flex flex-col">
-            {data.title && (
-                <div 
+            {hierarchy.title && (
+                <div
                     onClick={() => setIsCollapsed(!isCollapsed)}
                     className="flex items-center gap-2 cursor-pointer mb-2"
                 >
@@ -46,56 +111,32 @@ const StructuredContentRenderer = ({ data, level = 2 }: StructuredContentProps) 
                     {React.createElement(
                         `h${headingSize}`,
                         {
-                            className: `text-[var(--foreground)] ${headingClass}`
+                            className: `text-[var(--foreground)] ${headingClass}`,
                         },
-                        <MarkdownArticle markdown={data.title} />
+                        <MarkdownArticle markdown={hierarchy.title} />
                     )}
                 </div>
             )}
-            {!isCollapsed && (
-                <div className="ml-4 space-y-4"> {/* Use space-y for consistent vertical spacing */}
-                    {Array.isArray(data.details) && data.details.map((item, index) => {
-                        if (typeof item === 'string') {
-                            // Render string content inside a single ReactMarkdown block
-                            // The `prose` class will now handle all internal formatting (bullets, lists, paragraphs)
-                            return (
-                                <div key={index} className="prose prose-sm max-w-none text-[var(--foreground)]">
-                                    <MarkdownArticle markdown={item} />
-                                </div>
-                            );
-                        }
-                        if (typeof item === 'object' && item !== null) {
-                            return (
-                                <div key={index} className="ml-4">
-                                    <StructuredContentRenderer
-                                        data={item}
-                                        level={level < 5 ? level + 1 : 5}
-                                    />
-                                </div>
-                            );
-                        }
-                        return null;
-                    })}
-                </div>
-            )}
+
+            {!isCollapsed && <div className="ml-4 space-y-4">{renderChildren(hierarchy.children)}</div>}
         </div>
     );
 };
 
 interface ContentPanelProps {
-    project: Project;
-    hidden: boolean
+    hierarchy: ContentHierarchy | null;
+    cards: Card[];
+    hidden?: boolean;
+    setClickedCard: Dispatch<SetStateAction<Card | null>>;
 }
 
-const ContentPanel = ({ project, hidden }: ContentPanelProps) => {
-    const content = project.content ? project.content as unknown as StructuredContent : null;
-    
+const ContentPanel = ({ hierarchy, cards, hidden = false, setClickedCard}: ContentPanelProps) => {
+
     return (
-        <div className={`flex-1 w-full ${hidden ? 'hidden' : ''}`}>
-            <div className="relative p-3 rounded-md text-[var(--foreground)]">
-                {/* Render content */}
-                {content ? (
-                    <StructuredContentRenderer data={content} />
+        <div className={`flex-1 w-full ${hidden ? "hidden" : ""}`}>
+            <div className="relative p-3 rounded-md text-[var(--foreground)] bg-[var(--neutral-100)]">
+                {hierarchy ? (
+                    <ContentHierarchyRenderer hierarchy={hierarchy} cards={cards} setClickedCard={setClickedCard}/>
                 ) : (
                     <p className="text-[var(--neutral-500)]">(No content)</p>
                 )}

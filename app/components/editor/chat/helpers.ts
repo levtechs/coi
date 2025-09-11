@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction } from "react";
-import { Message, Project, StreamPhase } from "@/lib/types";
+import { Message, Project, Card, StreamPhase } from "@/lib/types";
 import { streamChat } from "@/app/views/chat";
 
 export const sendMessage = async (
@@ -8,6 +8,7 @@ export const sendMessage = async (
     project: Project,
     addMessage: (msg: Message) => void, 
     setStream: Dispatch<SetStateAction<string | null>>,
+    setNewCards: (newCards: Card[]) => void,
     updatePhase: Dispatch<SetStateAction<null | StreamPhase>>,
     setProject: (updater: (prev: Project | null) => Project | null) => void,
     setInput: Dispatch<SetStateAction<string>>,
@@ -42,10 +43,11 @@ export const sendMessage = async (
             project.id, 
             setPhase, 
             (finalMessage: string) => addMessage({ content: finalMessage, isResponse: true, id: crypto.randomUUID()}),
+            (newCards: Card[]) => setNewCards(newCards),
             (token) => {
                 streamedContent += token;
                 setStream(streamedContent);
-            }
+            },
          );
 
         setPhase(null);
@@ -55,7 +57,7 @@ export const sendMessage = async (
             if (!prev) return null;
             return {
                 ...prev,
-                content: JSON.parse(JSON.stringify(finalData.newContent)) ?? prev.content,
+                hierarchy: JSON.parse(JSON.stringify(finalData.newHierarchy)) ?? prev.hierarchy,
                 cards: finalData.allCards ?? prev.cards,
             };
         });

@@ -6,8 +6,8 @@ export type Project = {
     ownerId: string;
     collaborators: string[]; // emails
     sharedWith: string[]; // ids
-    content: JSON; // JSON
     cards: Card[]; 
+    hierarchy: ContentHierarchy;
     quizIds?: string[]; // ids of quizzes 
 };
 
@@ -28,6 +28,16 @@ export interface Card {
     title: string;
     details: string[];
 }
+
+export interface ContentHierarchy {
+    title: string;
+    children: ContentNode[];
+}
+
+export type ContentNode =
+    | { type: "text"; text: string }
+    | { type: "card"; cardId: string }
+    | { type: "subcontent"; content: ContentHierarchy };
 
 export interface QuizQuestion {
     question: string;

@@ -2,7 +2,9 @@ import {
     GenerateContentRequest,
 } from "@google/generative-ai";
 
-import { Message } from "@/lib/types"; // { content: string; isResponse: boolean }
+import { ContentHierarchy, Card, Message } from "@/lib/types"; // { content: string; isResponse: boolean }
+
+import { getStringFromHierarchyAndCards } from "../helpers"
 
 import { 
     limitedGeneralConfig,
@@ -10,6 +12,7 @@ import {
 } from "@/app/api/gemini/config";
 import {
     chatResponseSystemInstruction, 
+    //  === \/ below is depricated \/ 
     firstChatResponseSystemInstruction, 
 } from "../config"
 
@@ -20,7 +23,8 @@ import {
 export async function streamChatResponse(
     message: string,
     messageHistory: Message[],
-    prevContent: string | null,
+    previousCards: Card[] | null,
+    previousContentHierarchy: ContentHierarchy | null,
     onToken: (token: string) => Promise<void> | void
 ): Promise<{ responseMessage: string; hasNewInfo: boolean } | null> {
     if (!message || message.trim() === "") throw new Error("Message is required.");
@@ -38,6 +42,7 @@ export async function streamChatResponse(
         parts: [{ text: message }],
     });
     
+    const prevContent = ( (previousContentHierarchy && previousCards) ? getStringFromHierarchyAndCards(previousCards, previousContentHierarchy) : null);
     if (prevContent) {
         contents.push({
             role: "user",
@@ -45,10 +50,8 @@ export async function streamChatResponse(
         })
     }
     
-    // systemInstruction must be a Content object with a role
-    const systemInstruction = prevContent
-        ? { role: "system", parts: chatResponseSystemInstruction.parts }
-        : { role: "system", parts: firstChatResponseSystemInstruction.parts };
+    // systemInstruction must be a Con;tent object with a role
+    const systemInstruction = { role: "system", parts: chatResponseSystemInstruction.parts }
 
     const requestBody: GenerateContentRequest = {
         contents,
