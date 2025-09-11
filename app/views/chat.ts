@@ -3,7 +3,7 @@
 import { auth } from "@/lib/firebase";
 import { apiFetch } from "./helpers"; // adjust path if needed
 
-import { Message, Card } from "@/lib/types";
+import { Message, Card, StreamPhase } from "@/lib/types";
 
 /**
  * Streams a chat response from the API.
@@ -17,7 +17,7 @@ export async function streamChat(
     message: string,
     messageHistory: Message[],
     projectId: string,
-    setPhase: (phase: null | "streaming" | "processing" | "generating content" | "generating cards") => void,
+    setPhase: (phase: null | StreamPhase) => void,
     setFinalResponseMessage: (value: string) => void,
     onToken: (token: string) => void,
 ): Promise<{ responseMessage: string; newContent: JSON | null; allCards: Card[] | null }> {

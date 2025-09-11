@@ -4,7 +4,7 @@ import { FiSend, FiX } from "react-icons/fi";
 import Button from "@/app/components/button";
 import ChatMessages from "./chat_messages";
 
-import { Project, Message } from "@/lib/types";
+import { Project, Message, StreamPhase } from "@/lib/types";
 
 import { getChatHistory } from "@/app/views/chat";
 import { sendMessage } from "./helpers";
@@ -20,7 +20,7 @@ const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
     const [input, setInput] = useState("");
     const [isLoading, setLoading] = useState(false);
     const [stream, setStream] = useState<string | null>(null);
-    const [streamPhase, setStreamPhase] = useState<null | "streaming" | "processing" | "generating content" | "generating cards">(null);
+    const [streamPhase, setStreamPhase] = useState<null | StreamPhase>(null);
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
     const onSend = () => sendMessage(input, messages, project, addMessage, setStream, setStreamPhase, setProject, setInput, setLoading)

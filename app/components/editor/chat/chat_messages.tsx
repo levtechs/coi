@@ -2,18 +2,27 @@ import React from "react"
 
 import { FiLoader } from "react-icons/fi";
 
-import { Message } from "@/lib/types";
+import { Message, StreamPhase } from "@/lib/types";
 
 import MarkdownArticle from "../../md";
 
 interface ChatMessagesProps {
     messages: Message[];
-    stream: string | null, 
+    stream: string | null;
     isLoading: boolean;
-    phase: null | "streaming" | "processing" | "generating content" | "generating cards"
+    phase: null | StreamPhase;
 }
 
 const ChatMessages = ({ messages, stream, isLoading, phase}: ChatMessagesProps) => {
+    
+    const phaseMessages: Record<string, string> = {
+        starting: "Starting...",
+        streaming: "Explaining...",
+        processing: "Thinking...",
+        "generating content": "Making notes...",
+        "generating cards": "Making cards...",
+    };
+
     return (
         <>
             {messages.length === 0 ? (
@@ -42,11 +51,7 @@ const ChatMessages = ({ messages, stream, isLoading, phase}: ChatMessagesProps) 
             {isLoading && (
                 <div className="self-start bg-[var(--neutral-300)] text-[var(--foreground)] p-2 rounded-md mb-2 max-w-[70%] flex items-center space-x-2">
                     <FiLoader className="animate-spin w-5 h-5 text-[var(--foreground)]" />
-                    <span>{!phase && "Thinking..."}</span>
-                    <span>{phase === "streaming" && "Explaining..."}</span>
-                    <span>{phase === "processing" && "Thinking..."}</span>
-                    <span>{phase === "generating content" && "Making notes..."}</span>
-                    <span>{phase === "generating cards" && "Making cards..."}</span>
+                    <span>{phase ? phaseMessages[phase] : "Thinking..."}</span>
                 </div>
             )}
         </>
