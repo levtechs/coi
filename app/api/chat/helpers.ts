@@ -36,7 +36,7 @@ export const getStringFromHierarchyAndCards = async (
     /**
      * Recursively serialize a node or hierarchy.
      */
-    const serializeHierarchy = (h: ContentHierarchy): any => {
+    const serializeHierarchy = (h: ContentHierarchy): object => {
         return {
             title: h.title,
             children: h.children.map((child) => {
