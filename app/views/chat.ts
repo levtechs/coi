@@ -3,7 +3,7 @@
 import { auth } from "@/lib/firebase";
 import { apiFetch } from "./helpers"; // adjust path if needed
 
-import { Message, Card, StreamPhase } from "@/lib/types";
+import { Message, Card, StreamPhase, ContentHierarchy } from "@/lib/types";
 
 /**
  * Streams a chat response from the API.
@@ -19,8 +19,9 @@ export async function streamChat(
     projectId: string,
     setPhase: (phase: null | StreamPhase) => void,
     setFinalResponseMessage: (value: string) => void,
+    setNewCards: (newCards: Card[]) => void,
     onToken: (token: string) => void,
-): Promise<{ responseMessage: string; newContent: JSON | null; allCards: Card[] | null }> {
+): Promise<{ responseMessage: string; newHierarchy: ContentHierarchy | null; allCards: Card[] | null }> {
     const user = auth.currentUser;
     if (!user) throw new Error("User not authenticated");
 
@@ -61,13 +62,14 @@ export async function streamChat(
                 if (obj.type === "final") {
                     return {
                         responseMessage: obj.responseMessage,
-                        newContent: obj.newContent ?? null,
+                        newHierarchy: obj.newHierarchy ?? null,
                         allCards: obj.allCards ?? null,
                     };
                 }
 
                 if (obj.type === "update") {
                     if (obj.responseMessage) setFinalResponseMessage(obj.responseMessage);
+                    if (obj.newCards) setNewCards(JSON.parse(obj.newCards) as Card[]); 
                     continue;
                 }
 
@@ -87,6 +89,38 @@ export async function streamChat(
 
     throw new Error("No final response received from stream");
 }
+
+/**
+ * Get full chat history for the current user in a given project.
+ * @param projectId The project ID to fetch chat history for.
+ * @returns Promise resolving to array of messages.
+ */
+export async function getChatHistory(
+    projectId: string
+): Promise<Message[]> {
+    try {
+        const data = await apiFetch<{ messages: Message[] }>(
+            `/api/chat?projectId=${encodeURIComponent(projectId)}`,
+            {
+                method: "GET",
+            }
+        );
+
+        return data.messages || [];
+    } catch (err) {
+        console.error("Error fetching chat history:", err);
+        return [];
+    }
+}
+
+
+/*
+ * ========================================================
+ * ========================================================
+ * ============ EVERYTHING BELOW IS DEPRICATED ============
+ * ========================================================
+ * ========================================================
+ */
 
 
 /**
@@ -117,29 +151,5 @@ export async function getResponse(
     } catch (err) {
         console.error("Error fetching chat response:", err);
         throw err;
-    }
-}
-
-
-/**
- * Get full chat history for the current user in a given project.
- * @param projectId The project ID to fetch chat history for.
- * @returns Promise resolving to array of messages.
- */
-export async function getChatHistory(
-    projectId: string
-): Promise<Message[]> {
-    try {
-        const data = await apiFetch<{ messages: Message[] }>(
-            `/api/chat?projectId=${encodeURIComponent(projectId)}`,
-            {
-                method: "GET",
-            }
-        );
-
-        return data.messages || [];
-    } catch (err) {
-        console.error("Error fetching chat history:", err);
-        return [];
     }
 }

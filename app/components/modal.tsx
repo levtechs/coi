@@ -21,7 +21,7 @@ type ProjectModalProps = {
 export default function Modal({
     isOpen,
     type,
-    width,
+    width="md",
     message = "",
     initialValue = "",
     onClose,

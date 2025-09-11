@@ -56,8 +56,10 @@ const Editor = ({
                         />
                         <div className="h-4" > 
                             <ContentPanel
-                                project={project}
+                                hierarchy={project.hierarchy}
+                                cards={project.cards}
                                 hidden={tab !== "content"}
+                                setClickedCard={setCardPopup}
                             />
                             <CardsPanel 
                                 project={project} 
@@ -71,6 +73,8 @@ const Editor = ({
                     <ChatPanel 
                         project={project} 
                         setProject={setProject}
+                        setModalContents={setModalContents}
+                        setClickedCard={setCardPopup}
                     />
                 </div>
             </div>

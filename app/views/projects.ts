@@ -102,12 +102,6 @@ export async function getTitle(projectId: string): Promise<string> {
     return project.title;
 }
 
-/** Fetch project content */
-export async function getContent(projectId: string): Promise<JSON> {
-    const project = await apiFetch<Project>(`/api/projects/${projectId}`);
-    return project.content;
-}
-
 /** Update project title */
 export async function setTitle(projectId: string, title: string): Promise<void> {
     await apiFetch(`/api/projects/${projectId}`, {

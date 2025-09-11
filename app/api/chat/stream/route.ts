@@ -2,13 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { getVerifiedUid } from "@/app/api/helpers";
 import {
     writeChatPairToDb,
+    getPreviousHierarchy,
+    generateAndWriteNewCards,
+    generateNewHierarchyFromCards,
+    writeHierarchy,
+    //  === \/ below is depricated \/ 
     writeNewContentToDb,
     getPreviousContent,
-    getUpdatedContent
+    getUpdatedContent,
 } from "../helpers";
 import { streamChatResponse } from "./helpers";
-import { extractWriteCards } from "@/app/api/cards/helpers";
-import { Card, StreamPhase } from "@/lib/types";
+import { extractWriteCards, fetchCardsFromProject } from "@/app/api/cards/helpers";
+import { Card, ContentHierarchy, StreamPhase } from "@/lib/types";
 
 interface ChatRequestBody {
     message: string;
@@ -26,18 +31,27 @@ export async function POST(req: NextRequest) {
         const body: ChatRequestBody = await req.json();
         const { message, messageHistory, projectId } = body;
 
-        const previousContent = await getPreviousContent(projectId);
+        //const previousContent = await getPreviousContent(projectId);
+        const previousContentHierarchy = await getPreviousHierarchy(projectId);
+        const previousCards: Card[] = await fetchCardsFromProject(projectId);
+
         const encoder = new TextEncoder();
 
         const stream = new ReadableStream({
             async start(controller) {
                 try {
                     // phase is of type StreamPhase
-                    let phase = "starting"
+                    let phase: StreamPhase = "starting"
                     const updatePhase = (newPhase : StreamPhase) => {
                         phase = newPhase;
                         controller.enqueue(encoder.encode(JSON.stringify({ phase: newPhase }) + "\n"));
                     }
+
+                    const sendUpdate = (key: string, value: string) => {
+                        controller.enqueue(
+                            encoder.encode(JSON.stringify({ type: "update", [key]: value }) + "\n")
+                        );
+                    };
                     
                     updatePhase("starting");
 
@@ -50,7 +64,8 @@ export async function POST(req: NextRequest) {
                     await streamChatResponse(
                         message,
                         messageHistory,
-                        previousContent,
+                        previousCards,
+                        previousContentHierarchy,
                         (token: string) => {
                             response += token;
 
@@ -134,24 +149,26 @@ export async function POST(req: NextRequest) {
 
                     const { responseMessage, hasNewInfo } = parsed;
 
-                    controller.enqueue(encoder.encode(JSON.stringify({ type: "update", responseMessage }) + "\n"));
+                    //controller.enqueue(encoder.encode(JSON.stringify({ type: "update", responseMessage }) + "\n"));
+                    sendUpdate("responseMessage", responseMessage);
 
-                    // 2. Save the chat pair
+                    // Save the chat pair
                     await writeChatPairToDb(message, responseMessage, projectId, uid);
 
-                    // 3. Generate/update content only if needed
+                    // Generate/update content only if needed
                     let finalObj: {
                         type: "final";
                         responseMessage: string;
-                        newContent: JSON | null;
+                        newHierarchy: ContentHierarchy | null;
                         allCards: Card[] | null;
                     } = {
                         type: "final",
                         responseMessage,
-                        newContent: null,
+                        newHierarchy: null,
                         allCards: null
                     };
 
+                    /* Old popeline - depricated
                     if (hasNewInfo) {
                         updatePhase("generating content"); // phase 3
 
@@ -160,7 +177,7 @@ export async function POST(req: NextRequest) {
                         if (newContent) {
                             await writeNewContentToDb(newContent, projectId);
 
-                            updatePhase("generating content"); // phase 4
+                            updatePhase("generating cards"); // phase 4
                             const allCards = await extractWriteCards(projectId, newContent);
                             finalObj = {
                                 type: "final",
@@ -170,8 +187,29 @@ export async function POST(req: NextRequest) {
                             };
                         }
                     }
+                    */
+                    if (hasNewInfo) {
+                        updatePhase("generating cards"); // phase 3
 
-                    // 4. Send final structured JSON object
+                        const newCards: Card[] = await generateAndWriteNewCards(projectId, previousCards, message, responseMessage);
+                        const allCards = (previousCards ? [...previousCards, ...newCards] : newCards);
+
+                        sendUpdate("newCards", JSON.stringify(newCards));
+
+                        updatePhase("generating content"); // phase 4
+
+                        const newHierarchy: ContentHierarchy = await generateNewHierarchyFromCards(previousContentHierarchy, previousCards, newCards);
+                        await writeHierarchy(projectId, newHierarchy);
+
+                        finalObj = {
+                            type: "final",
+                            responseMessage,
+                            newHierarchy,
+                            allCards
+                        };
+                    }
+
+                    // Send final structured JSON object
                     controller.enqueue(encoder.encode(JSON.stringify(finalObj) + "\n"));
                     controller.close();
 

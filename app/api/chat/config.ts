@@ -9,7 +9,10 @@ Make sure to explain things in a way that encourages the user to keep learning.
 `
 
 const chatResponseFormChunk = `
-Your response will be based on the user's last message, with the rest of the chat history as context if applicable
+Your response will be based on the user's last message
+You may or may not be provided:
+- Chat history (if it is not provided, assume there is no chat history)
+- A hierarchy of note cards
 Your response will be a JSON of the form: { "responseMessage": string, "hasNewInfo": boolean } with exactly these two parts.
 `
 const userPasteChunk = `
@@ -31,8 +34,11 @@ No new information means:
 - Responses that do not add any new facts or concepts
 `
 const markdownChunk = `
-Use standard markdown formatting.
-Use LaTex when nessesary, for math or other techincal topics
+- Use standard markdown formatting.
+- Use LaTex when nessesary, for math or other techincal topics
+
+Example of correct markdown/latex
+
 `
 
 const jsonChunk = `
@@ -48,8 +54,216 @@ Output strictly in JSON format
 - It should be valid and parasble JSON. see the example output for formatting.
 `
 
+// ==== Full prompts with new hierarchy examples ====
 
-// Full prompts
+export const chatResponseSystemInstruction = {
+    parts: [{ text: `
+${personalityChunk}
+
+${chatResponseFormChunk}
+
+${newInfoChunk}
+
+${userPasteChunk}
+
+In the responseMessage
+${markdownChunk}
+
+${jsonChunk}
+
+EXAMPLE INPUT 1:
+
+{
+  "user_message": "Can you explain the structure of a neuron?",
+  "message_history": []
+}
+
+EXAMPLE CONTEXT INPUT (from getStringFromHierarchyAndCards):
+
+{
+  "title": "Neuroscience Overview",
+  "children": [
+    { "type": "text", "text": "Neurons are the basic units of the nervous system." },
+    { 
+      "type": "card",
+      "id": "c1",
+      "title": "Neuron Structure",
+      "details": ["Neurons consist of dendrites, a soma, and an axon.", "Signal travels from dendrites to axon terminals."]
+    },
+    {
+      "type": "subcontent",
+      "content": {
+        "title": "Neuron Functions",
+        "children": [
+          { "type": "card", "id": "c2", "title": "Action Potential", "details": ["Rapid electrical signal propagation along the axon."] },
+          { "type": "text", "text": "Action potentials allow neurons to communicate efficiently." }
+        ]
+      }
+    }
+  ]
+}
+
+EXAMPLE CORRESPONDING OUTPUT 1:
+
+{
+  "responseMessage": "Sure! A neuron is a specialized cell in the nervous system. It has dendrites to receive signals, a soma (cell body) for processing, and an axon to transmit signals. Action potentials are rapid electrical signals that travel along the axon, enabling communication between neurons.",
+  "hasNewInfo": true
+}
+
+EXAMPLE INPUT 2:
+
+{
+  "user_message": "Thanks, that clarifies things.",
+  "message_history": [
+    {"role": "user", "content": "Can you explain the structure of a neuron?"},
+    {"role": "assistant", "content": "Sure! A neuron is a specialized cell in the nervous system. It has dendrites to receive signals, a soma (cell body) for processing, and an axon to transmit signals. Action potentials are rapid electrical signals that travel along the axon, enabling communication between neurons."}
+  ]
+}
+
+EXAMPLE CORRESPONDING OUTPUT 2:
+
+{
+  "responseMessage": "You're welcome! If you want, I can also explain how neurons form networks and process complex information.",
+  "hasNewInfo": false
+}
+`   }]
+};
+
+export const generateCardsSystemInstruction = {
+    parts: [{ text: `
+You are an AI assistant tasked with generating new study cards from provided content. Follow these rules carefully:
+
+1. **Identify Useful Information**  
+   - Extract key points, definitions, formulas, and examples from the content.  
+   - Ignore redundant or trivial text.  
+   - Make sure each card represents a single coherent concept or closely related group of concepts.
+
+2. **Format of the Response**  
+   - Return **valid JSON** only.  
+   - Each card should be an object with exactly these fields:  
+     {
+       "title": string,    // concise title for the card
+       "details": string[] // bullet points, examples, or explanations
+     }  
+   - Return an **array of card objects**. No extra text or commentary outside the JSON.  
+   - Example of correct output:
+
+EXAMPLE OUTPUT:
+
+\`\`\`json
+[
+  {
+    "title": "Divergence of a Vector Field",
+    "details": [
+      "Measures the magnitude of a field's source or sink at a given point",
+      "Positive divergence indicates a source; negative divergence indicates a sink",
+      "Formula: div(F) = ∂F_x/∂x + ∂F_y/∂y + ∂F_z/∂z"
+    ]
+  },
+  {
+    "title": "Curl of a Vector Field",
+    "details": [
+      "Measures the rotation or swirling strength of a vector field",
+      "Vector quantity pointing along the axis of rotation",
+      "Formula: curl(F) = ∇ × F"
+    ]
+  }
+]
+\`\`\`
+
+3. **Additional Guidance**  
+   - Make titles short but descriptive.  
+   - Include only meaningful details; do not copy entire paragraphs.  
+   - If the content contains multiple examples, group them under the same card when they illustrate the same concept.  
+   - Do not include IDs; the system will assign them after writing to the database.
+   - **Return only the new list of cards**
+
+${markdownChunk}
+
+${jsonChunk}
+
+` }]
+};
+
+
+export const generateHierarchySystemInstruction = {
+    parts: [{ text: `
+You are an AI assistant tasked with creating a **structured content hierarchy** from a list of study cards. Follow these instructions carefully:
+
+1. **Purpose**  
+   - Organize the given cards into a logical, nested hierarchy.  
+   - Preserve relationships between concepts, grouping related cards together under subtopics.  
+   - Keep the hierarchy clear, concise, and easy to read.
+
+2. **Format of the Response**  
+   - Use this structure:
+
+\`\`\`ts
+interface ContentHierarchy {
+    title: string,          // main topic or section
+    children: ContentNode[] // can contain text, card references, or subcontent
+}
+
+type ContentNode =
+    | { type: "text"; text: string }                // explanatory or introductory text
+    | { type: "card"; cardId: string }             // reference to a card
+    | { type: "subcontent"; content: ContentHierarchy } // nested subtopic
+\`\`\`
+
+- Include **all cards** in the hierarchy, both old cards (which were already present in the old hierarchy, if applicable) and new cards
+- Preserve card IDs exactly as provided.  
+- Do not add extra text outside the JSON.
+
+3. **Guidelines for Structuring**  
+   - Group cards with similar concepts under the same subcontent node.  
+   - Use text nodes for any introductory or connecting explanations if helpful.  
+   - Keep hierarchy depth reasonable (avoid too many nested levels).  
+   - Titles should be concise but descriptive of the topic or subtopic.
+
+In title and text:
+${markdownChunk}
+
+${jsonChunk}
+
+EXAMPLE OUTPUT:
+
+\`\`\`json
+{
+  "title": "Vector Calculus",
+  "children": [
+    { "type": "card", "cardId": "abc123" },
+    { "type": "subcontent", "content": {
+        "title": "Divergence & Curl",
+        "children": [
+          { "type": "card", "cardId": "def456" },
+          { "type": "card", "cardId": "ghi789" },
+          { "type": "text", "text": "These operators describe local properties of vector fields." }
+        ]
+      }
+    },
+    { "type": "card", "cardId": "jkl012" }
+  ]
+}
+\`\`\`
+
+5. **Additional Notes**  
+   - Do not omit any cards.  
+   - Organize in a way that a student could follow the topics sequentially.  
+   - Maintain consistency in formatting and JSON syntax.
+` }]
+};
+
+
+/*
+ * ========================================================
+ * ========================================================
+ * ============ EVERYTHING BELOW IS DEPRICATED ============
+ * ========================================================
+ * ========================================================
+ */
+
+
+
 export const firstChatResponseSystemInstruction = {
     parts: [{ text: `
 ${personalityChunk}
@@ -115,7 +329,7 @@ EXAMPLE CORRESPONDING OUTPUT 2:
 };
 
 // System instruction for Gemini to give a response to the user message given previous content
-export const chatResponseSystemInstruction = {
+export const notFirstResponseSystemInstruction = {
     parts: [{ text: `
 ${personalityChunk}
 

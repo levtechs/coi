@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Dispatch, SetStateAction } from "react";
 
 import { FiSend, FiX } from "react-icons/fi";
 import Button from "@/app/components/button";
 import ChatMessages from "./chat_messages";
+import NewCardsPopup from "./new_cards_popup";
 
-import { Project, Message, StreamPhase } from "@/lib/types";
+import { Project, Message, Card, StreamPhase } from "@/lib/types";
+import { ModalContents } from "../types";
 
 import { getChatHistory } from "@/app/views/chat";
 import { sendMessage } from "./helpers";
@@ -12,18 +14,30 @@ import { sendMessage } from "./helpers";
 interface ChatPanelProps {
     project: Project;
     setProject: (updater: (prev: Project | null) => Project | null) => void;
+    setModalContents: (newContents: ModalContents) => void;
+    setClickedCard: Dispatch<SetStateAction<Card | null>>;
 }
 
-const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
+const ChatPanel = ({ project, setProject, setModalContents, setClickedCard }: ChatPanelProps) => {
     const [chatToggled, setChatToggled] = useState(true);
+    
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
+    
     const [isLoading, setLoading] = useState(false);
     const [stream, setStream] = useState<string | null>(null);
     const [streamPhase, setStreamPhase] = useState<null | StreamPhase>(null);
+
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-    const onSend = () => sendMessage(input, messages, project, addMessage, setStream, setStreamPhase, setProject, setInput, setLoading)
+    const setNewCards = (newCards: Card[]) => setModalContents({
+        isOpen: true,
+        type: "info",
+        width: "3xl",
+        children: <NewCardsPopup newCards={newCards} setClickedCard={setClickedCard}/>
+    })
+
+    const onSend = () => sendMessage(input, messages, project, addMessage, setStream, setNewCards, setStreamPhase, setProject, setInput, setLoading)
 
     const addMessage = (msg: Message) => {
         setMessages(prev => [
@@ -120,7 +134,6 @@ const ChatPanel = ({ project, setProject }: ChatPanelProps) => {
                 </div>
             )}
         </div>
-
     );
 };
 
