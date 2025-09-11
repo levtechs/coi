@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, Dispatch, SetStateAction } from "react";
 
 import { FiSend, FiX } from "react-icons/fi";
+import { BsFillChatRightTextFill } from "react-icons/bs";
+
 import Button from "@/app/components/button";
 import ChatMessages from "./chat_messages";
 import NewCardsPopup from "./new_cards_popup";
@@ -124,13 +126,11 @@ const ChatPanel = ({ project, setProject, setModalContents, setClickedCard }: Ch
                     </div>
                 </div>
             ) : (
-                <div className="absolute top-0 right-0 m-4"> 
-                    <Button 
-                        color="var(--accent-500)"
+                <div className="absolute top-0 right-2 m-4"> 
+                    <BsFillChatRightTextFill 
+                        className="text-[var(--accent-400)] text-xl cursor-pointer"
                         onClick={() => {setChatToggled(true)}}
-                    >
-                        Open chat
-                    </Button>
+                    />
                 </div>
             )}
         </div>
