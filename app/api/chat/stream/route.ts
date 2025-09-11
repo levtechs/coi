@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
                         if (newContent) {
                             await writeNewContentToDb(newContent, projectId);
 
-                            updatePhase("generating content"); // phase 4
+                            updatePhase("generating cards"); // phase 4
                             const allCards = await extractWriteCards(projectId, newContent);
                             finalObj = {
                                 type: "final",
