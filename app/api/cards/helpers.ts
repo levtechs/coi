@@ -2,6 +2,7 @@ import {
     collection,
     getDocs,
     doc,
+    addDoc,
     writeBatch,
     getDoc,
 } from "firebase/firestore";
@@ -46,6 +47,77 @@ const recursivelyFindCards = (obj: unknown, foundCards: Omit<Card, 'id'>[]) => {
         }
     }
 };
+
+export const fetchCardsFromProject = async (projectId: string): Promise<Card[]> => {
+    try {
+        const projectRef = doc(db, "projects", projectId);
+        const projectSnap = await getDoc(projectRef);
+
+        if (!projectSnap.exists()) {
+            throw new Error("Project not found");
+        }
+
+        // Reference the 'cards' subcollection within the project document.
+        const cardsCollectionRef = collection(db, "projects", projectId, "cards");
+
+        // Fetch all documents from the subcollection.
+        const querySnapshot = await getDocs(cardsCollectionRef);
+
+        // Map the Firestore documents to the Card interface.
+        // It is critical to include the document's id in the returned object.
+        const cards: Card[] = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data() as Omit<Card, 'id'>,
+        }));
+
+        // Return the list of cards.
+        return cards;
+
+    } catch (err) {
+        console.error("Error fetching cards:", err);
+        throw err;
+    }
+}
+
+/**
+ * Writes a list of cards (without IDs) into Firestore and returns
+ * only the newly added cards (with generated IDs).
+ *
+ * @param projectId - The ID of the project where cards will be stored.
+ * @param newCards - Array of cards without IDs to write to Firestore.
+ * @returns A promise resolving to the list of newly added cards with Firestore IDs.
+ */
+export const writeCardsToDb = async (
+    projectId: string,
+    newCards: Omit<Card, "id">[]
+): Promise<Card[]> => {
+    try {
+        const cardsCollectionRef = collection(db, "projects", projectId, "cards");
+
+        const addedCards: Card[] = [];
+
+        for (const card of newCards) {
+            const docRef = await addDoc(cardsCollectionRef, card);
+            addedCards.push({
+                id: docRef.id,
+                ...card,
+            });
+        }
+
+        return addedCards;
+    } catch (err) {
+        console.error("Error writing cards to Firestore:", err);
+        throw err;
+    }
+};
+
+/*
+ * ========================================================
+ * ========================================================
+ * ============ EVERYTHING BELOW IS DEPRICATED ============
+ * ========================================================
+ * ========================================================
+ */
 
 /**
  * Extracts card objects from a nested JSON string, compares them to existing
@@ -134,44 +206,3 @@ export const extractWriteCards = async (projectId: string, content: JSON): Promi
         return null;
     }
 };
-
-export const fetchCardsFromProject = async (projectId: string, uid: string): Promise<Card[] | null> => {
-    try {
-        const projectRef = doc(db, "projects", projectId);
-        const projectSnap = await getDoc(projectRef);
-
-        if (!projectSnap.exists()) {
-            throw new Error("Project not found");
-        }
-
-        const projectData = projectSnap.data() as Project;
-
-        // Check if the user is the owner or a collaborator
-        const isOwner = projectData.ownerId === uid;
-        const isCollaborator = projectData.sharedWith.includes(uid);
-        
-        if (!isOwner && !isCollaborator) {
-            throw new Error("Forbidden: You do not have access to this project");
-        }
-
-        // Reference the 'cards' subcollection within the project document.
-        const cardsCollectionRef = collection(db, "projects", projectId, "cards");
-
-        // Fetch all documents from the subcollection.
-        const querySnapshot = await getDocs(cardsCollectionRef);
-
-        // Map the Firestore documents to the Card interface.
-        // It is critical to include the document's id in the returned object.
-        const cards: Card[] = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data() as Omit<Card, 'id'>,
-        }));
-
-        // Return the list of cards.
-        return cards;
-
-    } catch (err) {
-        console.error("Error fetching cards:", err);
-        throw err;
-    }
-}
