@@ -103,40 +103,46 @@ const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setModa
                             width: "lg",
                             children: (
                                 <div className="mb-4">
-                                    <h1 className="text-3xl mb-4 font-bold underline">
+                                    <h1 className="text-3xl mb-8 font-bold underline">
                                         Project details
                                     </h1>
                                     <h2 className="text-xl mb-2 font-bold">
                                         Available quizes:
                                     </h2>
-                                    <div className="text-md flex flex-col gap-1">
-                                        {quizzes ? (
+                                    <div className="text-md flex flex-col gap-1 mb-4">
+                                        {project.quizIds && project.quizIds.length > 0 ? (
                                             <>
-                                                {quizzes.map((quiz: Quiz) => {
-                                                    if (!quiz.id) return (
-                                                        <p key={quiz.title}>
-                                                            {quiz.title}
-                                                        </p>
-                                                    )
-                                                    return (
-                                                        <a key={quiz.id} className="underline" href={`/quiz/${quiz.id}`} target="_blank" rel="noopener noreferrer">
-                                                            {quiz.title.length > 45 ? quiz.title.slice(0, 45) + "..." : quiz.title}
-                                                        </a>
-                                                    )
-                                                })}
+                                                {quizzes ? (
+                                                    <>
+                                                        {quizzes.map((quiz: Quiz) => {
+                                                            if (!quiz.id) return (
+                                                                <p key={quiz.title}>
+                                                                    {quiz.title}
+                                                                </p>
+                                                            )
+                                                            return (
+                                                                <a key={quiz.id} className="underline" href={`/quiz/${quiz.id}`} target="_blank" rel="noopener noreferrer">
+                                                                    {quiz.title.length > 45 ? quiz.title.slice(0, 45) + "..." : quiz.title}
+                                                                </a>
+                                                            )
+                                                        })}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                    {project.quizIds?.map((id: string) => {
+                                                        return (<a key={id} className="underline" href={`/quiz/${id}`} target="_blank" rel="noopener noreferrer">{id}</a>)
+                                                    })}
+                                                    </>
+                                                )}
                                             </>
                                         ) : (
-                                            <>
-                                            {project.quizIds?.map((id: string) => {
-                                                return (<a key={id} className="underline" href={`/quiz/${id}`} target="_blank" rel="noopener noreferrer">{id}</a>)
-                                            })}
-                                            </>
+                                            <p className="italic">No quizzes found.</p>
                                         )}
                                     </div>
                                     <h2 className="text-xl mb-2 mt-2 font-bold">
                                         Collaborators:
                                     </h2>
-                                    <div className="text-md flex flex-col gap-1">
+                                    <div className="text-md flex flex-col gap-1 mb-4">
                                         {project.collaborators.map((id: string) => {
                                             return (
                                                 <a key={id} className="underline" href={`/profile/user/${id}`} target="_blank" rel="noopener noreferrer">
