@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction } from "react";
-import { Message, Project } from "@/lib/types";
+import { Message, Project, StreamPhase } from "@/lib/types";
 import { streamChat } from "@/app/views/chat";
 
 export const sendMessage = async (
@@ -8,7 +8,7 @@ export const sendMessage = async (
     project: Project,
     addMessage: (msg: Message) => void, 
     setStream: Dispatch<SetStateAction<string | null>>,
-    updatePhase: Dispatch<SetStateAction<null | "streaming" | "processing" | "generating content" | "generating cards">>,
+    updatePhase: Dispatch<SetStateAction<null | StreamPhase>>,
     setProject: (updater: (prev: Project | null) => Project | null) => void,
     setInput: Dispatch<SetStateAction<string>>,
     setLoading: Dispatch<SetStateAction<boolean>>
@@ -28,7 +28,7 @@ export const sendMessage = async (
         let streamedContent = "";
         setStream(streamedContent);
 
-        const setPhase = (phase: null | "streaming" | "processing" | "generating content" | "generating cards") => {
+        const setPhase = (phase: null | StreamPhase) => {
             if (phase == "processing") {
                 setStream(null);
             }

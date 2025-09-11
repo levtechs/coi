@@ -8,7 +8,7 @@ import {
 } from "../helpers";
 import { streamChatResponse } from "./helpers";
 import { extractWriteCards } from "@/app/api/cards/helpers";
-import { Card } from "@/lib/types";
+import { Card, StreamPhase } from "@/lib/types";
 
 interface ChatRequestBody {
     message: string;
@@ -32,8 +32,14 @@ export async function POST(req: NextRequest) {
         const stream = new ReadableStream({
             async start(controller) {
                 try {
-                    // phase is "streaming" | "processing" | "generating content" | "generating cards"
-                    controller.enqueue(encoder.encode(JSON.stringify({ phase: "streaming" }) + "\n")); // phase 1
+                    // phase is of type StreamPhase
+                    let phase = "starting"
+                    const updatePhase = (newPhase : StreamPhase) => {
+                        phase = newPhase;
+                        controller.enqueue(encoder.encode(JSON.stringify({ phase: newPhase }) + "\n"));
+                    }
+                    
+                    updatePhase("starting");
 
                     let response = "";
                     let capturing = false;
@@ -47,6 +53,8 @@ export async function POST(req: NextRequest) {
                         previousContent,
                         (token: string) => {
                             response += token;
+
+                            if (phase === "starting") updatePhase("streaming"); 
 
                             for (let i = 0; i < token.length; i++) {
                                 const char = token[i];
@@ -114,7 +122,7 @@ export async function POST(req: NextRequest) {
                     );
                     controller.enqueue(encoder.encode("\n")); // phase 2
 
-                    controller.enqueue(encoder.encode(JSON.stringify({ phase: "processing" }) + "\n")); // phase 2
+                    updatePhase("processing"); // phase 2
 
                     // Now safely parse the final JSON once
                     let parsed: { responseMessage: string; hasNewInfo: boolean };
@@ -126,7 +134,7 @@ export async function POST(req: NextRequest) {
 
                     const { responseMessage, hasNewInfo } = parsed;
 
-                    controller.enqueue(encoder.encode(JSON.stringify({ type: "update", responseMessage }) + "\n")); // phase 2
+                    controller.enqueue(encoder.encode(JSON.stringify({ type: "update", responseMessage }) + "\n"));
 
                     // 2. Save the chat pair
                     await writeChatPairToDb(message, responseMessage, projectId, uid);
@@ -145,14 +153,14 @@ export async function POST(req: NextRequest) {
                     };
 
                     if (hasNewInfo) {
-                        controller.enqueue(encoder.encode(JSON.stringify({ phase: "generating content" }) + "\n")); // phase 3
+                        updatePhase("generating content"); // phase 3
 
                         const newContent = await getUpdatedContent(previousContent, message, responseMessage);
 
                         if (newContent) {
                             await writeNewContentToDb(newContent, projectId);
 
-                            controller.enqueue(encoder.encode(JSON.stringify({ phase: "generating cards" }) + "\n")); // phase 4
+                            updatePhase("generating content"); // phase 4
                             const allCards = await extractWriteCards(projectId, newContent);
                             finalObj = {
                                 type: "final",

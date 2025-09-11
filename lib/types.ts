@@ -42,3 +42,5 @@ export interface Quiz {
     questions: QuizQuestion[]; // List of questions
     title: string;             // Quiz title
 }
+
+export type StreamPhase = "starting" | "streaming" | "processing" | "generating content" | "generating cards";
