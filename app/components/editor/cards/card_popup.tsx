@@ -35,7 +35,7 @@ export default function CardPopup({ card, onClose }: CardPopupProps) {
 
                 {/* Card Title */}
                 <h2 className="text-[var(--foreground)] font-bold text-3xl text-center mb-4">
-                    {card.title}
+                    <MarkdownArticle markdown={card.title} />
                 </h2>
 
                 {/* Card Details */}
