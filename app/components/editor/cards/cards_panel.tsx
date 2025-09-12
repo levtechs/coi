@@ -1,29 +1,90 @@
 "use client";
 
-import React from "react";
-import { Card, Project } from "@/lib/types";
+import React, { useState } from "react";
+
+import { Card, PostCardPayload, Project } from "@/lib/types";
+
+import { postCard, getCards } from "@/app/views/cards";
+
 import DetailCard from "./detail_card";
+import NewCardPopup from "./new_card_popup";
 
 type CardsPanelProps = {
     project: Project;
+    setProject: (updater: (prev: Project | null) => Project | null) => void;
     onCardClick: (cardId: Card) => void;
     hidden: boolean;
 };
 
-export default function CardsPanel({ project, onCardClick, hidden }: CardsPanelProps) {
-    if (!project || !project.cards || project.cards.length === 0) {
+export default function CardsPanel({ project, setProject, onCardClick, hidden }: CardsPanelProps) {
+    const [isNewCardPopupOpen, setNewCardPopupOpen] = useState(false);
+
+    const onAddCard = async (title: string, details: string[], exclude: boolean) => {
+        // Post the new card to the backend
+        await postCard(project.id, { title, details, exclude });
+
+        // Fetch the updated list of cards from the project
+        const fetchedCards = await getCards(project.id);
+
+        // Update the project state with the new cards
+        setProject((prev) => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                cards: fetchedCards,
+            };
+        });
+    };
+
+        
+    if (!project) {
         return (
             <div className={`text-[var(--neutral-600)] text-center p-8 ${hidden ? 'hidden' : ''}`}>
-                No cards found for this project.
+                Project not found.
             </div>
         );
     }
 
     return (
-        <div className={`flex flex-wrap w-full gap-8 p-4 ${hidden ? 'hidden' : ''}`}>
-            {project.cards.map((card) => (
-                <DetailCard key={card.id} card={card} onClick={onCardClick} />
-            ))}
+        <div className={`${hidden ? 'hidden' : ''}`}>
+            {!project.cards || project.cards.length === 0 ? (
+                <>
+                    {/* Create Project Card */}
+                    <div
+                        className="flex items-center justify-center border border-[var(--neutral-300)] rounded-lg p-6 cursor-pointer mt-8 mr-4
+                                bg-[var(--neutral-100)]
+                                hover:bg-[var(--neutral-300)]
+                                transition-colors duration-200"
+                        onClick={()=>{setNewCardPopupOpen(true)}}
+                    >
+                        <span className="text-[var(--accent-500)] font-semibold text-lg">+ Create Card</span>
+                    </div> 
+                    <div className="text-[var(--neutral-600)] font-bold font-md text-center p-8">
+                        No cards found for this project
+                        <p className="font-light font-sm">
+                            Start using the chat to automatically create cards, or create a new card manually.
+                        </p>
+                    </div>
+                </>
+
+            ) : (
+                <div className="flex flex-wrap w-full gap-8 p-4">
+                    {/* Create Project Card */}
+                    <div
+                        className="flex items-center justify-center border border-[var(--neutral-300)] rounded-lg p-6 cursor-pointer
+                                bg-[var(--neutral-100)]
+                                hover:bg-[var(--neutral-300)]
+                                transition-colors duration-200"
+                        onClick={()=>{setNewCardPopupOpen(true)}}
+                    >
+                        <span className="text-[var(--accent-500)] font-semibold text-lg">+ Create Card</span>
+                    </div>
+                    {project.cards.map((card) => (
+                        <DetailCard key={card.id} card={card} onClick={onCardClick} />
+                    ))}
+                </div>
+            )}
+            {isNewCardPopupOpen && <NewCardPopup onSubmit={onAddCard} onCancel={() => setNewCardPopupOpen(false)}/>}
         </div>
     );
 }

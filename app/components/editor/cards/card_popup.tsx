@@ -41,7 +41,7 @@ export default function CardPopup({ card, onClose }: CardPopupProps) {
                 {/* Card Details */}
                 <div className="overflow-y-auto max-h-[70vh]">
                     <ul className="list-disc space-y-2 text-[var(--neutral-800)]">
-                        {card.details.map((detail, index) => (
+                        {card.details && card.details.map((detail, index) => (
                             <li key={index} className="border-l-4 border-[var(--neutral-400)] pl-4">
                                 <MarkdownArticle markdown={detail} />
                             </li>

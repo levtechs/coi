@@ -63,6 +63,7 @@ const Editor = ({
                             />
                             <CardsPanel 
                                 project={project} 
+                                setProject={setProject}
                                 onCardClick={(card: Card) => setCardPopup(card)}
                                 hidden={tab === "content"}
                             />

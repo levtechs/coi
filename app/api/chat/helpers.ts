@@ -46,6 +46,7 @@ export const getStringFromHierarchyAndCards = async (
 
                     case "card": {
                         const card = cards.find((c) => c.id === child.cardId);
+
                         if (card) {
                             return {
                                 type: "card",

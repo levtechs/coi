@@ -23,10 +23,17 @@ export interface User {
     displayName: string;
 }
 
+export interface PostCardPayload {
+    title: string;
+    details?: string[];
+    exclude?: boolean;
+}
+
 export interface Card {
     id: string;
     title: string;
-    details: string[];
+    details?: string[];
+    exclude?: boolean;
 }
 
 export interface ContentHierarchy {
