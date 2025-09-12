@@ -147,7 +147,7 @@ export const extractWriteCards = async (projectId: string, content: JSON): Promi
             // Create a unique key for each card based on its title and details.
             // This allows us to compare and identify cards easily.
             const cardKey = `${cardData.title}-${JSON.stringify(cardData.details)}`;
-            existingCardMap.set(cardKey, { id: doc.id, details: cardData.details });
+            existingCardMap.set(cardKey, { id: doc.id, details: cardData.details! }); // the ! was added after deprication
         });
 
         const updatedCardIds = new Set<string>();

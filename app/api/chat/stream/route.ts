@@ -34,6 +34,8 @@ export async function POST(req: NextRequest) {
         //const previousContent = await getPreviousContent(projectId);
         const previousContentHierarchy = await getPreviousHierarchy(projectId);
         const previousCards: Card[] = await fetchCardsFromProject(projectId);
+        const effectivePreviousCards = previousCards.filter((card: Card) => !card.exclude); // cards that are not excluded
+
 
         const encoder = new TextEncoder();
 
@@ -64,7 +66,7 @@ export async function POST(req: NextRequest) {
                     await streamChatResponse(
                         message,
                         messageHistory,
-                        previousCards,
+                        effectivePreviousCards,
                         previousContentHierarchy,
                         (token: string) => {
                             response += token;
@@ -191,14 +193,14 @@ export async function POST(req: NextRequest) {
                     if (hasNewInfo) {
                         updatePhase("generating cards"); // phase 3
 
-                        const newCards: Card[] = await generateAndWriteNewCards(projectId, previousCards, message, responseMessage);
+                        const newCards: Card[] = await generateAndWriteNewCards(projectId, effectivePreviousCards, message, responseMessage);
                         const allCards = (previousCards ? [...previousCards, ...newCards] : newCards);
 
                         sendUpdate("newCards", JSON.stringify(newCards));
 
                         updatePhase("generating content"); // phase 4
 
-                        const newHierarchy: ContentHierarchy = await generateNewHierarchyFromCards(previousContentHierarchy, previousCards, newCards);
+                        const newHierarchy: ContentHierarchy = await generateNewHierarchyFromCards(previousContentHierarchy, effectivePreviousCards, newCards);
                         await writeHierarchy(projectId, newHierarchy);
 
                         finalObj = {
