@@ -29,16 +29,7 @@ const ChatMessages = ({ messages, stream, isLoading, phase}: ChatMessagesProps) 
                 <p className="text-[var(--neutral-500)] text-sm">No messages yet</p>
             ) : (
                 messages.map((msg) => (
-                    <div
-                        key={msg.id} // <-- Use the unique ID here
-                        className={`p-2 rounded-md mb-2 max-w-[70%] break-words prose prose-sm
-                            ${msg.isResponse
-                                ? "self-start bg-[var(--neutral-300)] text-[var(--foreground)]"
-                                : "self-end bg-[var(--accent-400)] text-white"
-                            }`}
-                    >
-                        {msg.isResponse ? (<MarkdownArticle markdown={msg.content} />) : (msg.content)}
-                    </div>
+                    <ChatMessage key={msg.id} content={msg.content} isResponse={msg.isResponse} />
                 ))
             )}
             {/* Partial / stream message */}
@@ -59,3 +50,26 @@ const ChatMessages = ({ messages, stream, isLoading, phase}: ChatMessagesProps) 
 }
 
 export default React.memo(ChatMessages);
+
+interface ChatMessageParams {
+    content: string, 
+    isResponse: boolean, 
+}
+
+const ChatMessage = ({ content, isResponse }: ChatMessageParams) => {
+    return (
+        <div
+            className={`p-2 mt-4 rounded-md break-words prose prose-sm
+                ${isResponse
+                    ? "self-start max-w-[100%] text-[var(--foreground)]"
+                    : "self-end max-w-[70%] bg-[var(--accent-400)] text-[var(--foreground)]"
+                }`}
+        >
+            {isResponse ? (
+                <div className="p-4">
+                    <MarkdownArticle markdown={content} />
+                </div>
+            ) : (content)}
+        </div>
+    )
+}

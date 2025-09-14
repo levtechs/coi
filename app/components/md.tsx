@@ -84,17 +84,13 @@ export default function MarkdownArticle({ markdown }: Props) {
                 rehypePlugins={[rehypeRaw, rehypeKatex]}
                 // component overrides to control spacing and avoid overly large gaps
                 components={{
-                    // Tighten heading margins so multiple headings don't have huge gaps
-                    h1: ({ ...props }) => <h1 className="m-0 text-[var(--foreground)]" {...props} />,
-                    h2: ({ ...props }) => <h2 className="m-0 text-[var(--foreground)]" {...props} />,
-                    h3: ({ ...props }) => <h3 className="m-0 text-[var(--foreground)]" {...props} />,
-                    h4: ({ ...props }) => <h4 className="m-0 text-[var(--foreground)]" {...props} />,
-                    h5: ({ ...props }) => <h5 className="m-0 text-[var(--foreground)]" {...props} />,
-                    h6: ({ ...props }) => <h6 className="m-0 text-[var(--foreground)]" {...props} />,
-                    // Slightly smaller gap for paragraphs
-                    p: ({ ...props }) => <p className="m-0 text-[var(--foreground)]" {...props} />,
-                    // Prevent code blocks from being sanitized away if using raw HTML
-                    // (but we already use rehypeRaw; be mindful of XSS if content is untrusted)
+                    h1: ({ ...props }) => <h1 className="mb-4 text-[var(--foreground)]" {...props} />,
+                    h2: ({ ...props }) => <h2 className="mb-3 text-[var(--foreground)]" {...props} />,
+                    h3: ({ ...props }) => <h3 className="mb-3 text-[var(--foreground)]" {...props} />,
+                    h4: ({ ...props }) => <h4 className="mb-2 text-[var(--foreground)]" {...props} />,
+                    h5: ({ ...props }) => <h5 className="mb-2 text-[var(--foreground)]" {...props} />,
+                    h6: ({ ...props }) => <h6 className="mb-2 text-[var(--foreground)]" {...props} />,
+                    p: ({ ...props }) => <p className="mb-2 leading-relaxed text-[var(--foreground)]" {...props} />,
                 }}
             >
                 {normalized}
