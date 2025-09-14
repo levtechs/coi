@@ -42,14 +42,14 @@ export async function streamChatResponse(
         parts: [{ text: message }],
     });
     
-    const prevContent = ( (previousContentHierarchy && previousCards) ? getStringFromHierarchyAndCards(previousCards, previousContentHierarchy) : null);
+    const prevContent = await ((previousContentHierarchy && previousCards) ? getStringFromHierarchyAndCards(previousCards, previousContentHierarchy) : null);
     if (prevContent) {
         contents.push({
             role: "user",
             parts: [{text: `EXISTING NOTES: ${JSON.stringify(prevContent)}`}]
         })
     }
-    
+
     // systemInstruction must be a Con;tent object with a role
     const systemInstruction = { role: "system", parts: chatResponseSystemInstruction.parts }
 
