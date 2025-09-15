@@ -143,10 +143,10 @@ const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setModa
                                         Collaborators:
                                     </h2>
                                     <div className="text-md flex flex-col gap-1 mb-4">
-                                        {project.collaborators.map((id: string) => {
+                                        {project.collaborators.map((email: string, index: number) => {
                                             return (
-                                                <a key={id} className="underline" href={`/profile/user/${id}`} target="_blank" rel="noopener noreferrer">
-                                                    {id}
+                                                <a key={project.sharedWith[index]} className="underline" href={`/profile/user/${project.sharedWith[index]}`} target="_blank" rel="noopener noreferrer">
+                                                    {email}
                                                 </a>
                                             )
                                         })}
