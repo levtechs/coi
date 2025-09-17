@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, Dispatch, SetStateAction } from "react";
 
-import { FiSend, FiX } from "react-icons/fi";
+import { FiCircle, FiSend, FiX } from "react-icons/fi";
 import { BsFillChatRightTextFill } from "react-icons/bs";
 
 import Button from "@/app/components/button";
@@ -49,7 +49,7 @@ const ChatPanel = ({ project, setProject, setModalContents, setClickedCard }: Ch
     }
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === "Enter" && !e.shiftKey) {
+        if (!isLoading && e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             onSend();
         }
@@ -93,6 +93,7 @@ const ChatPanel = ({ project, setProject, setModalContents, setClickedCard }: Ch
         <div className="transition-all duration-300">
             {chatToggled ? (
                 <div className="bg-[var(--neutral-200)] rounded-md p-3 flex flex-col h-[100%] w-[45vw]">
+                    {/* Header */}
                     <div className="flex justify-between items-center mb-2">
                         <h2 className="text-[var(--foreground)] text-xl font-semibold">Chat</h2>
                         <FiX
@@ -101,6 +102,7 @@ const ChatPanel = ({ project, setProject, setModalContents, setClickedCard }: Ch
                             onClick={() => {setChatToggled(false);}}
                         />
                     </div>
+                    
                     {/* This is the new scrollable container with the ref attached */}
                     <div ref={messagesEndRef} className="flex-1 overflow-y-auto bg-[var(--neutral-100)] rounded-md p-2 mb-2 flex flex-col">
                         <ChatMessages 
@@ -110,19 +112,39 @@ const ChatPanel = ({ project, setProject, setModalContents, setClickedCard }: Ch
                             phase={streamPhase}
                         />
                     </div>
+
+                    {/* Input box */}
                     <div className="flex items-center bg-[var(--neutral-100)] rounded-md px-2 py-1">
-                        <textarea
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            placeholder="Type a message..."
-                            className="flex-1 bg-transparent outline-none p-2 text-[var(--foreground)] resize-none max-h-100 overflow-y-auto"
-                        />
-                        <FiSend
-                            size={20}
-                            onClick={onSend}
-                            className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
-                        />
+                        {!isLoading ? (
+                            <>
+                                <textarea
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    placeholder="Type a message..."
+                                    className="flex-1 bg-transparent outline-none p-2 text-[var(--foreground)] resize-none max-h-100 overflow-y-auto"
+                                />
+                                <FiSend
+                                    size={20}
+                                    onClick={onSend}
+                                    className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
+                                />
+                            </>
+                        ) : (
+                            <>
+                                <textarea
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    className="flex-1 bg-transparent outline-none p-2 text-[var(--foreground)] resize-none max-h-100 overflow-y-auto"
+                                />
+                                <FiCircle
+                                    size={20}
+                                    className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
+                                />
+                            </>
+                        )}
+
                     </div>
                 </div>
             ) : (
