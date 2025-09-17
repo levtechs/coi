@@ -33,11 +33,7 @@ const ChatMessages = ({ messages, stream, isLoading, phase}: ChatMessagesProps) 
                 ))
             )}
             {/* Partial / stream message */}
-            {stream && (
-                <div className="self-start bg-[var(--neutral-300)] text-[var(--foreground)] p-2 rounded-md mb-2 max-w-[70%] flex items-center space-x-2">
-                    <MarkdownArticle markdown={stream} />
-                </div>
-            )}
+            {stream && <ChatMessage content={stream} isResponse={true}/>}
             {/* Loading / thinking message */}
             {isLoading && (
                 <div className="self-start bg-[var(--neutral-300)] text-[var(--foreground)] p-2 rounded-md mb-2 max-w-[70%] flex items-center space-x-2">
@@ -67,7 +63,7 @@ const ChatMessage = ({ content, isResponse }: ChatMessageParams) => {
         >
             {isResponse ? (
                 <div className="p-4">
-                    <MarkdownArticle markdown={content} />
+                    <MarkdownArticle markdown={content} singleLine={false}/>
                 </div>
             ) : (content)}
         </div>

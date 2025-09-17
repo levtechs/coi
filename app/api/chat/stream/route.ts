@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getVerifiedUid } from "@/app/api/helpers";
 import {
     writeChatPairToDb,
+    updateKeywords,
     getPreviousHierarchy,
     generateAndWriteNewCards,
     generateNewHierarchyFromCards,
@@ -12,8 +13,9 @@ import {
     getUpdatedContent,
 } from "../helpers";
 import { streamChatResponse } from "./helpers";
-import { extractWriteCards, fetchCardsFromProject } from "@/app/api/cards/helpers";
-import { Card, ContentHierarchy, StreamPhase } from "@/lib/types";
+import { fetchCardsFromProject } from "@/app/api/cards/helpers";
+import { Card, ContentHierarchy, Query, StreamPhase } from "@/lib/types";
+import { genIntegrations } from "../../integrations/helpers";
 
 interface ChatRequestBody {
     message: string;
@@ -142,20 +144,21 @@ export async function POST(req: NextRequest) {
                     updatePhase("processing"); // phase 2
 
                     // Now safely parse the final JSON once
-                    let parsed: { responseMessage: string; hasNewInfo: boolean };
+                    let parsed: { responseMessage: string; hasNewInfo: boolean, keywords: string[], queries: Query[] };
                     try {
                         parsed = JSON.parse(response);
                     } catch (err) {
                         throw new Error("Invalid JSON returned from model: " + (err as Error).message);
                     }
 
-                    const { responseMessage, hasNewInfo } = parsed;
+                    const { responseMessage, hasNewInfo, keywords, queries } = parsed;
 
                     //controller.enqueue(encoder.encode(JSON.stringify({ type: "update", responseMessage }) + "\n"));
                     sendUpdate("responseMessage", responseMessage);
 
                     // Save the chat pair
-                    await writeChatPairToDb(message, responseMessage, projectId, uid);
+                    writeChatPairToDb(message, responseMessage, projectId, uid);
+                    updateKeywords(projectId, keywords); 
 
                     // Generate/update content only if needed
                     let finalObj: {
@@ -193,7 +196,13 @@ export async function POST(req: NextRequest) {
                     if (hasNewInfo) {
                         updatePhase("generating cards"); // phase 3
 
-                        const newCards: Card[] = await generateAndWriteNewCards(projectId, effectivePreviousCards, message, responseMessage);
+                        const [noteCards, integrationCards] = await Promise.all([
+                            generateAndWriteNewCards(projectId, effectivePreviousCards, message, responseMessage),
+                            genIntegrations(projectId, queries),
+                        ]);
+
+                        const newCards: Card[] = [...noteCards, ...integrationCards];
+
                         const allCards = (previousCards ? [...previousCards, ...newCards] : newCards);
 
                         sendUpdate("newCards", JSON.stringify(newCards));

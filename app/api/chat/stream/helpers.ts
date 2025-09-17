@@ -8,13 +8,13 @@ import { getStringFromHierarchyAndCards } from "../helpers"
 
 import { 
     limitedGeneralConfig,
-    model,
+    llmModel,
 } from "@/app/api/gemini/config";
 import {
     chatResponseSystemInstruction, 
     //  === \/ below is depricated \/ 
     firstChatResponseSystemInstruction, 
-} from "../config"
+} from "../prompts"
 
 /**
  * Streams a Gemini chat response. Calls onToken(token) for each text chunk received.

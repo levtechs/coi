@@ -1,5 +1,4 @@
 import { writeChatPairToDb, writeNewContentToDb, getPreviousContent, getChatResponse, getUpdatedContent } from "./helpers";
-import { extractWriteCards } from "../cards/helpers";
 
 import { NextRequest, NextResponse } from "next/server";
 import { doc, getDoc } from "firebase/firestore";
@@ -7,6 +6,41 @@ import { db } from "@/lib/firebase";
 import { Card, Message } from "@/lib/types";
 import { getVerifiedUid } from "../helpers";
 
+export async function GET(req: NextRequest) {
+    const uid = await getVerifiedUid(req);
+    if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
+
+    try {
+        const url = new URL(req.url);
+        const projectId = url.searchParams.get("projectId");
+        if (!projectId) return NextResponse.json({ error: "projectId query parameter required" }, { status: 400 });
+
+        const chatDocRef = doc(db, "projects", projectId, "chats", uid);
+        const chatSnap = await getDoc(chatDocRef);
+
+        if (!chatSnap.exists()) return NextResponse.json({ messages: [] }); // No messages yet
+
+        const data = chatSnap.data();
+        const messages: Message[] = data.messages || [];
+
+        return NextResponse.json({ messages });
+    } catch (err) {
+        console.error("Error fetching chat history:", err);
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+}
+
+
+/*
+ * ========================================================
+ * ========================================================
+ * ============ EVERYTHING BELOW IS DEPRICATED ============
+ * ========================================================
+ * ========================================================
+ */
+
+
+/*
 export async function POST(req: NextRequest) {
     const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
@@ -40,27 +74,5 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }
+*/
 
-export async function GET(req: NextRequest) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
-
-    try {
-        const url = new URL(req.url);
-        const projectId = url.searchParams.get("projectId");
-        if (!projectId) return NextResponse.json({ error: "projectId query parameter required" }, { status: 400 });
-
-        const chatDocRef = doc(db, "projects", projectId, "chats", uid);
-        const chatSnap = await getDoc(chatDocRef);
-
-        if (!chatSnap.exists()) return NextResponse.json({ messages: [] }); // No messages yet
-
-        const data = chatSnap.data();
-        const messages: Message[] = data.messages || [];
-
-        return NextResponse.json({ messages });
-    } catch (err) {
-        console.error("Error fetching chat history:", err);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-    }
-}

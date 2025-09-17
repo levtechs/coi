@@ -127,6 +127,8 @@ export const writeCardsToDb = async (
  * @param content The JSON string containing the nested card data.
  * @returns An array of Card objects with their assigned IDs, or null on error.
  */
+
+/*
 export const extractWriteCards = async (projectId: string, content: JSON): Promise<Card[] | null> => {
     const batch = writeBatch(db);
 
@@ -147,7 +149,7 @@ export const extractWriteCards = async (projectId: string, content: JSON): Promi
             // Create a unique key for each card based on its title and details.
             // This allows us to compare and identify cards easily.
             const cardKey = `${cardData.title}-${JSON.stringify(cardData.details)}`;
-            existingCardMap.set(cardKey, { id: doc.id, details: cardData.details! }); // the ! was added after deprication
+            existingCardMap.set(cardKey, { id: doc.id, details: cardData.details });
         });
 
         const updatedCardIds = new Set<string>();
@@ -206,3 +208,5 @@ export const extractWriteCards = async (projectId: string, content: JSON): Promi
         return null;
     }
 };
+
+*/

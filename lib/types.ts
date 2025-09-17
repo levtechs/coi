@@ -32,14 +32,21 @@ export interface PostCardPayload {
 export interface Card {
     id: string;
     title: string;
-    details?: string[];
+    details?: string[] | EmbedContent;
     exclude?: boolean;
+}
+
+export interface EmbedContent {
+    thumbnail?: string;
+    url?: string;
 }
 
 export interface ContentHierarchy {
     title: string;
     children: ContentNode[];
 }
+
+export type StreamPhase = "starting" | "streaming" | "processing" | "generating content" | "generating cards";
 
 export type ContentNode =
     | { type: "text"; text: string }
@@ -60,4 +67,14 @@ export interface Quiz {
     title: string;             // Quiz title
 }
 
-export type StreamPhase = "starting" | "streaming" | "processing" | "generating content" | "generating cards";
+export interface Query {
+    source: "youtube";
+    query: string;
+}
+
+export interface YtVidDetails {
+    id: string;
+    title: string;
+    url: string;
+    thumbnailSrc: string;
+}

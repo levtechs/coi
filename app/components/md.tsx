@@ -60,9 +60,10 @@ export function checkMathBalance(md: string) {
 
 type Props = {
     markdown: string;
+    singleLine?: boolean;
 };
 
-export default function MarkdownArticle({ markdown }: Props) {
+export default function MarkdownArticle({ markdown, singleLine }: Props) {
     const normalized = useMemo(() => normalizeMathMarkdown(markdown), [markdown]);
 
     // debug / sanity
@@ -76,6 +77,7 @@ export default function MarkdownArticle({ markdown }: Props) {
         console.debug("[MarkdownArticle] excerpt:", excerpt);
     }
 
+    const style = `${singleLine ? "" : "mb-2 "}text-[var(--foreground)]`;
     return (
         <div className="prose prose-sm max-w-none">
             <ReactMarkdown
@@ -84,13 +86,13 @@ export default function MarkdownArticle({ markdown }: Props) {
                 rehypePlugins={[rehypeRaw, rehypeKatex]}
                 // component overrides to control spacing and avoid overly large gaps
                 components={{
-                    h1: ({ ...props }) => <h1 className="mb-4 text-[var(--foreground)]" {...props} />,
-                    h2: ({ ...props }) => <h2 className="mb-3 text-[var(--foreground)]" {...props} />,
-                    h3: ({ ...props }) => <h3 className="mb-3 text-[var(--foreground)]" {...props} />,
-                    h4: ({ ...props }) => <h4 className="mb-2 text-[var(--foreground)]" {...props} />,
-                    h5: ({ ...props }) => <h5 className="mb-2 text-[var(--foreground)]" {...props} />,
-                    h6: ({ ...props }) => <h6 className="mb-2 text-[var(--foreground)]" {...props} />,
-                    p: ({ ...props }) => <p className="mb-2 leading-relaxed text-[var(--foreground)]" {...props} />,
+                    h1: ({ ...props }) => <h1 className={style} {...props} />,
+                    h2: ({ ...props }) => <h2 className={style} {...props} />,
+                    h3: ({ ...props }) => <h3 className={style} {...props} />,
+                    h4: ({ ...props }) => <h4 className={style} {...props} />,
+                    h5: ({ ...props }) => <h5 className={style} {...props} />,
+                    h6: ({ ...props }) => <h6 className={style} {...props} />,
+                    p: ({ ...props }) => <p className={style} {...props} />,
                 }}
             >
                 {normalized}

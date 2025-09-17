@@ -13,7 +13,15 @@ Your response will be based on the user's last message
 You may or may not be provided:
 - Chat history (if it is not provided, assume there is no chat history)
 - A hierarchy of note cards
-Your response will be a JSON of the form: { "responseMessage": string, "hasNewInfo": boolean } with exactly these two parts.
+
+Your response will be a JSON of the form: 
+{ 
+  "responseMessage": string, 
+  "hasNewInfo": boolean, 
+  "keywords": string[],
+  "queries": "<source>": string[]
+} 
+with exactly these three parts.
 `
 const userPasteChunk = `
 The user may paste in text from a book or article. 
@@ -33,12 +41,23 @@ No new information means:
 - Clarifications or elaborations on existing points
 - Responses that do not add any new facts or concepts
 `
+const keywordsChunk = `
+- The list of keywords outlines the topics covered throughout the response.
+- Depending on the amount of information covered, there may be 5-20 keywords present
+`
+
+const queriesChunk = `
+- a list of search queries paired with their corresponding source.
+- use appropriate sources, and a source can be used multiple times. 
+- this will be used to find additional resources
+- queries should be consise
+
+available sources: ["youtube"] 
+`
+
 const markdownChunk = `
 - Use standard markdown formatting.
 - Use LaTex when nessesary, for math or other techincal topics
-
-Example of correct markdown/latex
-
 `
 
 const jsonChunk = `
@@ -69,17 +88,26 @@ ${userPasteChunk}
 In the responseMessage
 ${markdownChunk}
 
+Keywords:
+${keywordsChunk}
+
+Queries:
+${queriesChunk}
+
 ${jsonChunk}
 
 EXAMPLE INPUT 1:
 
+\`\`\`json
 {
   "user_message": "Can you explain the structure of a neuron?",
   "message_history": []
 }
+\`\`\`
 
-EXAMPLE CONTEXT INPUT (from getStringFromHierarchyAndCards):
+EXAMPLE CONTEXT INPUT (HIERARCHY+CARDS):
 
+\`\`\`json
 {
   "title": "Neuroscience Overview",
   "children": [
@@ -102,16 +130,23 @@ EXAMPLE CONTEXT INPUT (from getStringFromHierarchyAndCards):
     }
   ]
 }
+\`\`\`
 
 EXAMPLE CORRESPONDING OUTPUT 1:
 
+\`\`\`json
 {
   "responseMessage": "Sure! A neuron is a specialized cell in the nervous system. It has dendrites to receive signals, a soma (cell body) for processing, and an axon to transmit signals. Action potentials are rapid electrical signals that travel along the axon, enabling communication between neurons.",
-  "hasNewInfo": true
+  "hasNewInfo": true,
+  "keywords": ["neuron", "nervous system", "dendrites", "soma", "cell body", "axon", "action potentials", "electrical signals", "signal transmission", "neuron communication"]
+  ""
+  ]
 }
+\`\`\`
 
 EXAMPLE INPUT 2:
 
+\`\`\`json
 {
   "user_message": "Thanks, that clarifies things.",
   "message_history": [
@@ -119,13 +154,18 @@ EXAMPLE INPUT 2:
     {"role": "assistant", "content": "Sure! A neuron is a specialized cell in the nervous system. It has dendrites to receive signals, a soma (cell body) for processing, and an axon to transmit signals. Action potentials are rapid electrical signals that travel along the axon, enabling communication between neurons."}
   ]
 }
+\`\`\`
 
 EXAMPLE CORRESPONDING OUTPUT 2:
 
+\`\`\`json
 {
   "responseMessage": "You're welcome! If you want, I can also explain how neurons form networks and process complex information.",
-  "hasNewInfo": false
+  "hasNewInfo": false,
+  "keywords": []
 }
+\`\`\`
+
 `   }]
 };
 
@@ -252,6 +292,7 @@ EXAMPLE OUTPUT:
    - Maintain consistency in formatting and JSON syntax.
 ` }]
 };
+
 
 
 /*

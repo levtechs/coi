@@ -17,7 +17,7 @@ import {
     firstChatResponseSystemInstruction,
     genContentSystemInstruction, 
     updateContentSystemInstruction, 
-} from "./config"
+} from "./prompts"
 import { callGeminiApi } from "../gemini/helpers";
 import { GenerateContentRequest } from "@google/generative-ai";
 import { writeCardsToDb } from "../cards/helpers"
@@ -262,6 +262,49 @@ export const writeChatPairToDb = async (
         }
     } catch (err) {
         console.error("Error writing chat to DB:", err);
+        throw err;
+    }
+};
+
+/**
+ * Updates the keywords for a project.
+ * - Converts all keywords to lowercase
+ * - Avoids adding duplicates
+ * - Creates the field if it doesn't exist
+ *
+ * @param projectId The ID of the project
+ * @param newKeywords Array of keywords to add
+ */
+export const updateKeywords = async (projectId: string, newKeywords: string[]) => {
+    if (!projectId || !newKeywords?.length) return;
+
+    const projectRef = doc(db, "projects", projectId);
+
+    try {
+        const snap = await getDoc(projectRef);
+        let existingKeywords: string[] = [];
+
+        if (snap.exists()) {
+            existingKeywords = snap.data().keywords || [];
+        }
+
+        // Normalize
+        const normalizedExisting = existingKeywords.map(k => k.trim().toLowerCase());
+        const normalizedNew = newKeywords.map(k => k.trim().toLowerCase());
+
+        // Merge & dedupe
+        const combined = Array.from(new Set([...normalizedExisting, ...normalizedNew]));
+
+        if (snap.exists()) {
+            await updateDoc(projectRef, { keywords: combined });
+        } else {
+            // If project doc itself doesn't exist, create it with keywords field
+            await setDoc(projectRef, { keywords: combined });
+        }
+
+        return combined;
+    } catch (err) {
+        console.error("Error updating keywords:", err);
         throw err;
     }
 };

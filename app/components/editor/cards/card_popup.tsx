@@ -1,9 +1,10 @@
 "use client";
 
 import React from "react";
-import { Card } from "@/lib/types";
+import { Card, EmbedContent } from "@/lib/types";
 
-import { FiX } from "react-icons/fi";
+import { FiX, FiYoutube } from "react-icons/fi";
+import Image from "next/image";
 
 import MarkdownArticle from "../../md";
 
@@ -35,17 +36,37 @@ export default function CardPopup({ card, onClose }: CardPopupProps) {
 
                 {/* Card Title */}
                 <h2 className="text-[var(--foreground)] font-bold text-3xl text-center mb-4">
-                    <MarkdownArticle markdown={card.title} />
+                    <MarkdownArticle markdown={card.title} singleLine={true}/>
                 </h2>
 
                 {/* Card Details */}
                 <div className="overflow-y-auto max-h-[70vh]">
                     <ul className="list-disc space-y-2 text-[var(--neutral-800)]">
-                        {card.details && card.details.map((detail, index) => (
-                            <li key={index} className="border-l-4 border-[var(--neutral-400)] pl-4">
-                                <MarkdownArticle markdown={detail} />
-                            </li>
-                        ))}
+                        {card.details && (Array.isArray(card.details) ? (
+                            card.details.map((detail, index) => (
+                                <li key={index} className="border-l-4 border-[var(--neutral-400)] pl-4">
+                                    <MarkdownArticle markdown={detail} />
+                                </li>
+                            ))
+                            ) : (
+                                <div className="items-center flex justify-center"
+                                    onClick={
+                                        (card.details as EmbedContent)?.url
+                                        ? () => window.open((card.details as EmbedContent).url)
+                                        : () => {}
+                                    }
+                                >
+                                    {card.details.thumbnail ? (
+                                        <div className="relative">
+                                            <img className="border-2 rounded-md" src={card.details.thumbnail} alt="Embed video"/>
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <FiYoutube className="text-8xl text-[var(--error)]"/>
+                                            </div>
+                                        </div>
+                                    ) : <p>No thumbnail found</p>}
+                                </div>
+                            ))
+                        }
                     </ul>
                 </div>
             </div>

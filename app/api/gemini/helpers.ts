@@ -1,15 +1,67 @@
 import { 
+    genAI,
     GEMINI_API_URL, 
     INITIAL_DELAY_MS, 
     MAX_RETRIES
 } from "../gemini/config";
-
 
 // Assume GEMINI_API_KEY is correctly set in your .env file
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 if (!GEMINI_API_KEY) {
     throw new Error("GEMINI_API_KEY is not defined in environment variables.");
 }
+
+// /gemini/embeddings.ts
+
+/**
+ * Compute the maximum semantic similarity between a candidate text and an array of reference texts.
+ * Returns the highest cosine similarity score (range -1 to 1).
+ *
+ * @param candidate - The text to evaluate (e.g., video title or description)
+ * @param references - Array of reference texts (e.g., chat message, keywords)
+ * @param model - Optional Gemini embedding model (default: 'gemini-embedding-001')
+ * @returns Promise resolving to the maximum similarity score
+ */
+export const maxSemanticSimilarity = async (
+    candidate: string,
+    references: string[],
+    model: string = "gemini-embedding-001"
+): Promise<number> => {
+    if (!candidate || references.length === 0) return 0;
+
+    // Generate embedding for the candidate text
+    const candidateResp = await genAI.models.embedContent({
+        model,
+        contents: [candidate],
+        taskType: "SEMANTIC_SIMILARITY",
+    });
+    const candidateEmb = candidateResp.embeddings[0].values;
+
+    // Generate embeddings for the reference texts
+    const referenceResp = await genAI.models.embedContent({
+        model,
+        contents: references,
+        taskType: "SEMANTIC_SIMILARITY",
+    });
+    const referenceEmbs = referenceResp.embeddings.map(e => e.values);
+
+    // Compute max cosine similarity
+    const maxSim = Math.max(
+        ...referenceEmbs.map(refEmb => cosineSimilarity(candidateEmb, refEmb))
+    );
+
+    return maxSim;
+};
+
+
+/*
+ * ========================================================
+ * ========================================================
+ * ============ EVERYTHING BELOW IS DEPRICATED ============
+ * ========================================================
+ * ========================================================
+ */
+
 
 /**
  * A reusable helper function to call the Gemini API with retry logic.
