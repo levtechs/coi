@@ -5,7 +5,7 @@ import { Message, Card, ContentHierarchy} from "@/lib/types"; // { content: stri
 import { Content, Contents } from "./types";
 
 import { 
-    model,
+    llmModel,
     defaultGeneralConfig, 
     limitedGeneralConfig,
 } from "../gemini/config";
@@ -174,7 +174,7 @@ export const generateAndWriteNewCards = async (
     };
 
     // Call Gemini
-    const result = await model.generateContent(requestBody);
+    const result = await llmModel.generateContent(requestBody);
     const jsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text;
 
     let newCardsRaw: Omit<Card, "id">[];
@@ -219,7 +219,7 @@ export const generateNewHierarchyFromCards = async (
         }
     };
 
-    const result = await model.generateContent(requestBody);
+    const result = await llmModel.generateContent(requestBody);
     const jsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text;
 
     let hierarchy: ContentHierarchy;
