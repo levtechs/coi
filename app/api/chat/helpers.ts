@@ -17,7 +17,7 @@ import {
     firstChatResponseSystemInstruction,
     genContentSystemInstruction, 
     updateContentSystemInstruction, 
-} from "./config"
+} from "./prompts"
 import { callGeminiApi } from "../gemini/helpers";
 import { GenerateContentRequest } from "@google/generative-ai";
 import { writeCardsToDb } from "../cards/helpers"
