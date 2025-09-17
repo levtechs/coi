@@ -139,18 +139,22 @@ const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setModa
                                             <p className="italic">No quizzes found.</p>
                                         )}
                                     </div>
-                                    <h2 className="text-xl mb-2 mt-2 font-bold">
-                                        Collaborators:
-                                    </h2>
-                                    <div className="text-md flex flex-col gap-1 mb-4">
-                                        {project.collaborators.map((email: string, index: number) => {
-                                            return (
-                                                <a key={project.sharedWith[index]} className="underline" href={`/profile/user/${project.sharedWith[index]}`} target="_blank" rel="noopener noreferrer">
-                                                    {email}
-                                                </a>
-                                            )
-                                        })}
-                                    </div>
+                                    {project.collaborators.length > 0 && (
+                                        <>
+                                        <h2 className="text-xl mb-2 mt-2 font-bold">
+                                            Collaborators:
+                                        </h2>
+                                        <div className="text-md flex flex-col gap-1 mb-4">
+                                            {project.collaborators.map((email: string, index: number) => {
+                                                return (
+                                                    <a key={project.sharedWith[index]} className="underline" href={`/profile/user/${project.sharedWith[index]}`} target="_blank" rel="noopener noreferrer">
+                                                        {email}
+                                                    </a>
+                                                )
+                                            })}
+                                        </div>
+                                        </>
+                                    )}
                                 </div>
                             )
                         })

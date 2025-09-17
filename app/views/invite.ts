@@ -3,13 +3,12 @@ import { apiFetch } from "./helpers";
 /**
  * Creates a new invitation token for a project.
  * @param projectId The ID of the project to create an invitation for.
- * @param isLongLived Whether the token should be long-lived (no expiration) or not.
  * @returns A promise that resolves to an object containing the new token.
  */
-export async function createInvitation(projectId: string, isLongLived: boolean): Promise<{ token: string, isLongLived: boolean }> {
+export async function createInvitation(projectId: string): Promise<{ token: string, isLongLived: boolean }> {
     const data = await apiFetch<{ token: string, isLongLived: boolean }>(`/api/invite`, {
         method: "POST",
-        body: JSON.stringify({ projectId, isLongLived }),
+        body: JSON.stringify({ projectId }),
     });
     return data;
 }

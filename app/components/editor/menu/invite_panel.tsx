@@ -19,7 +19,7 @@ export default function InvitePanel({ onClose, project }: InvitePanelProps) {
         setIsLoading(true);
         setError(null);
         try {
-            const result = await createInvitation(project.id, isLongLived);
+            const result = await createInvitation(project.id);
             setToken(result.token);
         } catch (err) {
             console.error("Failed to create invitation:", err);
@@ -58,25 +58,6 @@ export default function InvitePanel({ onClose, project }: InvitePanelProps) {
                     </div>
                 ) : (
                     <>
-                        <div className="flex items-center gap-4 py-2">
-                            <label className="relative flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={isLongLived}
-                                    onChange={(e) => setIsLongLived(e.target.checked)}
-                                    className="peer sr-only"
-                                />
-                                <div className="w-6 h-6 rounded-md border border-[var(--neutral-300)] bg-[var(--neutral-100)] flex items-center justify-center transition-all duration-200 peer-checked:bg-[var(--accent-500)] peer-checked:border-[var(--accent-500)]">
-                                    <FiCheck
-                                        className="text-white opacity-0 transition-opacity duration-200 peer-checked:opacity-100"
-                                    />
-                                </div>
-                            </label>
-                            <label htmlFor="longLived" className="text-[var(--foreground)] text-lg cursor-pointer">
-                                Long-lived invite
-                            </label>
-                        </div>
-                        
 
                         {error && <p className="text-red-500 text-sm">{error}</p>}
 
@@ -88,12 +69,17 @@ export default function InvitePanel({ onClose, project }: InvitePanelProps) {
                                 Creating...
                             </Button>
                         ) : (
-                            <Button
-                                onClick={handleCreateInvite}
-                                color="var(--accent-500)"
-                            >
-                                Create Invite
-                            </Button>
+                            <>
+                                <p>
+                                    Create a link to let others quickly join your project 
+                                </p>
+                                <Button
+                                    onClick={handleCreateInvite}
+                                    color="var(--accent-500)"
+                                >
+                                    Create Invite
+                                </Button>
+                            </>
                         )}
                     </>
                 )}
