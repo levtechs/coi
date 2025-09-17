@@ -16,7 +16,7 @@ export default function DetailCard({ card, onClick }: DetailCardProps) {
             onClick={() => onClick(card)}
         >
             <h3 className="text-[var(--foreground)] font-semibold text-xl">
-                <MarkdownArticle markdown={card.title} />
+                <MarkdownArticle markdown={card.title} singleLine={true} />
             </h3>
         </div>
     );

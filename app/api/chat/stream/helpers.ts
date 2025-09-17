@@ -8,13 +8,13 @@ import { getStringFromHierarchyAndCards } from "../helpers"
 
 import { 
     limitedGeneralConfig,
-    model,
+    llmModel,
 } from "@/app/api/gemini/config";
 import {
     chatResponseSystemInstruction, 
     //  === \/ below is depricated \/ 
     firstChatResponseSystemInstruction, 
-} from "../config"
+} from "../prompts"
 
 /**
  * Streams a Gemini chat response. Calls onToken(token) for each text chunk received.
@@ -64,7 +64,7 @@ export async function streamChatResponse(
 
     try {
         // NOTE: cast to any to avoid SDK typing mismatches — adapt to your SDK's call if needed
-        const streamingResp = await model.generateContentStream(requestBody);
+        const streamingResp = await llmModel.generateContentStream(requestBody);
 
         // accumulate whole returned text so we can parse JSON at the end
         let accumulated = "";
