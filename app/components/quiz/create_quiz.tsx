@@ -77,27 +77,9 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
 
                         {isLoadingQuiz==false && (
                             <>
-                                <h2 className="mt-4 mb-4">
-                                    Options:
+                                <h2 className="mt-4 mb-4 italic">
+                                    No options available yet.
                                 </h2>
-                                <div className="flex items-center gap-4 py-2">
-                                    <label className="relative flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={useFR}
-                                            onChange={(e) => setUseFR(e.target.checked)}
-                                            className="peer sr-only"
-                                        />
-                                        <div className="w-6 h-6 rounded-md border border-[var(--neutral-300)] bg-[var(--neutral-100)] flex items-center justify-center transition-all duration-200 peer-checked:bg-[var(--accent-500)] peer-checked:border-[var(--accent-500)]">
-                                            <FiCheck
-                                                className="text-white opacity-0 transition-opacity duration-200 peer-checked:opacity-100"
-                                            />
-                                        </div>
-                                    </label>
-                                    <label htmlFor="longLived" className="text-[var(--foreground)] text-lg cursor-pointer">
-                                        Use free-response questions
-                                    </label>
-                                </div>
                             </>
 
                         )}
