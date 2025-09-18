@@ -2,7 +2,7 @@ import {
     GenerateContentRequest,
 } from "@google/generative-ai";
 
-import { ContentHierarchy, Card, Message } from "@/lib/types"; // { content: string; isResponse: boolean }
+import { ContentHierarchy, Card, Message, ChatAttachment } from "@/lib/types"; // { content: string; isResponse: boolean }
 
 import { getStringFromHierarchyAndCards } from "../helpers"
 
@@ -25,6 +25,7 @@ export async function streamChatResponse(
     messageHistory: Message[],
     previousCards: Card[] | null,
     previousContentHierarchy: ContentHierarchy | null,
+    attachments: null | ChatAttachment[],
     onToken: (token: string) => Promise<void> | void
 ): Promise<{ responseMessage: string; hasNewInfo: boolean } | null> {
     if (!message || message.trim() === "") throw new Error("Message is required.");
@@ -50,6 +51,12 @@ export async function streamChatResponse(
         })
     }
 
+    if (attachments) {
+        contents.push({
+            role: "user",
+            parts: [{text: `CHAT ATTACHMENTS: ${JSON.stringify(attachments)}`}]
+        })
+    }
     // systemInstruction must be a Con;tent object with a role
     const systemInstruction = { role: "system", parts: chatResponseSystemInstruction.parts }
 

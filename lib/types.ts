@@ -14,6 +14,7 @@ export type Project = {
 export interface Message {
     id?: string
     content: string; //markdown
+    attachments?: null | ChatAttachment[];
     isResponse: boolean;
 }
 
@@ -45,6 +46,8 @@ export type ContentNode =
     | { type: "text"; text: string }
     | { type: "card"; cardId: string }
     | { type: "subcontent"; content: ContentHierarchy };
+
+export type ChatAttachment = Card | ContentNode | ContentHierarchy;
 
 export interface QuizQuestion {
     question: string;
