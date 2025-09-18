@@ -119,44 +119,43 @@ const ChatPanel = ({ project, setProject, setModalContents, attachments, setAtta
                     {/* Input box */}
                     <div className="flex flex-col bg-[var(--neutral-100)] rounded-md px-2 py-2">
 
-                    {/* Attachments */}
-                    {attachments && attachments.length > 0 && (
-                        <div>
-                            <p className="text-sm p-1">Asking about:</p>
-                            <div className="flex items-center gap-2 overflow-auto py-1">
-                                {attachments.map((attachment: ChatAttachment) => {
-                                    // Determine display text based on type
-                                    let text: string;
-                                    if ("title" in attachment) {
-                                        text = attachment.title;
-                                    } else if ("text" in attachment) {
-                                        text = attachment.text;
-                                    } else {
-                                        text = "attachment details not found";
-                                    }
+                        {/* Attachments */}
+                        {attachments && attachments.length > 0 && (
+                            <div>
+                                <p className="text-sm p-1">Asking about:</p>
+                                <div className="flex items-center gap-2 overflow-auto py-1">
+                                    {attachments.map((attachment: ChatAttachment) => {
+                                        // Determine display text based on type
+                                        let text: string;
+                                        if ("title" in attachment) {
+                                            text = attachment.title;
+                                        } else if ("text" in attachment) {
+                                            text = attachment.text;
+                                        } else {
+                                            text = "attachment details not found";
+                                        }
 
-                                    return (
-                                        <div
-                                            key={"id" in attachment ? attachment.id : crypto.randomUUID()}
-                                            className="flex items-center justify-between w-32 h-8 bg-[var(--neutral-300)] rounded flex-shrink-0"
-                                        >
-                                            <p className="truncate ml-2 text-sm">{text}</p>
-                                            <FiX
-                                                onClick={() =>
-                                                    setAttachments((prev) =>
-                                                        prev ? prev.filter((att) => att !== attachment) : []
-                                                    )
-                                                }
-                                                className="ml-2 h-[75%] w-[75%] cursor-pointer rounded transition-colors"
-                                            />
-                                        </div>
-                                    );
-                                })}
+                                        return (
+                                            <div
+                                                key={"id" in attachment ? attachment.id : crypto.randomUUID()}
+                                                className="flex items-center justify-between w-32 h-8 bg-[var(--neutral-300)] rounded flex-shrink-0"
+                                            >
+                                                <p className="truncate ml-2 text-sm">{text}</p>
+                                                <FiX
+                                                    onClick={() =>
+                                                        setAttachments((prev) =>
+                                                            prev ? prev.filter((att) => att !== attachment) : []
+                                                        )
+                                                    }
+                                                    className="ml-2 h-[75%] w-[75%] cursor-pointer rounded transition-colors"
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
-                        </div>
-                    )}
-
-
+                        )}
+                        
                         <div className="flex flex-row items-center "> 
                             {!isLoading ? (
                                 <>
@@ -186,7 +185,7 @@ const ChatPanel = ({ project, setProject, setModalContents, attachments, setAtta
                                         className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
                                     />
                                 </>
-                        )}
+                            )}
                         </div>
                     </div>
                 </div>
