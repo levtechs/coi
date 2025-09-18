@@ -11,7 +11,6 @@ type InvitePanelProps = {
 
 export default function InvitePanel({ onClose, project }: InvitePanelProps) {
     const [token, setToken] = useState<string | null>(null);
-    const [isLongLived, setIsLongLived] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 

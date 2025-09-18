@@ -1,7 +1,7 @@
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, setDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
 
-import { Message, Card, ContentHierarchy} from "@/lib/types"; // { content: string; isResponse: boolean }
+import { Message, Card, ContentHierarchy, ChatAttachment} from "@/lib/types"; // { content: string; isResponse: boolean }
 import { Content, Contents } from "./types";
 
 import { 
@@ -235,6 +235,7 @@ export const generateNewHierarchyFromCards = async (
 
 export const writeChatPairToDb = async (
     message: string,
+    chatAttachments: null | ChatAttachment[],
     result: string,
     projectId: string,
     uid: string
@@ -251,8 +252,15 @@ export const writeChatPairToDb = async (
 
         const newMessages: Message[] = [
             ...existingMessages,
-            { content: message, isResponse: false },
-            { content: result, isResponse: true }
+            {
+                content: message,
+                isResponse: false,
+                ...(chatAttachments && chatAttachments.length > 0 ? { attachments: chatAttachments } : {})
+            },
+            {
+                content: result,
+                isResponse: true
+            }
         ];
 
         if (chatSnap.exists()) {

@@ -12,13 +12,14 @@ import {
     getUpdatedContent,
 } from "../helpers";
 import { streamChatResponse } from "./helpers";
-import { extractWriteCards, fetchCardsFromProject } from "@/app/api/cards/helpers";
-import { Card, ContentHierarchy, StreamPhase } from "@/lib/types";
+import { fetchCardsFromProject } from "@/app/api/cards/helpers";
+import { Card, ContentHierarchy, ChatAttachment, StreamPhase } from "@/lib/types";
 
 interface ChatRequestBody {
     message: string;
     messageHistory: { content: string; isResponse: boolean }[];
     projectId: string;
+    attachments: ChatAttachment[] | null; // added attachments
 }
 
 export async function POST(req: NextRequest) {
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     try {
         const body: ChatRequestBody = await req.json();
-        const { message, messageHistory, projectId } = body;
+        const { message, messageHistory, projectId, attachments } = body;
 
         //const previousContent = await getPreviousContent(projectId);
         const previousContentHierarchy = await getPreviousHierarchy(projectId);
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
                         messageHistory,
                         effectivePreviousCards,
                         previousContentHierarchy,
+                        attachments,
                         (token: string) => {
                             response += token;
 
@@ -155,7 +157,7 @@ export async function POST(req: NextRequest) {
                     sendUpdate("responseMessage", responseMessage);
 
                     // Save the chat pair
-                    await writeChatPairToDb(message, responseMessage, projectId, uid);
+                    await writeChatPairToDb(message, attachments, responseMessage, projectId, uid);
 
                     // Generate/update content only if needed
                     let finalObj: {
