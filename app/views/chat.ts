@@ -3,7 +3,7 @@
 import { auth } from "@/lib/firebase";
 import { apiFetch } from "./helpers"; // adjust path if needed
 
-import { Message, Card, StreamPhase, ContentHierarchy } from "@/lib/types";
+import { Message, Card, StreamPhase, ContentHierarchy, ChatAttachment } from "@/lib/types";
 
 /**
  * Streams a chat response from the API.
@@ -16,6 +16,7 @@ import { Message, Card, StreamPhase, ContentHierarchy } from "@/lib/types";
 export async function streamChat(
     message: string,
     messageHistory: Message[],
+    attachments: null | ChatAttachment[],
     projectId: string,
     setPhase: (phase: null | StreamPhase) => void,
     setFinalResponseMessage: (value: string) => void,
@@ -28,7 +29,7 @@ export async function streamChat(
     const idToken = await user.getIdToken();
     const res = await fetch("/api/chat/stream", {
         method: "POST",
-        body: JSON.stringify({ message, messageHistory, projectId }),
+        body: JSON.stringify({ message, messageHistory, attachments, projectId }),
         headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${idToken}`,

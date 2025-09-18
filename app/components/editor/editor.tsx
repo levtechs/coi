@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Project, Card } from "@/lib/types";
+import { Project, Card, ChatAttachment } from "@/lib/types";
 import Modal from "../modal";
 import MenuBar from "./menu/menu";
 import ContentPanel from "./content";
@@ -27,9 +27,13 @@ const Editor = ({
     setTitle,
 }: EditorProps) => {
     const [tab, setTab] = useState<"content" | "cards">("content"); // "content" or "cards"
+
     const [modalContents, setModalContents] = useState(noModal);
     const closeModal = () => setModalContents(noModal);
+
+    const [chatAttachments, setChatAttachments] = useState<null | ChatAttachment[]>(null);
     const [cardPopup, setCardPopup] = useState<Card | null>(null);
+
 
     return (
         <div className="flex flex-col h-dvh w-full bg-[var(--neutral-100)] text-[var(--foreground)]">
@@ -59,6 +63,18 @@ const Editor = ({
                                 hierarchy={project.hierarchy}
                                 cards={project.cards}
                                 hidden={tab !== "content"}
+                                addAttachment={(attachment: ChatAttachment) =>
+                                    setChatAttachments((prev) => {
+                                        // Start with empty array if null
+                                        const current = prev ?? [];
+
+                                        // Remove existing instance of this attachment
+                                        const filtered = current.filter(att => att !== attachment);
+
+                                        // Prepend the new attachment
+                                        return [attachment, ...filtered];
+                                    })
+                                }
                                 setClickedCard={setCardPopup}
                             />
                             <CardsPanel 
@@ -75,6 +91,8 @@ const Editor = ({
                         project={project} 
                         setProject={setProject}
                         setModalContents={setModalContents}
+                        attachments={chatAttachments}
+                        setAttachments={setChatAttachments}
                         setClickedCard={setCardPopup}
                     />
                 </div>

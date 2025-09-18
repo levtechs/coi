@@ -1,10 +1,11 @@
 import { Dispatch, SetStateAction } from "react";
-import { Message, Project, Card, StreamPhase } from "@/lib/types";
+import { Message, Project, Card, StreamPhase, ChatAttachment } from "@/lib/types";
 import { streamChat } from "@/app/views/chat";
 
 export const sendMessage = async (
     input: string,
     messages: Message[],
+    attatchments: null | ChatAttachment[],
     project: Project,
     addMessage: (msg: Message) => void, 
     setStream: Dispatch<SetStateAction<string | null>>,
@@ -17,7 +18,7 @@ export const sendMessage = async (
     if (!input.trim()) return;
 
     const userInput = input.trim();
-    const userMessage: Message = { content: userInput, isResponse: false, id: crypto.randomUUID() };
+    const userMessage: Message = { content: userInput, attachments: attatchments, isResponse: false, id: crypto.randomUUID() };
     addMessage(userMessage)
     setInput("");
 
@@ -40,6 +41,7 @@ export const sendMessage = async (
         const finalData = await streamChat(
             userInput, 
             recentMessages, 
+            attatchments,
             project.id, 
             setPhase, 
             (finalMessage: string) => addMessage({ content: finalMessage, isResponse: true, id: crypto.randomUUID()}),
