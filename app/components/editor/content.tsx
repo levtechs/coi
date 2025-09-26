@@ -1,25 +1,63 @@
 "use client";
 
 import React, { useState, Dispatch, SetStateAction } from "react";
-
 import { FiChevronRight, FiChevronDown, FiPlus } from "react-icons/fi";
-
 import { Card, ContentHierarchy, ContentNode, ChatAttachment } from "@/lib/types";
-
 import MarkdownArticle from "../md";
 import DetailCard from "./cards/detail_card";
+
+// Define the type for the global collapse state map
+type CollapseStateMap = Record<string, boolean>;
+
+// --- New Component: AddIcon (unchanged) ---
+interface AddIconProps {
+    onClick: () => void;
+}
+
+const AddIcon = React.memo(({ onClick }: AddIconProps) => {
+    return (
+        <div className="hidden group-hover:block absolute top-1 right-1 z-10">
+            <FiPlus 
+                className="text-3xl text-[var(--accent-400)] cursor-pointer"
+                onClick={onClick}
+            />
+        </div>
+    );
+});
+AddIcon.displayName = 'AddIcon';
+
+// --- Hierarchy Renderer ---
 
 interface ContentHierarchyRendererProps {
     hierarchy: ContentHierarchy;
     cards: Card[];
-    setClickedCard: React.Dispatch<React.SetStateAction<Card | null>>
-    level?: number;
+    setClickedCard: React.Dispatch<React.SetStateAction<Card | null>>;
+    level: number;
     addAttachment: (attachment: ChatAttachment) => void;
+    
+    // NEW: Props for state management
+    path: string; // The unique path of this node (e.g., "C/A")
+    collapsedState: CollapseStateMap;
+    toggleCollapse: (path: string) => void;
 }
 
-const ContentHierarchyRenderer = ({ hierarchy, cards, setClickedCard, level = 2, addAttachment }: ContentHierarchyRendererProps) => {
-    const [isCollapsed, setIsCollapsed] = useState(false);
-
+/**
+ * Helper component that reads its collapse state from the parent-managed map.
+ */
+const HierarchicalNode = ({ 
+    hierarchy, 
+    cards, 
+    setClickedCard, 
+    level, 
+    addAttachment,
+    path, // Use path for unique identification
+    collapsedState,
+    toggleCollapse
+}: ContentHierarchyRendererProps) => {
+    
+    // CRITICAL FIX: Read collapse state from the prop map, defaulting to expanded (false)
+    const isCollapsed = !!collapsedState[path];
+    
     if (!hierarchy) return <p className="text-[var(--neutral-500)]">(No content)</p>;
 
     const headingSize = level > 5 ? 5 : level;
@@ -38,7 +76,7 @@ const ContentHierarchyRenderer = ({ hierarchy, cards, setClickedCard, level = 2,
                         {cardBuffer.map((card) => (
                             <div key={card.id} className="group shrink-0 relative">
                                 <DetailCard card={card} onClick={() => setClickedCard(card)} />
-                                <AddIcon onClick={()=>{addAttachment(card)}} />
+                                <AddIcon onClick={() => { addAttachment(card) }} />
                             </div>
                         ))}
                     </div>
@@ -47,17 +85,20 @@ const ContentHierarchyRenderer = ({ hierarchy, cards, setClickedCard, level = 2,
             }
         };
 
-        children.forEach((child) => {
+        children.forEach((child, index) => {
+            // Use index + type as a stable key for content that doesn't have an ID
+            const stableKey = `${child.type}-${index}`;
+
             switch (child.type) {
                 case "text":
                     flushCardBuffer();
                     elements.push(
                         <div 
                             className="group prose prose-sm max-w-none text-[var(--foreground)] relative p-2"
-                            key={crypto.randomUUID().toString()} 
+                            key={stableKey}
                         >
                             <MarkdownArticle markdown={child.text} />
-                            <AddIcon onClick={()=>{addAttachment(child)}} />
+                            <AddIcon onClick={() => { addAttachment(child) }} />
                         </div>
                     );
                     break;
@@ -69,7 +110,7 @@ const ContentHierarchyRenderer = ({ hierarchy, cards, setClickedCard, level = 2,
                     } else {
                         flushCardBuffer();
                         elements.push(
-                            <div key={crypto.randomUUID().toString()} className="text-[var(--neutral-500)] italic">
+                            <div key={stableKey} className="text-[var(--neutral-500)] italic">
                                 (Missing card: {child.cardId})
                             </div>
                         );
@@ -79,14 +120,22 @@ const ContentHierarchyRenderer = ({ hierarchy, cards, setClickedCard, level = 2,
 
                 case "subcontent":
                     flushCardBuffer();
+                    
+                    // Generate a new, unique path for the subcontent node
+                    const childPath = `${path}/${child.content.title || `node-${index}`}`;
+
                     elements.push(
-                        <div key={crypto.randomUUID().toString()} className="ml-4">
-                            <ContentHierarchyRenderer
+                        <div key={stableKey} className="ml-4">
+                            <HierarchicalNode
                                 hierarchy={child.content}
                                 cards={cards}
                                 setClickedCard={setClickedCard}
                                 level={level < 5 ? level + 1 : 5}
                                 addAttachment={addAttachment}
+                                // Pass down the new path and the global state functions
+                                path={childPath}
+                                collapsedState={collapsedState}
+                                toggleCollapse={toggleCollapse}
                             />
                         </div>
                     );
@@ -98,7 +147,7 @@ const ContentHierarchyRenderer = ({ hierarchy, cards, setClickedCard, level = 2,
             }
         });
 
-        flushCardBuffer(); // flush any remaining cards at the end
+        flushCardBuffer();
         return elements;
     };
 
@@ -106,7 +155,8 @@ const ContentHierarchyRenderer = ({ hierarchy, cards, setClickedCard, level = 2,
         <div className="flex flex-col">
             {hierarchy.title && (
                 <div
-                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    // CRITICAL FIX: Call the global toggle function with this node's unique path
+                    onClick={() => toggleCollapse(path)}
                     className="group flex items-center gap-2 cursor-pointer mb-2 relative"
                 >
                     {isCollapsed ? (
@@ -122,9 +172,8 @@ const ContentHierarchyRenderer = ({ hierarchy, cards, setClickedCard, level = 2,
                         <MarkdownArticle markdown={hierarchy.title} />
                     )}
 
-                    {/* Hover icon scoped to just the header row */}
-                    <div className="hidden group-hover:block absolute top-1 right-1">
-                        <AddIcon onClick={() => {addAttachment(hierarchy)}} />
+                    <div className="hidden group-hover:block absolute top-1 right-1 z-10">
+                        <AddIcon onClick={() => { addAttachment(hierarchy) }} />
                     </div>
                 </div>
             )}
@@ -138,6 +187,8 @@ const ContentHierarchyRenderer = ({ hierarchy, cards, setClickedCard, level = 2,
     );
 };
 
+// --- Main Export Component ---
+
 interface ContentPanelProps {
     hierarchy: ContentHierarchy | null;
     cards: Card[];
@@ -146,13 +197,39 @@ interface ContentPanelProps {
     setClickedCard: Dispatch<SetStateAction<Card | null>>;
 }
 
-const ContentPanel = ({ hierarchy, cards, hidden = false, addAttachment, setClickedCard}: ContentPanelProps) => {
+const ContentPanel = ({ hierarchy, cards, hidden = false, addAttachment, setClickedCard }: ContentPanelProps) => {
+    // NEW: State to store the collapsed status of all nodes by their path
+    const [collapsedState, setCollapsedState] = useState<CollapseStateMap>({});
 
+    // Function to toggle the state of a node, preserving all others
+    const toggleCollapse = (path: string) => {
+        setCollapsedState(prev => {
+            const isCurrentlyCollapsed = !!prev[path];
+            return {
+                ...prev,
+                [path]: !isCurrentlyCollapsed,
+            };
+        });
+    };
+
+    // Generate the initial unique path for the root node
+    const rootPath = hierarchy?.title || "root";
+    
     return (
         <div className={`flex-1 w-full ${hidden ? "hidden" : ""}`}>
             <div className="relative p-3 rounded-md text-[var(--foreground)] bg-[var(--neutral-100)]">
                 {hierarchy ? (
-                    <ContentHierarchyRenderer hierarchy={hierarchy} cards={cards} setClickedCard={setClickedCard} addAttachment={addAttachment}/>
+                    <HierarchicalNode 
+                        hierarchy={hierarchy} 
+                        cards={cards} 
+                        setClickedCard={setClickedCard} 
+                        addAttachment={addAttachment}
+                        level={2}
+                        // Pass global state props
+                        path={rootPath}
+                        collapsedState={collapsedState}
+                        toggleCollapse={toggleCollapse}
+                    />
                 ) : (
                     <p className="text-[var(--neutral-500)]">(No content)</p>
                 )}
@@ -162,18 +239,3 @@ const ContentPanel = ({ hierarchy, cards, hidden = false, addAttachment, setClic
 };
 
 export default ContentPanel;
-
-interface AddIconProps {
-    onClick: () => void;
-}
-
-const AddIcon = ({ onClick }: AddIconProps) => {
-    return (
-        <div className="hidden group-hover:block absolute top-1 right-1">
-            <FiPlus 
-                className="text-3xl text-[var(--accent-400)] cursor-pointer"
-                onClick={onClick}
-            />
-        </div>
-    )
-}
