@@ -11,10 +11,9 @@ interface ShareMenuProps {
     user: { uid: string } | null;
     setModalContents: (newContent: ModalContents) => void;
     addCollaborator: (projectId: string, email: string) => Promise<void>;
-    setProject: (updater: (prev: Project | null) => Project | null) => void;
 }
 
-const ShareMenu = ({ project, user, setModalContents, addCollaborator, setProject }: ShareMenuProps) => {
+const ShareMenu = ({ project, user, setModalContents, addCollaborator }: ShareMenuProps) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -47,17 +46,6 @@ const ShareMenu = ({ project, user, setModalContents, addCollaborator, setProjec
             onSubmit: async (input) => {
                 if (!user) return;
                 await addCollaborator(project.id, input!);
-                setProject((prev) =>
-                    prev
-                        ? {
-                            ...prev,
-                            collaborators: [
-                                ...(prev.collaborators ?? []),
-                                input!,
-                            ],
-                        }
-                        : prev
-                );
             },
         });
     };

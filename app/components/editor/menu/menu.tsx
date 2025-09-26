@@ -14,13 +14,12 @@ import { getQuiz } from "@/app/views/quiz";
 interface MenuBarProps {
     project: Project;
     user: { uid: string } | null;
-    setProject: (updater: (prev: Project | null) => Project | null) => void;
     addCollaborator: (projectId: string, email: string) => Promise<void>;
     setTitle: (projectId: string, newTitle: string) => Promise<void>;
     setModalContents: (newContent: ModalContents) => void
 }
 
-const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setModalContents} : MenuBarProps) => {
+const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents} : MenuBarProps) => {
     const [quizzes, setQuizzes] = useState<Quiz[] | null>(null);
 
     useEffect(() => {
@@ -68,11 +67,6 @@ const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setModa
 
                                     // Update the title in the database
                                     await setTitle(project.id, input!);
-
-                                    // Update local state
-                                    setProject((prev) =>
-                                        prev ? { ...prev, title: input!.trim() } : prev
-                                    );
                                 },
                             })
                         }
@@ -171,7 +165,6 @@ const MenuBar = ( {project, user, setProject, addCollaborator, setTitle, setModa
                     user={user} 
                     setModalContents={setModalContents}
                     addCollaborator={addCollaborator}
-                    setProject={setProject}
                 />
             </div>
         </div>

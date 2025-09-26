@@ -3,7 +3,6 @@ import { useState, useEffect, useRef, Dispatch, SetStateAction } from "react";
 import { FiCircle, FiSend, FiX } from "react-icons/fi";
 import { BsFillChatRightTextFill } from "react-icons/bs";
 
-import Button from "@/app/components/button";
 import ChatMessages from "./chat_messages";
 import NewCardsPopup from "./new_cards_popup";
 
@@ -15,14 +14,13 @@ import { sendMessage } from "./helpers";
 
 interface ChatPanelProps {
     project: Project;
-    setProject: (updater: (prev: Project | null) => Project | null) => void;
     setModalContents: (newContents: ModalContents) => void;
     attachments: null | ChatAttachment[]
     setAttachments: Dispatch<SetStateAction<ChatAttachment[] | null>>;
     setClickedCard: Dispatch<SetStateAction<Card | null>>;
 }
 
-const ChatPanel = ({ project, setProject, setModalContents, attachments, setAttachments, setClickedCard }: ChatPanelProps) => {
+const ChatPanel = ({ project, setModalContents, attachments, setAttachments, setClickedCard }: ChatPanelProps) => {
     const [chatToggled, setChatToggled] = useState(true);
     
     const [messages, setMessages] = useState<Message[]>([]);
@@ -41,7 +39,7 @@ const ChatPanel = ({ project, setProject, setModalContents, attachments, setAtta
         children: <NewCardsPopup newCards={newCards} setClickedCard={setClickedCard}/>
     })
 
-    const onSend = () => sendMessage(input, messages, attachments, project, addMessage, setStream, setNewCards, setStreamPhase, setProject, setInput, setLoading)
+    const onSend = () => sendMessage(input, messages, attachments, project, addMessage, setStream, setNewCards, setStreamPhase, setInput, setLoading)
 
     const addMessage = (msg: Message) => {
         setMessages(prev => [

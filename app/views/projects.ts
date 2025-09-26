@@ -61,7 +61,6 @@ export async function deleteProject(projectId: string): Promise<void> {
         await apiFetch(`/api/projects/${projectId}`, {
             method: "DELETE",
         });
-        console.log(`Project with ID ${projectId} successfully deleted.`);
     } catch (error) {
         console.error("Failed to delete project:", error);
         throw error;

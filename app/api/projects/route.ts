@@ -54,6 +54,7 @@ export async function GET(req: NextRequest) {
     }
 }
 
+// create a new project
 export async function POST(req: NextRequest) {
     const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });

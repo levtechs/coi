@@ -7,6 +7,7 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 
 import { getProjectTitleByToken, acceptInvitation } from "@/app/views/invite";
 import Button from "@/app/components/button";
+import Error from "../components/error";
 
 // These variables are provided by the hosting environment
 declare const __firebase_config: string;
@@ -103,12 +104,11 @@ function InvitePageContent() {
     if (token) {
         // Render after a token is found
         return (
-            <div className="flex flex-col items-center justify-center h-screen p-6 bg-[var(--neutral-100)] rounded-lg shadow-lg">
-                <div className="text-center">
-                    {error ? (
-                        <p className="text-red-500 text-lg">{error}</p>
-                    ) : (
-                        <>
+            <>
+                {error ? (<Error h2="Could not accept invite" p={error}/>) : (
+                    <div className="flex flex-col items-center justify-center h-screen p-6 bg-[var(--neutral-100)] rounded-lg shadow-lg">
+                        <div className="text-center">
+
                             <p className="text-[var(--foreground)] text-xl mb-4">You were invited to the project</p>
                             <h1 className="text-4xl font-bold text-[var(--accent-500)] mb-8">{projectTitle}</h1>
                             <Button
@@ -117,10 +117,10 @@ function InvitePageContent() {
                             >
                                 Accept Invitation
                             </Button>
-                        </>
-                    )}
-                </div>
-            </div>
+                        </div>
+                    </div>
+                )}
+            </>
         );
     }
 

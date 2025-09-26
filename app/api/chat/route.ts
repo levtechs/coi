@@ -1,17 +1,14 @@
-import { writeChatPairToDb, writeNewContentToDb, getPreviousContent, getChatResponse, getUpdatedContent } from "./helpers";
-import { extractWriteCards } from "../cards/helpers";
-
 import { NextRequest, NextResponse } from "next/server";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Card, Message } from "@/lib/types";
+import { Message } from "@/lib/types";
 import { getVerifiedUid } from "../helpers";
 
 
 export async function GET(req: NextRequest) {
     const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
-
+    console.log(JSON.stringify(req))
     try {
         const url = new URL(req.url);
         const projectId = url.searchParams.get("projectId");
@@ -20,6 +17,10 @@ export async function GET(req: NextRequest) {
         const chatDocRef = doc(db, "projects", projectId, "chats", uid);
         const chatSnap = await getDoc(chatDocRef);
 
+        console.log("UID:", uid);
+        console.log("Expected path:", `projects/${projectId}/chats/${uid}`);
+
+        console.log(chatSnap.exists());
         if (!chatSnap.exists()) return NextResponse.json({ messages: [] }); // No messages yet
 
         const data = chatSnap.data();

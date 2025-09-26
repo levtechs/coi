@@ -11,29 +11,16 @@ import NewCardPopup from "./new_card_popup";
 
 type CardsPanelProps = {
     project: Project;
-    setProject: (updater: (prev: Project | null) => Project | null) => void;
     onCardClick: (cardId: Card) => void;
     hidden: boolean;
 };
 
-export default function CardsPanel({ project, setProject, onCardClick, hidden }: CardsPanelProps) {
+export default function CardsPanel({ project, onCardClick, hidden }: CardsPanelProps) {
     const [isNewCardPopupOpen, setNewCardPopupOpen] = useState(false);
 
     const onAddCard = async (title: string, details: string[], exclude: boolean) => {
         // Post the new card to the backend
         await postCard(project.id, { title, details, exclude });
-
-        // Fetch the updated list of cards from the project
-        const fetchedCards = await getCards(project.id);
-
-        // Update the project state with the new cards
-        setProject((prev) => {
-            if (!prev) return prev;
-            return {
-                ...prev,
-                cards: fetchedCards,
-            };
-        });
     };
 
         

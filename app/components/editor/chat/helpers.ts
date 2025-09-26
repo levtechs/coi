@@ -11,7 +11,6 @@ export const sendMessage = async (
     setStream: Dispatch<SetStateAction<string | null>>,
     setNewCards: (newCards: Card[]) => void,
     updatePhase: Dispatch<SetStateAction<null | StreamPhase>>,
-    setProject: (updater: (prev: Project | null) => Project | null) => void,
     setInput: Dispatch<SetStateAction<string>>,
     setLoading: Dispatch<SetStateAction<boolean>>
 ) => {
@@ -53,16 +52,6 @@ export const sendMessage = async (
          );
 
         setPhase(null);
-
-        // Apply final result (new content/cards)
-        setProject(prev => {
-            if (!prev) return null;
-            return {
-                ...prev,
-                hierarchy: JSON.parse(JSON.stringify(finalData.newHierarchy)) ?? prev.hierarchy,
-                cards: finalData.allCards ?? prev.cards,
-            };
-        });
 
         setLoading(false);
     } catch (err) {
