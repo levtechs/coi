@@ -62,7 +62,7 @@ const LandingPage = () => {
                 ref={landingPageRef}
                 className="flex flex-col items-center justify-center min-h-screen bg-[var(--neutral-100)] text-[var(--foreground)] p-6 gap-6 transition-all duration-500"
             >
-                <Image src="/logo.png" alt="Coi Logo"  width={150} height={150} className="w-48 h-48 mb-4" />
+                <Image src="/logo.png" alt="Coi Logo"  width={150} height={150} className="w-64 h-64" />
                 {/* Title with Book Icon */}
                 <h1 className="text-4xl font-bold flex items-center gap-2">
                     Learn with Coi
