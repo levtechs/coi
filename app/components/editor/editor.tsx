@@ -14,7 +14,6 @@ import CardPopup from "./cards/card_popup";
 interface EditorProps {
     project: Project;
     user: { uid: string } | null;
-    setProject: (updater: (prev: Project | null) => Project | null) => void;
     addCollaborator: (projectId: string, email: string) => Promise<void>;
     setTitle: (projectId: string, newTitle: string) => Promise<void>;
 }
@@ -22,7 +21,6 @@ interface EditorProps {
 const Editor = ({
     project,
     user,
-    setProject,
     addCollaborator,
     setTitle,
 }: EditorProps) => {
@@ -44,7 +42,6 @@ const Editor = ({
                 <MenuBar
                     project={project}
                     user={user}
-                    setProject={setProject}
                     addCollaborator={addCollaborator}
                     setTitle={setTitle}
                     setModalContents={setModalContents}
@@ -79,7 +76,6 @@ const Editor = ({
                             />
                             <CardsPanel 
                                 project={project} 
-                                setProject={setProject}
                                 onCardClick={(card: Card) => setCardPopup(card)}
                                 hidden={tab === "content"}
                             />
@@ -89,7 +85,6 @@ const Editor = ({
 
                     <ChatPanel 
                         project={project} 
-                        setProject={setProject}
                         setModalContents={setModalContents}
                         attachments={chatAttachments}
                         setAttachments={setChatAttachments}

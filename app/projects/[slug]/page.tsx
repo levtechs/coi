@@ -3,58 +3,80 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
-import { Project } from "@/lib/types";
-import { addCollaborator, setTitle, getProject } from "@/app/views/projects"
+import { Project, Card} from "@/lib/types";
+import { addCollaborator, setTitle } from "@/app/views/projects";
+import { db } from "@/lib/firebase"; // your Firestore instance
+import { doc, collection, onSnapshot, QuerySnapshot, CollectionReference, DocumentSnapshot, DocumentReference, FirestoreError} from "firebase/firestore";
 
 import Button from "@/app/components/button";
 import Editor from "@/app/components/editor/editor";
 import LoadingComponent from "@/app/components/loading";
-import Image from "next/image";
 import Error from "@/app/components/error";
 
 export default function ProjectPage() {
-    const [isLoading, setLoading] = useState<boolean | "error">(true);
-
     const { user } = useAuth();
     const params = useParams();
-
     const slugParam = params?.slug;
     const projectId = Array.isArray(slugParam) ? slugParam[0] : slugParam;
 
     const [project, setProject] = useState<Project | null>(null);
+    const [isLoading, setLoading] = useState<boolean | "error">(true);
 
     useEffect(() => {
+        if (!user || !projectId) return;
+
         setLoading(true);
-        if (!user) return;
 
-        const slugParam = params?.slug;
-        const projectId = Array.isArray(slugParam) ? slugParam[0] : slugParam;
-        if (!projectId) return;
+        const projectRef: DocumentReference<Project> = doc(db, "projects", projectId) as DocumentReference<Project>;
+        const cardsRef: CollectionReference<Card> = collection(db, "projects", projectId, "cards") as CollectionReference<Card>;
+        
+        // Subscribe to project document
+        const unsubscribeProject = onSnapshot(
+            projectRef,
+            (docSnap: DocumentSnapshot<Project>) => {
+                if (docSnap.exists()) {
+                    const projectData = docSnap.data() as Project;
+                    // Include the Firestore document ID
+                    const projectWithId: Project = { ...projectData, id: docSnap.id };
 
-        async function fetchProject() {
-            try {
-                const project = await getProject(projectId!);
-                setProject(project);
-                setLoading(false);
-            }
-            catch (err) {
-                console.error("Failed to fetch project:", err);
+                    setProject((prev: Project | null) =>
+                        prev ? { ...prev, ...projectWithId } : projectWithId
+                    );
+                    setLoading(false);
+                } else {
+                    setLoading("error");
+                }
+            },
+            (err: FirestoreError) => {
+                console.error("Error fetching project:", err);
                 setLoading("error");
             }
-        }
-
-        fetchProject();
-    }, [user, params?.slug]);
-
-    if (!projectId) return; // early return if undefined
-
-    if (isLoading === "error") return (<Error h2="Error loading project." p="Please check the project ID or try again later."/>)
-
-    if (isLoading || !project) {
-        return (
-            <LoadingComponent loadingText="Loading project" />
         );
-    }
+
+
+        // Subscribe to cards subcollection
+        const unsubscribeCards = onSnapshot(
+            cardsRef,
+            (querySnap: QuerySnapshot<Card>) => {
+                const cards: Card[] = querySnap.docs.map((doc) => ({
+                    ...doc.data(),
+                    id: doc.id, // always overwrite any 'id' in doc.data()
+                }));
+                setProject((prev: Project | null) =>
+                    prev ? { ...prev, cards } : ({ id: projectId, cards } as Project)
+                );
+            },
+            (err: FirestoreError) => console.error("Error fetching cards:", err)
+        );
+
+        return () => {
+            unsubscribeProject();
+            unsubscribeCards();
+        };
+    }, [user, projectId]);
+
+
+    if (!projectId) return null;
 
     if (!user) {
         return (
@@ -68,11 +90,23 @@ export default function ProjectPage() {
         );
     }
 
+    if (isLoading === "error") {
+        return (
+            <Error
+                h2="Error loading project."
+                p="Please check the project ID or try again later."
+            />
+        );
+    }
+
+    if (isLoading || !project) {
+        return <LoadingComponent loadingText="Loading project" />;
+    }
+
     return (
-        <Editor 
-            project={project} 
-            user={user} 
-            setProject={setProject} 
+        <Editor
+            project={project}
+            user={user}
             addCollaborator={addCollaborator}
             setTitle={setTitle}
         />
