@@ -1,8 +1,8 @@
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, setDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
 
-import { Message, Card, ContentHierarchy, ChatAttachment} from "@/lib/types"; // { content: string; isResponse: boolean }
-import { Content, Contents } from "./types";
+import { Message, Card, ContentNode, ContentHierarchy, ChatAttachment} from "@/lib/types"; // { content: string; isResponse: boolean }
+import { Contents } from "./types";
 
 import { 
     llmModel,
@@ -24,6 +24,7 @@ import { writeCardsToDb } from "../cards/helpers"
 
 /**
  * Recursively builds a JSON representation of a content hierarchy combined with its referenced cards.
+ * Used in prompt context for chat LLM
  *
  * @param cards - The full list of available cards.
  * @param hierarchy - The content hierarchy structure.
@@ -195,8 +196,9 @@ export const generateAndWriteNewCards = async (
 /**
  * Generates a new content hierarchy from cards using Gemini.
  *
- * @param projectId - The ID of the project.
  * @param oldHierarchy - Existing content hierarchy, if any (can be null).
+ * @param previousCards - Previously processed cards.
+ * @param newCards - Newly added or changed cards.
  * @returns The new ContentHierarchy object.
  */
 export const generateNewHierarchyFromCards = async (
@@ -204,34 +206,154 @@ export const generateNewHierarchyFromCards = async (
     previousCards: Card[],
     newCards: Card[],
 ): Promise<ContentHierarchy> => {
-
-    const attatchments = {oldHierarchy, previousCards, newCards}
-    const parts = [{ text: JSON.stringify(attatchments)}]
+    const attachments = { oldHierarchy, previousCards, newCards };
+    const parts = [{ text: JSON.stringify(attachments) }];
 
     const requestBody: GenerateContentRequest = {
-        contents: [{ role: "user", parts}],
+        contents: [{ role: "user", parts }],
         systemInstruction: {
             role: "system",
             parts: generateHierarchySystemInstruction.parts,
         },
         generationConfig: {
             responseMimeType: "application/json",
-        }
+        },
     };
 
     const result = await llmModel.generateContent(requestBody);
     const jsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    let hierarchy: ContentHierarchy;
     try {
-        hierarchy = JSON.parse(jsonString!);
+        let hierarchy: ContentHierarchy | null = null;
+
+        const responseJSON = JSON.parse(jsonString!);
+        console.log(jsonString);
+        console.log("RESPONSE TYPE: ", responseJSON.type);
+
+        if (responseJSON.type === "new") {
+            hierarchy = responseJSON.fullHierarchy;
+        } else if (responseJSON.type === "modified") {
+            // Start with a deep copy of oldHierarchy
+            hierarchy = JSON.parse(JSON.stringify(oldHierarchy));
+
+            const actions: {
+                action: "insert" | "replace" | "delete";
+                targetSection: string;
+                node?: ContentNode;
+                beforeCardId?: string;
+            }[] = responseJSON.actions;
+
+            const applyActions = (node: ContentHierarchy) => {
+                for (const action of actions) {
+                    const applyToChildren = (children: ContentNode[]): ContentNode[] => {
+                        switch (action.action) {
+                            case "insert":
+                                if (node.title === action.targetSection && action.node) {
+                                    if (action.beforeCardId) {
+                                        const idx = children.findIndex(
+                                            (c) => c.type === "card" && c.cardId === action.beforeCardId
+                                        );
+                                        if (idx >= 0) {
+                                            children.splice(idx, 0, action.node);
+                                        } else {
+                                            children.push(action.node);
+                                        }
+                                    } else {
+                                        children.push(action.node);
+                                    }
+                                }
+                                break;
+
+                            case "replace":
+                                if (node.title === action.targetSection && action.node) {
+                                    const idx = children.findIndex((c) => {
+                                        if (c.type !== action.node?.type) return false;
+
+                                        switch (c.type) {
+                                            case "card":
+                                                return (
+                                                    action.node.type === "card" &&
+                                                    c.cardId === action.node.cardId
+                                                );
+                                            case "text":
+                                                return (
+                                                    action.node.type === "text" &&
+                                                    c.text === action.node.text
+                                                );
+                                            case "subcontent":
+                                                return (
+                                                    action.node.type === "subcontent" &&
+                                                    c.content.title === action.node.content.title
+                                                );
+                                        }
+                                    });
+
+                                    if (idx >= 0) {
+                                        children[idx] = action.node;
+                                    }
+                                }
+                                break;
+
+                            case "delete":
+                                if (node.title === action.targetSection && action.node) {
+                                    const idx = children.findIndex((c) => {
+                                        if (c.type !== action.node?.type) return false;
+
+                                        switch (c.type) {
+                                            case "card":
+                                                return (
+                                                    action.node.type === "card" &&
+                                                    c.cardId === action.node.cardId
+                                                );
+                                            case "text":
+                                                return (
+                                                    action.node.type === "text" &&
+                                                    c.text === action.node.text
+                                                );
+                                            case "subcontent":
+                                                return (
+                                                    action.node.type === "subcontent" &&
+                                                    c.content.title === action.node.content.title
+                                                );
+                                        }
+                                    });
+
+                                    if (idx >= 0) {
+                                        children.splice(idx, 1);
+                                    }
+                                }
+                                break;
+                        }
+                        // recurse into subcontent children
+                        children.forEach((child) => {
+                            if (child.type === "subcontent") {
+                                applyActions(child.content);
+                            }
+                        });
+
+                        return children;
+                    };
+
+                    node.children = applyToChildren(node.children);
+                }
+            };
+
+            if (hierarchy) {
+                applyActions(hierarchy);
+            } else {
+                console.warn("[generateNewHierarchyFromCards] No oldHierarchy to modify.");
+            }
+        }
+
+        if (hierarchy) return hierarchy;
+        else if (oldHierarchy) return oldHierarchy;
+        else throw "could not create or update new hierarchy";
     } catch (err) {
         console.error("Failed to parse hierarchy from Gemini:", err, jsonString);
         throw err;
     }
-
-    return hierarchy;
 };
+
 
 export const writeChatPairToDb = async (
     message: string,

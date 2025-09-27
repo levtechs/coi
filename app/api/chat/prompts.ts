@@ -52,11 +52,7 @@ No new information means:
 `
 const markdownChunk = `
 - Use standard markdown formatting.
-- Use LaTex when nessesary, for math or other techincal topics
-
-Example of correct markdown/latex
-
-`
+- Use LaTex when nessesary, for math or other techincal topics`
 
 const jsonChunk = `
 Always respond with valid JSON. 
@@ -208,7 +204,8 @@ ${jsonChunk}
 
 
 export const generateHierarchySystemInstruction = {
-    parts: [{ text: `
+    parts: [{
+        text: `
 You are an AI assistant tasked with creating a **structured content hierarchy** from a list of study cards. Follow these instructions carefully:
 
 1. **Purpose**  
@@ -217,62 +214,119 @@ You are an AI assistant tasked with creating a **structured content hierarchy** 
    - Keep the hierarchy clear, concise, and easy to read.
 
 2. **Format of the Response**  
-   - Use this structure:
+   You may return **one of two response types**:
 
-\`\`\`ts
-interface ContentHierarchy {
-    title: string,          // main topic or section
-    children: ContentNode[] // can contain text, card references, or subcontent
-}
+   **(A) Full Hierarchy**  
+   When many cards have changed or a fresh structure is needed, return:
+   \`\`\`json
+   {
+     "type": "new",
+     "fullHierarchy": ContentHierarchy
+   }
+   \`\`\`
 
-type ContentNode =
-    | { type: "text"; text: string }                // explanatory or introductory text
-    | { type: "card"; cardId: string }             // reference to a card
-    | { type: "subcontent"; content: ContentHierarchy } // nested subtopic
-\`\`\`
+   **(B) Modified Hierarchy with Actions**  
+   When only specific updates are needed to certain sections, return:
+   \`\`\`json
+   {
+     "type": "modified",
+     "actions": Action[]
+   }
+   \`\`\`
 
-- Include **all cards** in the hierarchy, both old cards (which were already present in the old hierarchy, if applicable) and new cards
-- Preserve card IDs exactly as provided.  
-- Do not add extra text outside the JSON.
+   Where:
+
+   \`\`\`ts
+   interface ContentHierarchy {
+       title: string,
+       children: ContentNode[]
+   }
+
+   type ContentNode =
+       | { type: "text"; text: string }
+       | { type: "card"; cardId: string }
+       | { type: "subcontent"; content: ContentHierarchy }
+
+   type Action =
+       | { action: "insert"; targetSection: string; node: ContentNode; beforeCardId?: string }
+       | { action: "replace"; targetSection: string; node: ContentNode }
+       | { action: "delete"; targetSection: string; node: ContentNode }
+   \`\`\`
+
+   - \`targetSection\` must exactly match the \`title\` of an existing section in the old hierarchy.  
+   - **Insert**: Add a new node to the children of the target section. Optionally specify \`beforeCardId\` to control ordering.  
+   - **Replace**: Swap an existing node with the provided one.  
+   - **Delete**: Remove the specified node.
+
+  Use (A) only when there are few cards or a large enough change is necessary. 
+  When there is already a large hierarchy, it is best to modify sections individually with (B)
 
 3. **Guidelines for Structuring**  
    - Group cards with similar concepts under the same subcontent node.  
-   - Use text nodes for any introductory or connecting explanations if helpful.  
-   - Keep hierarchy depth reasonable (avoid too many nested levels).  
-   - Titles should be concise but descriptive of the topic or subtopic.
+   - Use text nodes for explanatory content.  
+   - Keep hierarchy depth reasonable.  
+   - Titles should be concise but descriptive.  
+   - Always preserve card IDs exactly.
 
-In title and text:
-${markdownChunk}
+4. **Examples**  
 
-${jsonChunk}
-
-EXAMPLE OUTPUT:
-
+**Full Hierarchy Example**:
 \`\`\`json
 {
-  "title": "Vector Calculus",
-  "children": [
-    { "type": "card", "cardId": "abc123" },
-    { "type": "subcontent", "content": {
-        "title": "Divergence & Curl",
-        "children": [
-          { "type": "card", "cardId": "def456" },
-          { "type": "card", "cardId": "ghi789" },
-          { "type": "text", "text": "These operators describe local properties of vector fields." }
-        ]
+  "type": "new",
+  "fullHierarchy": {
+    "title": "Vector Calculus",
+    "children": [
+      { "type": "card", "cardId": "abc123" },
+      { "type": "subcontent", "content": {
+          "title": "Divergence & Curl",
+          "children": [
+            { "type": "card", "cardId": "def456" },
+            { "type": "card", "cardId": "ghi789" }
+          ]
+        }
       }
+    ]
+  }
+}
+\`\`\`
+
+**Modified Example**:
+\`\`\`json
+{
+  "type": "modified",
+  "actions": [
+    {
+      "action": "insert",
+      "targetSection": "Divergence & Curl",
+      "node": { "type": "card", "cardId": "new999" }
     },
-    { "type": "card", "cardId": "jkl012" }
+    {
+      "action": "replace",
+      "targetSection": "Divergence & Curl",
+      "node": { "type": "text", "text": "Updated explanation about curl." }
+    },
+    {
+      "action": "delete",
+      "targetSection": "Vector Calculus",
+      "node": { "type": "card", "cardId": "abc123" }
+    }
   ]
 }
 \`\`\`
 
 5. **Additional Notes**  
-   - Do not omit any cards.  
-   - Organize in a way that a student could follow the topics sequentially.  
-   - Maintain consistency in formatting and JSON syntax.
-` }]
+   - Do not omit any cards unless explicitly asked.  
+   - Organize so a student could follow the topics sequentially.  
+   - Maintain strict JSON syntax with no trailing commas or extra text.
+
+${markdownChunk}
+
+${jsonChunk}
+        `
+    }]
 };
+
 
 
 /*
@@ -282,7 +336,6 @@ EXAMPLE OUTPUT:
  * ========================================================
  * ========================================================
  */
-
 
 
 export const firstChatResponseSystemInstruction = {

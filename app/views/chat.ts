@@ -100,15 +100,12 @@ export async function getChatHistory(
     projectId: string
 ): Promise<Message[]> {
     try {
-        console.log("fetching messages")
-        console.log(projectId)
         const data = await apiFetch<{ messages: Message[] }>(
             `/api/chat?projectId=${encodeURIComponent(projectId)}`,
             {
                 method: "GET",
             }
         );
-        console.log("message history: " + data.messages)
         return data.messages || [];
     } catch (err) {
         console.error("Error fetching chat history:", err);
