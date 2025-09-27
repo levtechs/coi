@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { NextRequest } from "next/server";
 import { adminAuth } from "@/lib/firebaseAdmin"; // your admin SDK instance
@@ -33,7 +33,43 @@ export async function getVerifiedUid(req: NextRequest): Promise<string> {
 
     try {
         const decoded = await adminAuth.verifyIdToken(idToken);
-        return decoded.uid;
+        const uid = decoded.uid;
+
+        // Tally user action
+        const userDocRef = doc(db, "users", uid);
+        const userDoc = await getDoc(userDocRef);
+        const userData = userDoc.exists() ? userDoc.data() : {};
+        const now = Date.now();
+
+        // Handle daily actions
+        let dailyActions = userData.dailyActions || 0;
+        let lastResetDaily = userData.lastResetDaily || 0;
+        if (now - lastResetDaily > 24 * 60 * 60 * 1000) {
+            dailyActions = 0;
+            lastResetDaily = now;
+        }
+        dailyActions += 1;
+
+        // Handle weekly actions
+        let weeklyActions = userData.weeklyActions || 0;
+        let lastResetWeekly = userData.lastResetWeekly || 0;
+        if (now - lastResetWeekly > 7 * 24 * 60 * 60 * 1000) {
+            weeklyActions = 0;
+            lastResetWeekly = now;
+        }
+        weeklyActions += 1;
+
+        const totalActions = (userData.actions || 0) + 1;
+
+        await setDoc(userDocRef, {
+            actions: totalActions,
+            dailyActions,
+            lastResetDaily,
+            weeklyActions,
+            lastResetWeekly
+        }, { merge: true });
+
+        return uid;
     } catch {
         throw new Error("Invalid or expired token");
     }

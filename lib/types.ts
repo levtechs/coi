@@ -22,6 +22,10 @@ export interface User {
     id: string
     email: string;
     displayName: string;
+    actions?: number;
+    dailyActions?: number;
+    weeklyActions?: number;
+    projectIds?: string[];
 }
 
 export interface PostCardPayload {
