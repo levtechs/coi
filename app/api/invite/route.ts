@@ -103,8 +103,6 @@ export async function PUT(req: NextRequest) {
             projectIds: arrayUnion(projectId),
         });
 
-        // Delete the invitation document to prevent reuse
-        await deleteDoc(invitationSnap.ref);
 
         return NextResponse.json({ success: true });
     } catch (err) {
