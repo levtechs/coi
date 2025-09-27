@@ -54,20 +54,13 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, set
             onSend();
         }
     };
-
-    // Scroll to the bottom of the messages container whenever messages change
-    useEffect(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
-        }
-    }, [messages]);
-
-    // NEW: Scroll to the bottom when the chat is opened
+    
+    // NEW: Scroll to the bottom when the chat is opened or mounted
     useEffect(() => {
         if (chatToggled && messagesEndRef.current) {
             messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
         }
-    }, [chatToggled]);
+    }, [chatToggled, messages]);
 
     // Load chat history on mount or when project ID changes
     useEffect(() => {

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 import { FiEdit2, FiLoader, FiMoreVertical, FiTrash2 } from "react-icons/fi";
 
@@ -21,8 +20,6 @@ export default function ProjectCard({ project, onEdit, setProjects }: ProjectCar
     const buttonRef = useRef<HTMLDivElement>(null);
 
     const [isLoading, setLoading] = useState(false);
-
-    const router = useRouter();
 
     // This effect handles closing the menu when a click occurs outside of it.
     useEffect(() => {
@@ -48,7 +45,7 @@ export default function ProjectCard({ project, onEdit, setProjects }: ProjectCar
         return (
             <div
                 className="relative border border-[var(--neutral-300)] rounded-lg p-6 bg-[var(--neutral-200)] shadow hover:shadow-md transition cursor-pointer group"
-                onClick={() => window.open(`/projects/${project.id}`, "_blank")}
+                onClick={() => window.location.assign(`/projects/${project.id}`)}
             >
                 <FiLoader className="animate-spin w-5 h-5 text-[var(--foreground)]" />
             </div>
@@ -59,7 +56,7 @@ export default function ProjectCard({ project, onEdit, setProjects }: ProjectCar
     return (
         <div
             className="relative border border-[var(--neutral-300)] rounded-lg p-6 bg-[var(--neutral-200)] shadow hover:shadow-md transition cursor-pointer group"
-            onClick={() => router.replace(`/projects/${project.id}`)}
+            onClick={() => window.location.assign(`/projects/${project.id}`)}
         >
             <h3 className="text-[var(--foreground)] font-semibold text-xl">{project.title}</h3>
 
