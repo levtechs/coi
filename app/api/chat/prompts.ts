@@ -15,7 +15,7 @@ Coi may also generate practice quizes based on information in the project and al
 `
 
 const chatResponseFormChunk = `
-Your response will be based on the user's last message, and 
+Your response will be based on the user's last message, and
 You may or may not be provided:
 - Chat history (if it is not provided, assume there is no chat history)
 - A hierarchy of note cards

@@ -1,6 +1,4 @@
-import {
-    GenerateContentRequest,
-} from "@google/generative-ai";
+
 
 import { ContentHierarchy, Card, Message, ChatAttachment } from "@/lib/types"; // { content: string; isResponse: boolean }
 
@@ -60,14 +58,16 @@ export async function streamChatResponse(
     // systemInstruction must be a Con;tent object with a role
     const systemInstruction = { role: "system", parts: chatResponseSystemInstruction.parts }
 
-    const requestBody: GenerateContentRequest = {
+    const requestBody = {
         contents,
         systemInstruction,
         generationConfig: {
             ...limitedGeneralConfig,
-            responseMimeType: "application/json",
+            responseMimeType: "text/plain",
         },
-    };
+        tools: [{ googleSearch: {} }],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any;
 
     try {
         // NOTE: cast to any to avoid SDK typing mismatches — adapt to your SDK's call if needed
@@ -75,6 +75,8 @@ export async function streamChatResponse(
 
         // accumulate whole returned text so we can parse JSON at the end
         let accumulated = "";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const groundingChunks: any[] = [];
 
         // The SDK returns an async iterable / stream; iterate and collect parts
         for await (const chunk of streamingResp.stream) {
@@ -82,18 +84,68 @@ export async function streamChatResponse(
             const partText =
                 chunk?.candidates?.[0]?.content?.parts?.[0]?.text ||
                 chunk?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") || "";
-            
+
+            // Collect grounding chunks
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const metadata = (chunk as any)?.candidates?.[0]?.groundingMetadata;
+            if (metadata?.groundingChunks) {
+                groundingChunks.push(...metadata.groundingChunks);
+            }
+
             if (partText) {
                 accumulated += partText;
                 await onToken(partText);
             }
         }
 
-        // when stream completes, `accumulated` should be the full JSON text (because you requested responseMimeType: application/json)
-        const parsed = JSON.parse(accumulated);
+        // when stream completes, accumulated may contain plain text followed by JSON
+        let parsed;
+        let jsonText = accumulated.trim();
+
+        // Try to extract JSON from the end
+        const jsonStart = jsonText.lastIndexOf('{');
+        if (jsonStart !== -1) {
+            const potentialJson = jsonText.substring(jsonStart);
+            try {
+                parsed = JSON.parse(potentialJson);
+                // If successful, the plain text before is the response
+                const plainText = jsonText.substring(0, jsonStart).trim();
+                if (plainText) {
+                    parsed.responseMessage = plainText;
+                }
+            } catch (err) {
+                // Not valid JSON at end
+            }
+        }
+
+        if (!parsed) {
+            // Check for markdown
+            if (jsonText.startsWith('```json') && jsonText.endsWith('```')) {
+                jsonText = jsonText.slice(7, -3).trim();
+                try {
+                    parsed = JSON.parse(jsonText);
+                } catch (err) {
+                    // Ignore
+                }
+            }
+        }
+
+        if (!parsed) {
+            // Fallback to plain text
+            parsed = { responseMessage: jsonText, hasNewInfo: false };
+        }
+
+        // Append sources if available
+        if (groundingChunks.length > 0) {
+            const uniqueChunks = Array.from(new Set(groundingChunks.map(c => JSON.stringify(c)))).map(s => JSON.parse(s));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const sources = uniqueChunks.map((c: any) => `- ${c.web.title}: ${c.web.uri}`).join('\n');
+            parsed.responseMessage += `\n\nSources:\n${sources}`;
+        }
+
         return {
             responseMessage: parsed.responseMessage,
-            hasNewInfo: parsed.hasNewInfo,
+            hasNewInfo: parsed.hasNewInfo || false,
         };
     } catch (err) {
         console.error("streamChatResponse error:", err);

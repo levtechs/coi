@@ -17,6 +17,7 @@ const ChatMessages = ({ messages, stream, isLoading, phase}: ChatMessagesProps) 
     
     const phaseMessages: Record<string, string> = {
         starting: "Starting...",
+        searching: "Searching...",
         streaming: "Explaining...",
         processing: "Thinking...",
         "generating content": "Making notes...",
