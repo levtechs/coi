@@ -1,14 +1,7 @@
 // app/api/admin/projects/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getVerifiedUid } from "../../helpers";
-import { getProjects } from "../helpers";
-
-function checkAdminPassword(req: NextRequest) {
-    const password = req.headers.get('X-Admin-Password');
-    if (password !== process.env.ADMIN_PASSWORD) {
-        throw new Error("Invalid admin password");
-    }
-}
+import { getProjects, checkAdminPassword } from "../helpers";
 
 /*
  * Retrieves more projects for admin with pagination.
