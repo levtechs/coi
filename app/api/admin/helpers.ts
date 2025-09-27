@@ -1,6 +1,14 @@
 import { collection, getDocs, limit, query, startAfter, orderBy, getDoc, doc, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Project, User } from "@/lib/types";
+import { NextRequest } from "next/server";
+
+export function checkAdminPassword(req: NextRequest) {
+    const password = req.headers.get('X-Admin-Password');
+    if (password !== process.env.ADMIN_PASSWORD) {
+        throw new Error("Invalid admin password");
+    }
+}
 
 /**
  * Get projects from the database with pagination.
