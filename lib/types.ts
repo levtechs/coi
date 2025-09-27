@@ -67,4 +67,4 @@ export interface Quiz {
     title: string;             // Quiz title
 }
 
-export type StreamPhase = "starting" | "streaming" | "processing" | "generating content" | "generating cards";
+export type StreamPhase = "starting" | "searching" | "streaming" | "processing" | "generating content" | "generating cards";
