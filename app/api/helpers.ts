@@ -74,3 +74,18 @@ export async function getVerifiedUid(req: NextRequest): Promise<string> {
         throw new Error("Invalid or expired token");
     }
 }
+
+/**
+ * Verifies the Firebase ID token and checks if the user is an admin.
+ * Throws an error if token is missing/invalid or user is not admin.
+ * @param req NextRequest from Next.js
+ * @returns Verified admin UID string
+ */
+export async function getVerifiedAdminUid(req: NextRequest): Promise<string> {
+    const uid = await getVerifiedUid(req);
+    const userDoc = await getDoc(doc(db, "users", uid));
+    if (!userDoc.exists() || !userDoc.data()?.admin) {
+        throw new Error("Access denied: Admin privileges required");
+    }
+    return uid;
+}
