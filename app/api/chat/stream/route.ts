@@ -13,7 +13,7 @@ import {
 } from "../helpers";
 import { streamChatResponse } from "./helpers";
 import { fetchCardsFromProject } from "@/app/api/cards/helpers";
-import { Card, ContentHierarchy, ChatAttachment, StreamPhase } from "@/lib/types";
+import { Card, ContentHierarchy, ChatAttachment, StreamPhase, GroundingChunk } from "@/lib/types";
 
 interface ChatRequestBody {
     message: string;
@@ -50,9 +50,11 @@ export async function POST(req: NextRequest) {
                         controller.enqueue(encoder.encode(JSON.stringify({ phase: newPhase }) + "\n"));
                     }
 
-                    const sendUpdate = (key: string, value: string) => {
+                    const sendUpdate = (key: string, value: string, groundingChunks?: GroundingChunk[]) => {
+                        const updateObj: any = { type: "update", [key]: value };
+                        if (groundingChunks) updateObj.groundingChunks = groundingChunks;
                         controller.enqueue(
-                            encoder.encode(JSON.stringify({ type: "update", [key]: value }) + "\n")
+                            encoder.encode(JSON.stringify(updateObj) + "\n")
                         );
                     };
                     
@@ -64,58 +66,45 @@ export async function POST(req: NextRequest) {
                          effectivePreviousCards,
                          previousContentHierarchy,
                          attachments,
-                         (token: string) => {
+                          (token: string) => {
                              if (phase === "starting") updatePhase("streaming");
 
-                             // Since the response may be plain text, send tokens directly
-                             controller.enqueue(encoder.encode(token));
+                             // Skip JSON tokens
+                             if (token.trim().startsWith('{')) return;
+
+                              // Since the response may be plain text, send tokens directly
+                              controller.enqueue(encoder.encode(token + "\n"));
                          }
                      );
                      controller.enqueue(encoder.encode("\n")); // phase 2
 
                      updatePhase("processing"); // phase 2
 
-                     const { responseMessage, hasNewInfo } = result!;
+                     const { responseMessage, hasNewInfo, groundingChunks } = result!;
 
-                    //controller.enqueue(encoder.encode(JSON.stringify({ type: "update", responseMessage }) + "\n"));
-                    sendUpdate("responseMessage", responseMessage);
+                      const finalResponseMessage = responseMessage;
 
-                    // Save the chat pair
-                    await writeChatPairToDb(message, attachments, responseMessage, projectId, uid);
+                     //controller.enqueue(encoder.encode(JSON.stringify({ type: "update", responseMessage }) + "\n"));
+                     sendUpdate("responseMessage", finalResponseMessage, groundingChunks);
 
-                    // Generate/update content only if needed
+                      // Save the chat pair
+                      await writeChatPairToDb(message, attachments, finalResponseMessage, projectId, uid, groundingChunks);
+
+                     // Generate/update content only if needed
                     let finalObj: {
                         type: "final";
                         responseMessage: string;
+                        groundingChunks: GroundingChunk[];    
                         newHierarchy: ContentHierarchy | null;
                         allCards: Card[] | null;
                     } = {
                         type: "final",
-                        responseMessage,
+                        responseMessage: finalResponseMessage,
+                        groundingChunks,
                         newHierarchy: null,
                         allCards: null
                     };
 
-                    /* Old popeline - depricated
-                    if (hasNewInfo) {
-                        updatePhase("generating content"); // phase 3
-
-                        const newContent = await getUpdatedContent(previousContent, message, responseMessage);
-
-                        if (newContent) {
-                            await writeNewContentToDb(newContent, projectId);
-
-                            updatePhase("generating cards"); // phase 4
-                            const allCards = await extractWriteCards(projectId, newContent);
-                            finalObj = {
-                                type: "final",
-                                responseMessage,
-                                newContent,
-                                allCards
-                            };
-                        }
-                    }
-                    */
                     if (hasNewInfo) {
                         updatePhase("generating cards"); // phase 3
 
@@ -131,7 +120,8 @@ export async function POST(req: NextRequest) {
 
                         finalObj = {
                             type: "final",
-                            responseMessage,
+                            responseMessage: finalResponseMessage,
+                            groundingChunks,
                             newHierarchy,
                             allCards
                         };

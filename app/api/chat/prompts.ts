@@ -24,6 +24,15 @@ You may or may not be provided:
 Your response will be a JSON of the form: { "responseMessage": string, "hasNewInfo": boolean } with exactly these two parts.
 `
 
+const searchChunk = `
+You will have access to search the web using the Google Search tool. 
+Use search when you need new information, specifically:
+- The information is outside of your training period, is recent 
+- The information is niche and you don't know much about it 
+- You are looking for additional resources for the user 
+- The user is directly asking you to search
+` 
+
 const userPasteChunk = `
 The user may paste in text from a book or article, or a list of terms or information. 
 In this case: 
@@ -49,6 +58,7 @@ No new information means:
 - Rephrasing or summarizing previously mentioned information
 - Clarifications or elaborations on existing points
 - Responses that do not add any new facts or concepts
+If you are using the search tool, hasNewInfo will likely be true. 
 `
 const markdownChunk = `
 - Use standard markdown formatting.
