@@ -4,6 +4,10 @@ import {
     GenerateContentRequest,
 } from "@google/generative-ai";
 
+type ExtendedGenerateContentRequest = GenerateContentRequest & {
+    tools?: { googleSearch: Record<string, never> }[];
+};
+
 import { ContentHierarchy, Card, Message, ChatAttachment, GroundingChunk } from "@/lib/types"; // { content: string; isResponse: boolean }
 
 import { getStringFromHierarchyAndCards } from "../helpers"
@@ -62,7 +66,7 @@ export async function streamChatResponse(
     // systemInstruction must be a Con;tent object with a role
     const systemInstruction = { role: "system", parts: chatResponseSystemInstruction.parts }
 
-    const requestBody = {
+    const requestBody: ExtendedGenerateContentRequest = {
         contents,
         systemInstruction,
         generationConfig: {
@@ -70,8 +74,7 @@ export async function streamChatResponse(
             responseMimeType: "text/plain",
         },
         tools: [{ googleSearch: {} }],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any;
+    };
 
     try {
         // NOTE: cast to any to avoid SDK typing mismatches — adapt to your SDK's call if needed
@@ -89,8 +92,7 @@ export async function streamChatResponse(
                 chunk?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") || "";
 
             // Collect grounding chunks
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const metadata = (chunk as any)?.candidates?.[0]?.groundingMetadata as { groundingChunks?: GroundingChunk[] } | undefined;
+            const metadata = (chunk as { candidates?: { groundingMetadata?: { groundingChunks?: GroundingChunk[] } }[] })?.candidates?.[0]?.groundingMetadata;
             if (metadata?.groundingChunks) {
                 groundingChunks.push(...metadata.groundingChunks);
             }
@@ -111,9 +113,9 @@ export async function streamChatResponse(
             const potentialJson = jsonText.substring(jsonStart);
             try {
                 parsed = JSON.parse(potentialJson);
-                // If successful, the plain text before is the response
+                // If successful, the plain text before is the response only if JSON doesn't have responseMessage
                 const plainText = jsonText.substring(0, jsonStart).trim();
-                if (plainText) {
+                if (plainText && !parsed.responseMessage) {
                     parsed.responseMessage = plainText;
                 }
             } catch (err) {

@@ -70,8 +70,8 @@ export interface Quiz {
 export type StreamPhase = "starting" | "streaming" | "processing" | "generating content" | "generating cards";
 
 export interface GroundingChunk {
-  web: {
-    uri: string;
-    title: string;
-  };
+    web: {
+        uri: string;
+        title: string;
+    };
 }

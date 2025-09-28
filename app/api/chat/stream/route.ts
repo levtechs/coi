@@ -51,7 +51,8 @@ export async function POST(req: NextRequest) {
                     }
 
                     const sendUpdate = (key: string, value: string, groundingChunks?: GroundingChunk[]) => {
-                        const updateObj: any = { type: "update", [key]: value };
+                        const updateObj: { type: "update"; [key: string]: unknown } = { type: "update" };
+                        updateObj[key] = value;
                         if (groundingChunks) updateObj.groundingChunks = groundingChunks;
                         controller.enqueue(
                             encoder.encode(JSON.stringify(updateObj) + "\n")
@@ -80,30 +81,32 @@ export async function POST(req: NextRequest) {
 
                      updatePhase("processing"); // phase 2
 
-                     const { responseMessage, hasNewInfo, groundingChunks } = result!;
+                      const { responseMessage, hasNewInfo, groundingChunks } = result!;
 
-                      const finalResponseMessage = responseMessage;
+                      let finalResponseMessage = responseMessage;
+                      // Remove citation markers
+                      finalResponseMessage = finalResponseMessage.replace(/\[cite:[^\]]*\]/g, '');
 
                      //controller.enqueue(encoder.encode(JSON.stringify({ type: "update", responseMessage }) + "\n"));
-                     sendUpdate("responseMessage", finalResponseMessage, groundingChunks);
+                      sendUpdate("responseMessage", finalResponseMessage, groundingChunks);
 
                       // Save the chat pair
                       await writeChatPairToDb(message, attachments, finalResponseMessage, projectId, uid, groundingChunks);
 
                      // Generate/update content only if needed
-                    let finalObj: {
-                        type: "final";
-                        responseMessage: string;
-                        groundingChunks: GroundingChunk[];    
-                        newHierarchy: ContentHierarchy | null;
-                        allCards: Card[] | null;
-                    } = {
-                        type: "final",
-                        responseMessage: finalResponseMessage,
-                        groundingChunks,
-                        newHierarchy: null,
-                        allCards: null
-                    };
+                     let finalObj: {
+                         type: "final";
+                         responseMessage: string;
+                         groundingChunks: GroundingChunk[];
+                         newHierarchy: ContentHierarchy | null;
+                         allCards: Card[] | null;
+                     } = {
+                         type: "final",
+                         responseMessage: finalResponseMessage,
+                         groundingChunks,
+                         newHierarchy: null,
+                         allCards: null
+                     };
 
                     if (hasNewInfo) {
                         updatePhase("generating cards"); // phase 3
@@ -118,13 +121,13 @@ export async function POST(req: NextRequest) {
                         const newHierarchy: ContentHierarchy = await generateNewHierarchyFromCards(previousContentHierarchy, effectivePreviousCards, newCards);
                         await writeHierarchy(projectId, newHierarchy);
 
-                        finalObj = {
-                            type: "final",
-                            responseMessage: finalResponseMessage,
-                            groundingChunks,
-                            newHierarchy,
-                            allCards
-                        };
+                         finalObj = {
+                             type: "final",
+                             responseMessage: finalResponseMessage,
+                             groundingChunks,
+                             newHierarchy,
+                             allCards
+                         };
                     }
 
                     // Send final structured JSON object
