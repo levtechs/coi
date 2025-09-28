@@ -1,7 +1,7 @@
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, setDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
 
-import { Message, Card, ContentNode, ContentHierarchy, ChatAttachment} from "@/lib/types"; // { content: string; isResponse: boolean }
+import { Message, Card, ContentNode, ContentHierarchy, ChatAttachment, GroundingChunk} from "@/lib/types"; // { content: string; isResponse: boolean }
 import { Contents } from "./types";
 
 import { 
@@ -227,8 +227,6 @@ export const generateNewHierarchyFromCards = async (
         let hierarchy: ContentHierarchy | null = null;
 
         const responseJSON = JSON.parse(jsonString!);
-        console.log(jsonString);
-        console.log("RESPONSE TYPE: ", responseJSON.type);
 
         if (responseJSON.type === "new") {
             hierarchy = responseJSON.fullHierarchy;
@@ -360,7 +358,8 @@ export const writeChatPairToDb = async (
     chatAttachments: null | ChatAttachment[],
     result: string,
     projectId: string,
-    uid: string
+    uid: string,
+    groundingChunks?: GroundingChunk[]
 ) => {
     try {
         const chatRef = doc(db, "projects", projectId, "chats", uid);
@@ -381,7 +380,8 @@ export const writeChatPairToDb = async (
             },
             {
                 content: result,
-                isResponse: true
+                isResponse: true,
+                ...(groundingChunks && groundingChunks.length > 0 ? { attachments: groundingChunks } : {})
             }
         ];
 

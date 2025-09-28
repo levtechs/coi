@@ -1,12 +1,18 @@
+
+
 import {
     GenerateContentRequest,
 } from "@google/generative-ai";
 
-import { ContentHierarchy, Card, Message, ChatAttachment } from "@/lib/types"; // { content: string; isResponse: boolean }
+type ExtendedGenerateContentRequest = GenerateContentRequest & {
+    tools?: { googleSearch: Record<string, never> }[];
+};
+
+import { ContentHierarchy, Card, Message, ChatAttachment, GroundingChunk } from "@/lib/types"; // { content: string; isResponse: boolean }
 
 import { getStringFromHierarchyAndCards } from "../helpers"
 
-import { 
+import {
     limitedGeneralConfig,
     llmModel,
 } from "@/app/api/gemini/config";
@@ -27,7 +33,7 @@ export async function streamChatResponse(
     previousContentHierarchy: ContentHierarchy | null,
     attachments: null | ChatAttachment[],
     onToken: (token: string) => Promise<void> | void
-): Promise<{ responseMessage: string; hasNewInfo: boolean } | null> {
+): Promise<{ responseMessage: string; hasNewInfo: boolean; groundingChunks: GroundingChunk[] } | null> {
     if (!message || message.trim() === "") throw new Error("Message is required.");
 
     // Build contents array as Gemini expects: each content has role and parts (parts are objects with text)
@@ -60,13 +66,14 @@ export async function streamChatResponse(
     // systemInstruction must be a Con;tent object with a role
     const systemInstruction = { role: "system", parts: chatResponseSystemInstruction.parts }
 
-    const requestBody: GenerateContentRequest = {
+    const requestBody: ExtendedGenerateContentRequest = {
         contents,
         systemInstruction,
         generationConfig: {
             ...limitedGeneralConfig,
-            responseMimeType: "application/json",
+            responseMimeType: "text/plain",
         },
+        tools: [{ googleSearch: {} }],
     };
 
     try {
@@ -75,6 +82,7 @@ export async function streamChatResponse(
 
         // accumulate whole returned text so we can parse JSON at the end
         let accumulated = "";
+        const groundingChunks: GroundingChunk[] = [];
 
         // The SDK returns an async iterable / stream; iterate and collect parts
         for await (const chunk of streamingResp.stream) {
@@ -82,18 +90,60 @@ export async function streamChatResponse(
             const partText =
                 chunk?.candidates?.[0]?.content?.parts?.[0]?.text ||
                 chunk?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") || "";
-            
+
+            // Collect grounding chunks
+            const metadata = (chunk as { candidates?: { groundingMetadata?: { groundingChunks?: GroundingChunk[] } }[] })?.candidates?.[0]?.groundingMetadata;
+            if (metadata?.groundingChunks) {
+                groundingChunks.push(...metadata.groundingChunks);
+            }
+
             if (partText) {
                 accumulated += partText;
                 await onToken(partText);
             }
         }
 
-        // when stream completes, `accumulated` should be the full JSON text (because you requested responseMimeType: application/json)
-        const parsed = JSON.parse(accumulated);
+        // when stream completes, accumulated may contain plain text followed by JSON
+        let parsed;
+        let jsonText = accumulated.trim();
+
+        // Try to extract JSON from the end
+        const jsonStart = jsonText.lastIndexOf('{');
+        if (jsonStart !== -1) {
+            const potentialJson = jsonText.substring(jsonStart);
+            try {
+                parsed = JSON.parse(potentialJson);
+                // If successful, the plain text before is the response only if JSON doesn't have responseMessage
+                const plainText = jsonText.substring(0, jsonStart).trim();
+                if (plainText && !parsed.responseMessage) {
+                    parsed.responseMessage = plainText;
+                }
+            } catch (err) {
+                // Not valid JSON at end
+            }
+        }
+
+        if (!parsed) {
+            // Check for markdown
+            if (jsonText.startsWith('```json') && jsonText.endsWith('```')) {
+                jsonText = jsonText.slice(7, -3).trim();
+                try {
+                    parsed = JSON.parse(jsonText);
+                } catch (err) {
+                    // Ignore
+                }
+            }
+        }
+
+        if (!parsed) {
+            // Fallback to plain text
+            parsed = { responseMessage: jsonText, hasNewInfo: groundingChunks.length > 0 };
+        }
+
         return {
             responseMessage: parsed.responseMessage,
-            hasNewInfo: parsed.hasNewInfo,
+            hasNewInfo: parsed.hasNewInfo || false,
+            groundingChunks,
         };
     } catch (err) {
         console.error("streamChatResponse error:", err);
