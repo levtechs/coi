@@ -2,28 +2,6 @@ import { Project, User } from "@/lib/types";
 import { auth } from "@/lib/firebase";
 
 /**
- * Verify admin password.
- * @param password The password to verify.
- * @returns True if correct, false otherwise.
- */
-export async function verifyAdminPassword(password: string): Promise<boolean> {
-    try {
-        const response = await fetch("/api/admin/verify-password", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ password }),
-        });
-        const data = await response.json();
-        return data.success;
-    } catch (err) {
-        console.error("Error verifying password:", err);
-        return false;
-    }
-}
-
-/**
  * Get initial admin details including 10 projects and 10 users.
  * @returns An object containing arrays of projects and users.
  */
@@ -36,7 +14,6 @@ export async function getAdminDetails(): Promise<{ projects: Project[]; users: U
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${token}`,
-                "X-Admin-Password": localStorage.getItem('adminPassword') || '',
             },
         });
         if (!response.ok) throw new Error("Unauthorized");
@@ -62,7 +39,6 @@ export async function getMoreProjects(lastId: string): Promise<Project[]> {
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${token}`,
-                "X-Admin-Password": localStorage.getItem('adminPassword') || '',
             },
         });
         if (!response.ok) throw new Error("Unauthorized");
@@ -88,7 +64,6 @@ export async function getMoreUsers(lastId: string): Promise<User[]> {
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${token}`,
-                "X-Admin-Password": localStorage.getItem('adminPassword') || '',
             },
         });
         if (!response.ok) throw new Error("Unauthorized");
@@ -114,7 +89,6 @@ export async function getProjectsForUser(userId: string): Promise<Project[]> {
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${token}`,
-                "X-Admin-Password": localStorage.getItem('adminPassword') || '',
             },
         });
         if (!response.ok) throw new Error("Unauthorized");

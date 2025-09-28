@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Button from "@/app/components/button";
-import { getAdminDetails, getMoreProjects, getMoreUsers, getProjectsForUser, verifyAdminPassword } from "@/app/views/admin";
+import { getAdminDetails, getMoreProjects, getMoreUsers, getProjectsForUser } from "@/app/views/admin";
 import { Project, User } from "@/lib/types";
 import LoadingComponent from "@/app/components/loading";
 import { useAuth } from "@/lib/AuthContext";
@@ -18,26 +18,10 @@ const AdminPage = () => {
     const [loading, setLoading] = useState(true);
     const [loadingMoreProjects, setLoadingMoreProjects] = useState(false);
     const [loadingMoreUsers, setLoadingMoreUsers] = useState(false);
-    const [adminPassword, setAdminPassword] = useState('');
-    const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const checkStoredPassword = async () => {
-            const storedPassword = localStorage.getItem('adminPassword');
-            if (storedPassword) {
-                const isValid = await verifyAdminPassword(storedPassword);
-                if (isValid) {
-                    setIsAdminAuthenticated(true);
-                } else {
-                    localStorage.removeItem('adminPassword');
-                }
-            }
-        };
-        checkStoredPassword();
-    }, []);
-
-    useEffect(() => {
-        if (!user || !isAdminAuthenticated) return;
+        if (!user) return;
         const fetchData = async () => {
             try {
                 const adminData = await getAdminDetails();
@@ -47,14 +31,16 @@ const AdminPage = () => {
                     projectIds: adminData.projects.filter(p => p.ownerId === user.id || p.collaborators.includes(user.email)).map(p => p.id)
                 }));
                 setUsers(usersWithProjectIds);
+                setError(null);
             } catch (err) {
                 console.error("Error fetching admin data:", err);
+                setError("Access denied: You do not have admin privileges.");
             } finally {
                 setLoading(false);
             }
         };
         fetchData();
-    }, [user, isAdminAuthenticated]);
+    }, [user]);
 
     useEffect(() => {
         if (selectedUser) {
@@ -116,31 +102,12 @@ const AdminPage = () => {
         return (<LoginPrompt page={"the admin panel"} />);
     }
 
-    if (!isAdminAuthenticated) {
+    if (error) {
         return (
             <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] p-6 flex items-center justify-center">
                 <div className="bg-[var(--neutral-100)] shadow-lg rounded-lg p-8 max-w-md w-full">
-                    <h1 className="text-2xl font-bold mb-4">Admin Access</h1>
-                    <form onSubmit={async (e) => {
-                        e.preventDefault();
-                        const isValid = await verifyAdminPassword(adminPassword);
-                        if (isValid) {
-                            localStorage.setItem('adminPassword', adminPassword);
-                            setIsAdminAuthenticated(true);
-                        } else {
-                            alert('Incorrect password');
-                        }
-                    }}>
-                        <input
-                            type="password"
-                            value={adminPassword}
-                            onChange={(e) => setAdminPassword(e.target.value)}
-                            placeholder="Enter admin password"
-                            className="w-full p-2 border rounded mb-4"
-                            required
-                        />
-                        <Button type="submit" color="var(--accent-500)">Submit</Button>
-                    </form>
+                    <h1 className="text-2xl font-bold mb-4 text-red-600">Access Denied</h1>
+                    <p>{error}</p>
                 </div>
             </div>
         );
