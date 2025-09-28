@@ -1,10 +1,14 @@
 
 
-import { ContentHierarchy, Card, Message, ChatAttachment } from "@/lib/types"; // { content: string; isResponse: boolean }
+import {
+    GenerateContentRequest,
+} from "@google/generative-ai";
+
+import { ContentHierarchy, Card, Message, ChatAttachment, GroundingChunk } from "@/lib/types"; // { content: string; isResponse: boolean }
 
 import { getStringFromHierarchyAndCards } from "../helpers"
 
-import { 
+import {
     limitedGeneralConfig,
     llmModel,
 } from "@/app/api/gemini/config";
@@ -25,7 +29,7 @@ export async function streamChatResponse(
     previousContentHierarchy: ContentHierarchy | null,
     attachments: null | ChatAttachment[],
     onToken: (token: string) => Promise<void> | void
-): Promise<{ responseMessage: string; hasNewInfo: boolean } | null> {
+): Promise<{ responseMessage: string; hasNewInfo: boolean; groundingChunks: GroundingChunk[] } | null> {
     if (!message || message.trim() === "") throw new Error("Message is required.");
 
     // Build contents array as Gemini expects: each content has role and parts (parts are objects with text)
@@ -75,8 +79,7 @@ export async function streamChatResponse(
 
         // accumulate whole returned text so we can parse JSON at the end
         let accumulated = "";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const groundingChunks: any[] = [];
+        const groundingChunks: GroundingChunk[] = [];
 
         // The SDK returns an async iterable / stream; iterate and collect parts
         for await (const chunk of streamingResp.stream) {
@@ -87,7 +90,7 @@ export async function streamChatResponse(
 
             // Collect grounding chunks
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const metadata = (chunk as any)?.candidates?.[0]?.groundingMetadata;
+            const metadata = (chunk as any)?.candidates?.[0]?.groundingMetadata as { groundingChunks?: GroundingChunk[] } | undefined;
             if (metadata?.groundingChunks) {
                 groundingChunks.push(...metadata.groundingChunks);
             }
@@ -132,20 +135,13 @@ export async function streamChatResponse(
 
         if (!parsed) {
             // Fallback to plain text
-            parsed = { responseMessage: jsonText, hasNewInfo: false };
-        }
-
-        // Append sources if available
-        if (groundingChunks.length > 0) {
-            const uniqueChunks = Array.from(new Set(groundingChunks.map(c => JSON.stringify(c)))).map(s => JSON.parse(s));
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const sources = uniqueChunks.map((c: any) => `- ${c.web.title}: ${c.web.uri}`).join('\n');
-            parsed.responseMessage += `\n\nSources:\n${sources}`;
+            parsed = { responseMessage: jsonText, hasNewInfo: groundingChunks.length > 0 };
         }
 
         return {
             responseMessage: parsed.responseMessage,
             hasNewInfo: parsed.hasNewInfo || false,
+            groundingChunks,
         };
     } catch (err) {
         console.error("streamChatResponse error:", err);

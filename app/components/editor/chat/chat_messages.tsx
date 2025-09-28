@@ -58,32 +58,36 @@ interface ChatMessageParams {
 const ChatMessage = ({ message, stream }: ChatMessageParams) => {
     return (
         <div className="flex flex-col">
-            <div className="self-end">
-                {message && !message.isResponse && message.attachments && (
-                    <div className="flex items-center gap-2 overflow-auto py-1">
-                        {message.attachments.map((attachment: ChatAttachment) => {
-                            // Determine display text based on type
-                            let text: string;
-                            if ("title" in attachment) {
-                                text = attachment.title;
-                            } else if ("text" in attachment) {
-                                text = attachment.text;
-                            } else {
-                                text = "attachment details not found";
-                            }
+            {/* Attachments of user-sent message*/}
+            {message && message.attachments && (
+                <div className={`flex items-center gap-2 overflow-auto py-1 ${message.isResponse ? "p-2 justify-start" : "justify-end"}`}>
+                     {message.attachments.map((attachment: ChatAttachment) => {
+                         // Determine display text based on type
+                         let text: string | undefined;
+                         let url: string | undefined;
+                         if ("web" in attachment && attachment.web) {
+                             text = attachment.web.title;
+                             url = attachment.web.uri;
+                         } else if ("title" in attachment) {
+                             text = attachment.title;
+                         } else if ("text" in attachment) {
+                             text = attachment.text;
+                         }
 
-                            return (
-                                <div
-                                    key={"id" in attachment ? attachment.id : crypto.randomUUID()}
-                                    className="flex items-center justify-between w-32 h-8 bg-[var(--neutral-300)] rounded flex-shrink-0"
-                                >
-                                    <p className="truncate ml-2 text-sm">{text}</p>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </div>
+                         if (!text) return null;
+
+                        return (
+                            <div
+                                key={"id" in attachment ? attachment.id : crypto.randomUUID()}
+                                className={`flex items-center justify-between w-32 h-8 bg-[var(--neutral-300)] rounded flex-shrink-0 ${url ? 'cursor-pointer hover:bg-[var(--neutral-400)]' : ''}`}
+                                onClick={url ? () => window.open(url, '_blank') : undefined}
+                            >
+                                <p className="truncate ml-2 text-sm">{text}</p>
+                            </div>
+                        );
+                     })}
+                </div>
+            )}
             <div
                 className={`p-2 mb-4 rounded-md break-words prose prose-sm
                     ${message && message.isResponse || stream
