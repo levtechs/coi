@@ -40,12 +40,12 @@ type Props = {
 };
 
 export default function MarkdownArticle({ markdown, singleLine }: Props) {
-    const normalized = useMemo(() => normalizeMathMarkdown(markdown), [markdown]);
+    const processedMarkdown = useMemo(() => normalizeMathMarkdown(markdown), [markdown]);
 
-    const balance = useMemo(() => checkMathBalance(normalized), [normalized]);
+    const balance = useMemo(() => checkMathBalance(processedMarkdown), [processedMarkdown]);
     if (!balance.ok) {
         console.warn("[MarkdownArticle] Math delimiter imbalance:", balance.details);
-        console.debug("[MarkdownArticle] excerpt:", normalized.slice(0, 2000));
+        console.debug("[MarkdownArticle] excerpt:", processedMarkdown.slice(0, 2000));
     }
 
     const baseStyle = "text-[var(--foreground)]";
@@ -59,14 +59,14 @@ export default function MarkdownArticle({ markdown, singleLine }: Props) {
                 components={{
                     h1: ({ ...props }) => <h1 className={`${baseStyle} text-4xl underline ${headingSpacing}`} {...props} />,
                     h2: ({ ...props }) => <h2 className={`${baseStyle} text-3xl underline ${headingSpacing}`} {...props} />,
-                    h3: ({ ...props }) => <h3 className={`${baseStyle} text-2xl underline ${headingSpacing}`} {...props} />,
+                    h3: ({ ...props }) => <h3 className={`${baseStyle} text-3xl underline ${headingSpacing}`} {...props} />,
                     h4: ({ ...props }) => <h4 className={`${baseStyle} text-xl ${headingSpacing}`} {...props} />,
                     h5: ({ ...props }) => <h5 className={`${baseStyle} text-lg ${headingSpacing}`} {...props} />,
                     h6: ({ ...props }) => <h6 className={`${baseStyle} text-base ${headingSpacing}`} {...props} />,
                     p: ({ ...props }) => <p className={`${baseStyle} ${headingSpacing}`} {...props} />,
                 }}
             >
-                {normalized}
+                {processedMarkdown}
             </ReactMarkdown>
         </div>
     );

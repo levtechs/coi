@@ -43,7 +43,7 @@ export const sendMessage = async (
             attatchments,
             project.id, 
             setPhase, 
-            (finalMessage: string) => addMessage({ content: finalMessage, isResponse: true, id: crypto.randomUUID()}),
+            (finalMessage: Message) => addMessage({...finalMessage, id: crypto.randomUUID()}),
             (newCards: Card[]) => setNewCards(newCards),
             (token) => {
                 streamedContent += token;

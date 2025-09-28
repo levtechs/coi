@@ -51,7 +51,7 @@ export type ContentNode =
     | { type: "card"; cardId: string }
     | { type: "subcontent"; content: ContentHierarchy };
 
-export type ChatAttachment = Card | ContentNode | ContentHierarchy;
+export type ChatAttachment = Card | ContentNode | ContentHierarchy | GroundingChunk;
 
 export interface QuizQuestion {
     question: string;
@@ -68,3 +68,10 @@ export interface Quiz {
 }
 
 export type StreamPhase = "starting" | "streaming" | "processing" | "generating content" | "generating cards";
+
+export interface GroundingChunk {
+    web: {
+        uri: string;
+        title: string;
+    };
+}

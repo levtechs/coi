@@ -13,7 +13,7 @@ import {
 } from "../helpers";
 import { streamChatResponse } from "./helpers";
 import { fetchCardsFromProject } from "@/app/api/cards/helpers";
-import { Card, ContentHierarchy, ChatAttachment, StreamPhase } from "@/lib/types";
+import { Card, ContentHierarchy, ChatAttachment, StreamPhase, GroundingChunk } from "@/lib/types";
 
 interface ChatRequestBody {
     message: string;
@@ -50,148 +50,64 @@ export async function POST(req: NextRequest) {
                         controller.enqueue(encoder.encode(JSON.stringify({ phase: newPhase }) + "\n"));
                     }
 
-                    const sendUpdate = (key: string, value: string) => {
+                    const sendUpdate = (key: string, value: string, groundingChunks?: GroundingChunk[]) => {
+                        const updateObj: { type: "update"; [key: string]: unknown } = { type: "update" };
+                        updateObj[key] = value;
+                        if (groundingChunks) updateObj.groundingChunks = groundingChunks;
                         controller.enqueue(
-                            encoder.encode(JSON.stringify({ type: "update", [key]: value }) + "\n")
+                            encoder.encode(JSON.stringify(updateObj) + "\n")
                         );
                     };
                     
-                    updatePhase("starting");
+                     updatePhase("starting");
 
-                    let response = "";
-                    let capturing = false;
-                    let inEscape = false;
-                    let unicodeBuffer = "";
-                    let expectingUnicode = 0;
+                     const result = await streamChatResponse(
+                         message,
+                         messageHistory,
+                         effectivePreviousCards,
+                         previousContentHierarchy,
+                         attachments,
+                          (token: string) => {
+                             if (phase === "starting") updatePhase("streaming");
 
-                    await streamChatResponse(
-                        message,
-                        messageHistory,
-                        effectivePreviousCards,
-                        previousContentHierarchy,
-                        attachments,
-                        (token: string) => {
-                            response += token;
+                             // Skip JSON tokens
+                             if (token.trim().startsWith('{')) return;
 
-                            if (phase === "starting") updatePhase("streaming"); 
+                              // Since the response may be plain text, send tokens directly
+                              controller.enqueue(encoder.encode(token + "\n"));
+                         }
+                     );
+                     controller.enqueue(encoder.encode("\n")); // phase 2
 
-                            for (let i = 0; i < token.length; i++) {
-                                const char = token[i];
+                     updatePhase("processing"); // phase 2
 
-                                // 1. Detect the start of "responseMessage"
-                                if (!capturing) {
-                                    const idx = response.indexOf('"responseMessage":');
-                                    if (idx !== -1) {
-                                        const openQuote = response.indexOf('"', idx + 18);
-                                        if (openQuote !== -1 && i >= openQuote) {
-                                            capturing = true;
-                                            continue; // next char starts message
-                                        }
-                                    }
-                                    continue;
-                                }
+                      const { responseMessage, hasNewInfo, groundingChunks } = result!;
 
-                                // 2. Inside responseMessage
-                                if (expectingUnicode > 0) {
-                                    unicodeBuffer += char;
-                                    expectingUnicode--;
-                                    if (expectingUnicode === 0) {
-                                        try {
-                                            const codePoint = parseInt(unicodeBuffer, 16);
-                                            controller.enqueue(encoder.encode(String.fromCharCode(codePoint)));
-                                        } catch {
-                                            // invalid \uXXXX, drop or log
-                                        }
-                                        unicodeBuffer = "";
-                                    }
-                                    continue;
-                                }
+                      let finalResponseMessage = responseMessage;
+                      // Remove citation markers
+                      finalResponseMessage = finalResponseMessage.replace(/\[cite:[^\]]*\]/g, '');
 
-                                if (inEscape) {
-                                    switch (char) {
-                                        case '"': controller.enqueue(encoder.encode('"')); break;
-                                        case "\\": controller.enqueue(encoder.encode("\\")); break;
-                                        case "/": controller.enqueue(encoder.encode("/")); break;
-                                        case "b": controller.enqueue(encoder.encode("\b")); break;
-                                        case "f": controller.enqueue(encoder.encode("\f")); break;
-                                        case "n": controller.enqueue(encoder.encode("\n")); break;
-                                        case "r": controller.enqueue(encoder.encode("\r")); break;
-                                        case "t": controller.enqueue(encoder.encode("\t")); break;
-                                        case "u": expectingUnicode = 4; unicodeBuffer = ""; break;
-                                        default: controller.enqueue(encoder.encode(char)); break;
-                                    }
-                                    inEscape = false;
-                                    continue;
-                                }
+                     //controller.enqueue(encoder.encode(JSON.stringify({ type: "update", responseMessage }) + "\n"));
+                      sendUpdate("responseMessage", finalResponseMessage, groundingChunks);
 
-                                if (char === "\\") {
-                                    inEscape = true;
-                                    continue;
-                                }
+                      // Save the chat pair
+                      await writeChatPairToDb(message, attachments, finalResponseMessage, projectId, uid, groundingChunks);
 
-                                if (char === '"') {
-                                    // 3. Closing quote of responseMessage
-                                    capturing = false;
-                                    return;
-                                }
+                     // Generate/update content only if needed
+                     let finalObj: {
+                         type: "final";
+                         responseMessage: string;
+                         groundingChunks: GroundingChunk[];
+                         newHierarchy: ContentHierarchy | null;
+                         allCards: Card[] | null;
+                     } = {
+                         type: "final",
+                         responseMessage: finalResponseMessage,
+                         groundingChunks,
+                         newHierarchy: null,
+                         allCards: null
+                     };
 
-                                controller.enqueue(encoder.encode(char)); // Normal character
-                            }
-                        }
-                    );
-                    controller.enqueue(encoder.encode("\n")); // phase 2
-
-                    updatePhase("processing"); // phase 2
-
-                    // Now safely parse the final JSON once
-                    let parsed: { responseMessage: string; hasNewInfo: boolean };
-                    try {
-                        parsed = JSON.parse(response);
-                    } catch (err) {
-                        throw new Error("Invalid JSON returned from model: " + (err as Error).message);
-                    }
-
-                    const { responseMessage, hasNewInfo } = parsed;
-
-                    //controller.enqueue(encoder.encode(JSON.stringify({ type: "update", responseMessage }) + "\n"));
-                    sendUpdate("responseMessage", responseMessage);
-
-                    // Save the chat pair
-                    await writeChatPairToDb(message, attachments, responseMessage, projectId, uid);
-
-                    // Generate/update content only if needed
-                    let finalObj: {
-                        type: "final";
-                        responseMessage: string;
-                        newHierarchy: ContentHierarchy | null;
-                        allCards: Card[] | null;
-                    } = {
-                        type: "final",
-                        responseMessage,
-                        newHierarchy: null,
-                        allCards: null
-                    };
-
-                    /* Old popeline - depricated
-                    if (hasNewInfo) {
-                        updatePhase("generating content"); // phase 3
-
-                        const newContent = await getUpdatedContent(previousContent, message, responseMessage);
-
-                        if (newContent) {
-                            await writeNewContentToDb(newContent, projectId);
-
-                            updatePhase("generating cards"); // phase 4
-                            const allCards = await extractWriteCards(projectId, newContent);
-                            finalObj = {
-                                type: "final",
-                                responseMessage,
-                                newContent,
-                                allCards
-                            };
-                        }
-                    }
-                    */
                     if (hasNewInfo) {
                         updatePhase("generating cards"); // phase 3
 
@@ -205,12 +121,13 @@ export async function POST(req: NextRequest) {
                         const newHierarchy: ContentHierarchy = await generateNewHierarchyFromCards(previousContentHierarchy, effectivePreviousCards, newCards);
                         await writeHierarchy(projectId, newHierarchy);
 
-                        finalObj = {
-                            type: "final",
-                            responseMessage,
-                            newHierarchy,
-                            allCards
-                        };
+                         finalObj = {
+                             type: "final",
+                             responseMessage: finalResponseMessage,
+                             groundingChunks,
+                             newHierarchy,
+                             allCards
+                         };
                     }
 
                     // Send final structured JSON object
@@ -218,6 +135,7 @@ export async function POST(req: NextRequest) {
                     controller.close();
 
                 } catch (err) {
+                    console.error(err);
                     controller.enqueue("\n" + encoder.encode(JSON.stringify({ type: "error", message: (err as Error).message }) + "\n"));
                     controller.close();
                 }
