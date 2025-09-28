@@ -60,7 +60,7 @@ const ChatMessage = ({ message, stream }: ChatMessageParams) => {
         <div className="flex flex-col">
             {/* Attachments of user-sent message*/}
             {message && message.attachments && (
-                <div className={`flex items-center gap-2 overflow-auto py-1 ${message.isResponse ? "p-2 justify-start" : "justify-end"}`}>
+                <div className={`flex items-center gap-2 overflow-auto py-1 ${message.isResponse ? "ml-4 p-2 justify-start" : "justify-end"}`}>
                      {message.attachments.map((attachment: ChatAttachment) => {
                          // Determine display text based on type
                          let text: string | undefined;
