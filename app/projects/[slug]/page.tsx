@@ -23,6 +23,10 @@ export default function ProjectPage() {
     const [isLoading, setLoading] = useState<boolean | "error">(true);
 
     useEffect(() => {
+        document.title = `${project?.title || 'Project'} - coi`;
+    }, [project]);
+
+    useEffect(() => {
         if (!user || !projectId) return;
 
         setLoading(true);

@@ -30,6 +30,10 @@ function InvitePageContent() {
 
     // Auth state listener and initial login
     useEffect(() => {
+        document.title = "Invite - coi";
+    }, []);
+
+    useEffect(() => {
         const urlToken = searchParams.get("token");
         if (urlToken) {
             setToken(urlToken);
@@ -48,7 +52,7 @@ function InvitePageContent() {
                 router.push(`/login?forward=${encodeURIComponent(forwardUrl)}`);
             }
         });
-        
+
         return () => unsubscribe();
     }, [searchParams, router]);
 
