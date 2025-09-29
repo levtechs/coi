@@ -10,22 +10,26 @@ import QuizForm from "./quiz_form";
 import Error from "../error";
 
 interface TakeQuizPageProps {
-    quizId: string;
+    quizId?: string;
+    quiz?: Quiz;
 }
 
-const TakeQuizPage = ({ quizId }: TakeQuizPageProps) => {
-    const [isLoading, setLoading] = useState<boolean | "error">(true);
+const TakeQuizPage = ({ quizId, quiz: providedQuiz }: TakeQuizPageProps) => {
+    const [isLoading, setLoading] = useState<boolean | "error">(providedQuiz ? false : true);
 
     const { user } = useAuth();
 
-    const [quiz, setQuiz] = useState<Quiz | null>(null);
+    const [quiz, setQuiz] = useState<Quiz | null>(providedQuiz || null);
 
 
     useEffect(() => {
+        if (providedQuiz) return; // Already have quiz
+
         setLoading(true);
         if (!user || !quizId) return;
 
         async function fetchQuiz() {
+            if (!quizId) return;
             try {
                 const fetchedQuiz = await getQuiz(quizId);
                 setQuiz(fetchedQuiz);
@@ -38,7 +42,7 @@ const TakeQuizPage = ({ quizId }: TakeQuizPageProps) => {
         }
 
         fetchQuiz();
-    }, [user, quizId]);
+    }, [user, quizId, providedQuiz]);
 
     if (isLoading === true) return <LoadingComponent loadingText="Loading quiz..." />;
     if (isLoading === "error" || quiz === null) return (<Error h2="Error loading quiz." p="Please check the quiz ID or try again later." />);

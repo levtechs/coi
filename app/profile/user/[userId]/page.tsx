@@ -17,6 +17,10 @@ const MyProfilePage = () => {
     const userId = Array.isArray(slugParam) ? slugParam[0] : slugParam;
 
     useEffect(() => {
+        document.title = "User Profile - coi";
+    }, []);
+
+    useEffect(() => {
         if (user && userId && user.uid === userId) {
             router.push("/profile");
         }

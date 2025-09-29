@@ -7,9 +7,14 @@ import Dashboard from "@/app/components/dashboard/dashboard";
 import Button from "@/app/components/button";
 import LoginPrompt from "../components/login_prompt";
 import { FiLogOut, FiUser } from "react-icons/fi";
+import { useEffect } from "react";
 
 export default function DashboardPage() {
     const { user, loading } = useAuth();
+
+    useEffect(() => {
+        document.title = "Dashboard - coi";
+    }, []);
 
     if (loading) {
         return (

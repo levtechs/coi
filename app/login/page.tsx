@@ -14,6 +14,10 @@ const AuthPageWrapper = () => {
     const signup: boolean = param === "true";
 
     useEffect(() => {
+        document.title = "Login - coi";
+    }, []);
+
+    useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
                 router.replace(forward);
