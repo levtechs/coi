@@ -89,9 +89,10 @@
   }
 }
 
-body {
+html, body {
   background: var(--background);
   color: var(--foreground);
+  overflow-x: hidden;
 }
 
 /* Target WebKit-based browsers (Chrome, Safari, Edge, etc.) */
