@@ -100,15 +100,21 @@ export async function POST(req: NextRequest) {
                         allCards: null
                     };
 
-                    if (hasNewInfo) {
+                    if (hasNewInfo || groundingChunks.length>0) {
                         updatePhase("generating cards"); // phase 3
 
-                        const [cardsFromChat, cardsFromGrounding] = await Promise.all([
-                            generateAndWriteNewCards(projectId, effectivePreviousCards, message, responseMessage),
-                            groundingChunksToCardsAndWrite(projectId, previousCards, groundingChunks),
-                        ]);
+                        let newCards: Card[] = []
+                        if (hasNewInfo) {
+                            const [cardsFromChat, cardsFromGrounding] = await Promise.all([
+                                generateAndWriteNewCards(projectId, effectivePreviousCards, message, responseMessage),
+                                groundingChunksToCardsAndWrite(projectId, previousCards, groundingChunks),
+                            ]);
 
-                        const newCards = [...cardsFromChat, ...cardsFromGrounding];
+                            newCards = [...cardsFromChat, ...cardsFromGrounding];
+                        }
+                        else { // There are groundingChunks but hasNewInfo is false
+                            newCards = await groundingChunksToCardsAndWrite(projectId, previousCards, groundingChunks)
+                        }
 
                         const allCards = (previousCards ? [...previousCards, ...newCards] : newCards);
 
