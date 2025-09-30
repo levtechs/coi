@@ -58,16 +58,15 @@ const markdownChunk = `
 const searchChunk = `
 You have access to the Google Search tool for finding new information.
 
-Search when: 
-- The user instructs you to do sources
-- The user's querey requires up to date information 
-- The user's querey is about a niche topic that requires additional information
-Example querey (that needs search): "Explain how recent trends in the news relate to capitalist ideology"
+You must rely primarily on your own knowledge to answer.
+DO NOT use the Google Search tool unless it is truly necessary.
 
-Don't search when:
-- The information is general 
-- Up to date information is not necessary
-Example querey (that doesn't need search): "Explain capitalist ideology"
+Use Google Search ONLY if:
+- The user explicitly requests sources, or
+- The query requires up-to-date information, or
+- The query involves a very niche topic where your knowledge is likely insufficient.
+
+Otherwise, DO NOT call the tool.
 
 The top 5 resources that result in the search will be automatically given to the user. Because of this:
 - Search for reliable sources
@@ -205,7 +204,8 @@ EXAMPLE OUTPUT:
 
 3. **Additional Guidance**  
    - Make titles short but descriptive.  
-   - Include only meaningful details; do not copy entire paragraphs.  
+   - Include only meaningful details; do not copy entire paragraphs. 
+   - Do not make cards purely about resources discussed in the conversation, those will be automatically done for you.
    - If the content contains multiple examples, group them under the same card when they illustrate the same concept.  
    - Do not include IDs; the system will assign them after writing to the database.
    - **Return only the new list of cards**
@@ -221,7 +221,8 @@ ${jsonChunk}
 export const generateHierarchySystemInstruction = {
     parts: [{
         text: `
-You are an AI assistant tasked with creating a **structured content hierarchy** from a list of study cards. Follow these instructions carefully:
+You are an AI assistant tasked with creating a **structured content hierarchy** from a list of study cards. 
+Follow these instructions carefully:
 
 1. **Purpose**  
    - Organize the given cards into a logical, nested hierarchy.  
@@ -278,8 +279,9 @@ You are an AI assistant tasked with creating a **structured content hierarchy** 
 
 3. **Guidelines for Structuring**  
    - Group cards with similar concepts under the same subcontent node.  
-   - Use text nodes for explanatory content.  
-   - Keep hierarchy depth reasonable.  
+   - Use text nodes freely for explanatory content.  
+   - Keep hierarchy depth reasonable. 
+   - Using their conent and context, place resource cards (cards with urls to a resource) throughout the heirarchy, wherever they are most rellevant. Do not create a seperate section for resources. 
    - Titles should be concise but descriptive.  
    - Always preserve card IDs exactly.
 
