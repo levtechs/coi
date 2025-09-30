@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
                     let phase: StreamPhase = "starting"
                     const updatePhase = (newPhase : StreamPhase) => {
                         phase = newPhase;
-                        controller.enqueue(encoder.encode(JSON.stringify({ phase: newPhase }) + "\n"));
+                        controller.enqueue(encoder.encode('\u001F' + JSON.stringify({ phase: newPhase }) + '\u001E'));
                     }
 
                     const sendUpdate = (key: string, value: string, groundingChunks?: GroundingChunk[]) => {
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
                         updateObj[key] = value;
                         if (groundingChunks) updateObj.groundingChunks = groundingChunks;
                         controller.enqueue(
-                            encoder.encode(JSON.stringify(updateObj) + "\n")
+                            encoder.encode('\u001F' + JSON.stringify(updateObj) + '\u001E')
                         );
                     };
                     
@@ -66,14 +66,10 @@ export async function POST(req: NextRequest) {
                         (token: string) => {
                             if (phase === "starting") updatePhase("streaming");
 
-                            // Skip JSON tokens
-                            if (token.trim().startsWith('{')) return;
-
-                            // Since the response may be plain text, send tokens directly
-                            controller.enqueue(encoder.encode(token + "\n"));
+                            // Send tokens directly without \n
+                            controller.enqueue(encoder.encode(token));
                         }
                     );
-                    controller.enqueue(encoder.encode("\n")); // phase 2
 
                     updatePhase("processing"); // phase 2
 
@@ -133,12 +129,11 @@ export async function POST(req: NextRequest) {
                     }
 
                     // Send final structured JSON object
-                    controller.enqueue(encoder.encode(JSON.stringify(finalObj) + "\n"));
-                    controller.close();
-
+                    controller.enqueue(encoder.encode('\u001F' + JSON.stringify(finalObj) + '\u001E'));
                 } catch (err) {
                     console.error(err);
                     controller.enqueue("\n" + encoder.encode(JSON.stringify({ type: "error", message: (err as Error).message }) + "\n"));
+                } finally {
                     controller.close();
                 }
             }
@@ -146,7 +141,7 @@ export async function POST(req: NextRequest) {
 
         return new Response(stream, {
             headers: {
-                "Content-Type": "application/x-ndjson",
+                "Content-Type": "text/plain; charset=utf-8",
             },
         });
     } catch (err) {
