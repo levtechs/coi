@@ -1,4 +1,4 @@
-import { Card } from "@/lib/types";
+
 
 // System instruction for Gemini to give create quiz based on cards
 export const createQuizFromCardsSystemInstruction = {

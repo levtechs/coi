@@ -37,7 +37,10 @@ export interface PostCardPayload {
 export interface Card {
     id: string;
     title: string;
+    url?: string;
     details?: string[];
+    refImageUrls?: string[];
+    iconUrl?: string;
     exclude?: boolean;
 }
 

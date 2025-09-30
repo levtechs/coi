@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, addDoc, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, addDoc } from "firebase/firestore";
 
 import { getVerifiedUid } from "@/app/api/helpers"
 

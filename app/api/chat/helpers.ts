@@ -20,7 +20,8 @@ import {
 } from "./prompts"
 import { callGeminiApi } from "../gemini/helpers";
 import { GenerateContentRequest } from "@google/generative-ai";
-import { writeCardsToDb } from "../cards/helpers"
+import { writeCardsToDb } from "../cards/helpers";
+import { getYoutubeData } from "../youtube/helpers";
 
 /**
  * Recursively builds a JSON representation of a content hierarchy combined with its referenced cards.
@@ -184,6 +185,200 @@ export const generateAndWriteNewCards = async (
     } catch (err) {
         console.error("Failed to parse new cards from Gemini:", err, jsonString);
         return oldCards || [];
+    }
+
+    // Write new cards to DB
+    const newCards = await writeCardsToDb(projectId, newCardsRaw);
+
+    // Return newCards
+    return newCards;
+};
+
+/**
+* Generates cards from groundingChunks
+*
+* @param projectId - The ID of the project.
+* @param oldCards - Existing cards, if any (can be null).
+* @param groundingChunks - groundingChunks with title and uri
+* @returns Full list of Card objects including new ones.
+*/
+export const groundingChunksToCardsAndWrite = async (
+    projectId: string,
+    oldCards: Card[],
+    groundingChunks: GroundingChunk[],
+): Promise<Card[]> => {
+    // Priority function
+    const getPriority = (uri: string): number => {
+        const domain = new URL(uri).hostname.toLowerCase();
+        if (domain.includes('youtube.com')) return 10;
+        if (domain.includes('wikipedia.org')) return 9;
+        if (domain.endsWith('.org') || domain.endsWith('.edu') || domain.endsWith('.gov')) return 5;
+        return 1;
+    };
+
+    // Sort chunks by priority desc
+    const sortedChunks = groundingChunks.sort((a, b) => getPriority(b.web.uri) - getPriority(a.web.uri));
+
+    const newCardsRaw: Omit<Card, "id">[] = [];
+
+    // We will limit the number of websites scraped with this cost. 
+    // Some may be cheaper to scrape or are more usefull so they will contribute to cost less
+    let cost: number = 0;
+
+    // Process other chunks
+    for (const chunk of sortedChunks) {
+        if (cost > 5) break;
+        const uri = chunk.web.uri;
+
+        // Check if a card with this uri already exists
+        const existingCard = oldCards.find(card => card.url === uri);
+        if (existingCard) {
+            continue; // Skip if already exists
+        }
+
+        try {
+            // Fetch the webpage to extract images with timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+            const response = await fetch(uri, {
+                redirect: "follow",
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            const html = await response.text();
+
+            cost += 1;
+
+            // Extract title
+            const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+            const scrapedTitle = titleMatch ? titleMatch[1].trim() : chunk.web.title;
+
+            
+            if (!response.ok) {
+                console.warn(`Failed to fetch ${uri}: ${response.status}`);
+                // Still create card without images
+                newCardsRaw.push({
+                    title: `resource: "${scrapedTitle}"`,
+                    url: response.url,
+                    exclude: false,
+                });
+                continue;
+            }
+
+            // Youtube chunks handled differently
+            if (response.url.includes("youtube.com") || response.url.includes("youtu.be")) {
+                try {
+                    const data = await getYoutubeData(response.url);
+                    const desc = data.description.length > 80 ? data.description.slice(0, 77) + "..." : data.description;
+                    newCardsRaw.push({
+                        title: `resource: "${data.title}"`,
+                        url: response.url,
+                        details: [
+                            desc,
+                            `Channel: ${data.channelTitle}`,
+                            `Duration: ${data.duration || 'N/A'}`,
+                            `Published: ${new Date(data.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`
+                        ],
+                        refImageUrls: [data.thumbnailUrl],
+                        exclude: false,
+                    });
+                } catch (err) {
+                    console.error(`Error processing YouTube ${response.url}:`, err);
+                    // Fallback
+                    newCardsRaw.push({
+                        title: `resource: "${chunk.web.title}"`,
+                        url: chunk.web.uri,
+                        exclude: false,
+                    });
+                }
+                finally {
+                    cost -= 1; // Youtube videos shouldn't contribute to cost 
+                    continue;
+                }
+            }
+
+
+            // Extract favicon
+            let iconUrl: string | undefined;
+            const iconMatch = html.match(/<link[^>]*rel=["'](?:icon|shortcut icon)["'][^>]*href=["']([^"']*)["'][^>]*>/i);
+            if (iconMatch) {
+                try {
+                    iconUrl = new URL(iconMatch[1], response.url).href;
+                } catch {
+                    iconUrl = new URL('/favicon.ico', response.url).href;
+                }
+            } else {
+                iconUrl = new URL('/favicon.ico', response.url).href;
+            }
+
+            // Extract first heading
+            const headingMatch = html.match(/<h[1-2][^>]*>([\s\S]*?)<\/h[1-2]>/i);
+            let firstHeading = '';
+            if (headingMatch) {
+                // Strip HTML tags
+                firstHeading = headingMatch[1].replace(/<[^>]*>/g, '').trim();
+                if (firstHeading.length > 128) {
+                    firstHeading = firstHeading.slice(0, 125) + '...';
+                }
+            }
+
+            // Extract image URLs (limit to first 10)
+            const imgMatches = html.match(/<img[^>]*src=["']([^"']*)["'][^>]*>/gi) || [];
+            const imageCandidates: string[] = [];
+            for (const imgTag of imgMatches.slice(0, 10)) { // Limit to first 10
+                const srcMatch = imgTag.match(/src=["']([^"']*)["']/);
+                if (srcMatch) {
+                    try {
+                        const imgUrl = new URL(srcMatch[1], response.url).href;
+                        if (!imgUrl.toLowerCase().includes('.svg') && !imgUrl.toLowerCase().includes('.ico')) {
+                            imageCandidates.push(imgUrl);
+                        }
+                    } catch {
+                        // Skip invalid URLs
+                    }
+                }
+            }
+
+            // Fetch image details with timeout and concurrency limit
+            const imageDetails = await Promise.allSettled(
+                imageCandidates.map(async (url) => {
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+                        const headRes = await fetch(url, { method: 'HEAD', signal: controller.signal });
+                        clearTimeout(timeoutId);
+                        const contentType = headRes.headers.get('content-type') || '';
+                        const contentLength = parseInt(headRes.headers.get('content-length') || '0');
+                        if (contentType.startsWith('image/') && contentLength > 1000) { // Filter small or non-images
+                            return { url, size: contentLength };
+                        }
+                    } catch {
+                        // Ignore errors
+                    }
+                    return null;
+                })
+            ).then(results => results.map(r => r.status === 'fulfilled' ? r.value : null));
+
+            const validImages = imageDetails.filter(Boolean).sort((a, b) => (b?.size || 0) - (a?.size || 0));
+            const refImageUrls = validImages.slice(0, 5).map(img => img!.url);
+
+            newCardsRaw.push({
+                title: `resource: "${scrapedTitle}"`,
+                url: response.url,
+                iconUrl,
+                exclude: false,
+                ...(firstHeading && { details: [firstHeading] }),
+                ...(refImageUrls.length > 0 && { refImageUrls }),
+            });
+        } catch (err) {
+            console.error(`Error processing ${uri}:`, err);
+            // Create card without images on error
+            newCardsRaw.push({
+                title: `resource: "${chunk.web.title}"`,
+                url: uri,
+                exclude: false,
+            });
+        }
     }
 
     // Write new cards to DB

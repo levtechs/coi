@@ -2,7 +2,7 @@ import { useState } from "react";
 import Button from "@/app/components/button";
 import { Project } from "@/lib/types";
 import { createInvitation } from "@/app/views/invite";
-import { FiLink, FiCheck } from "react-icons/fi";
+import { FiLink } from "react-icons/fi";
 
 type InvitePanelProps = {
     project: Project;

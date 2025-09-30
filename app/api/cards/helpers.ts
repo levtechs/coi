@@ -7,7 +7,7 @@ import {
     getDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Project, Card } from "@/lib/types";
+import { Card } from "@/lib/types";
 
 /**
  * Recursively searches a nested object for "card" objects, which are

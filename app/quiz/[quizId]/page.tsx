@@ -21,7 +21,7 @@ const QuizPage = () => {
 
         async function fetchQuiz() {
             try {
-                const fetchedQuiz = await getQuiz(quizId);
+                const fetchedQuiz = await getQuiz(quizId as string);
                 setQuiz(fetchedQuiz);
                 setLoading(false);
             } catch (err) {
