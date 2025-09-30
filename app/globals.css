@@ -3,15 +3,15 @@
 /* Base variables (Light mode by default) */
 :root {
   /* Background & Text */
-  --background: #ffffff;
+  --background: #f3f1ea;
   --foreground: #171717;
 
   /* Neutral palette */
-  --neutral-50: #fafafa;
-  --neutral-100: #f5f5f5;
-  --neutral-200: #e5e5e5;
-  --neutral-300: #d4d4d4;
-  --neutral-400: #a3a3a3;
+  --neutral-50: #f3f2e9;
+  --neutral-100: #eeede9;
+  --neutral-200: #e0e0db;
+  --neutral-300: #c7c6be;
+  --neutral-400: #a7a89a;
   --neutral-500: #737373;
   --neutral-600: #525252;
   --neutral-700: #404040;
@@ -67,7 +67,7 @@
     --neutral-600: #a3a3a3;
     --neutral-700: #d4d4d4;
     --neutral-800: #e5e5e5;
-    --neutral-900: #fafafa;
+    --neutral-900: #fafafaff;
 
     /* Accent (Green) adjusted slightly for contrast */
     --accent-50: #052e16;
