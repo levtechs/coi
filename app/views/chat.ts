@@ -44,49 +44,103 @@ export async function streamChat(
 
     while (true) {
         const { value, done } = await reader.read();
-        if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
+        if (value) {
+            buffer += decoder.decode(value, { stream: true });
+        }
 
-        // Process complete lines
-        let newlineIndex;
-        while ((newlineIndex = buffer.indexOf("\n")) >= 0) {
-            const line = buffer.slice(0, newlineIndex).trim();
-            buffer = buffer.slice(newlineIndex + 1);
+        // If stream ended, flush any remaining bytes from the decoder
+        if (done) {
+            buffer += decoder.decode();
+        }
 
-            if (!line) continue;
+        let pos = 0; // position cursor while scanning buffer for complete updates
 
-            // Try to parse JSON control message
+        while (true) {
+            const updateStart = buffer.indexOf("\u001F", pos);
+            if (updateStart === -1) break;
+
+            // emit any tokens before the update marker
+            if (updateStart > pos) {
+                const token = buffer.slice(pos, updateStart);
+                if (token.length > 0) onToken(token);
+                // IMPORTANT: advance pos to the start of the update so we don't resend that token later
+                pos = updateStart;
+            }
+
+            const updateEnd = buffer.indexOf("\u001E", pos);
+            if (updateEnd === -1) {
+                // incomplete update; keep the buffer from 'pos' (which currently points at the start marker)
+                break;
+            }
+
+            const jsonStr = buffer.slice(pos + 1, updateEnd); // exclude marker chars
+            pos = updateEnd + 1; // advance past this complete update
+
             try {
-                const obj = JSON.parse(line);
+                const obj = JSON.parse(jsonStr);
 
-                if (obj.type === "final") {
-                    return {
-                        responseMessage: obj.responseMessage,
-                        groundingChunks: obj.groundingChunks,
-                        newHierarchy: obj.newHierarchy ?? null,
-                        allCards: obj.allCards ?? null,
-                    };
-                }
-
-                if (obj.type === "update") {
-                    if (obj.responseMessage) setFinalResponseMessage({content: obj.responseMessage, isResponse: true, attachments: obj.groundingChunks} as Message);
-                    if (obj.newCards) setNewCards(JSON.parse(obj.newCards) as Card[]); 
-                    continue;
-                }
-
+                // phase message (old protocol sent { phase: ... })
                 if (obj.phase) {
                     setPhase(obj.phase);
                     continue;
                 }
 
-                // If it was valid JSON but doesn’t match above, ignore or log
-                continue;
-            } catch {
-                // Not JSON → treat as streamed text token
-                onToken(line);
+                if (obj.type === "update") {
+                    if (obj.responseMessage) {
+                        setFinalResponseMessage({
+                            content: obj.responseMessage,
+                            isResponse: true,
+                            attachments: obj.groundingChunks ?? null,
+                        } as Message);
+                    }
+                    if (obj.newCards) {
+                        setNewCards(JSON.parse(obj.newCards) as Card[]);
+                    }
+                    continue;
+                }
+
+                if (obj.type === "final") {
+                    // flush any tokens that appear after the final marker in the current buffer
+                    if (pos < buffer.length) {
+                        const trailing = buffer.slice(pos);
+                        if (trailing.length > 0) onToken(trailing);
+                    }
+
+                    return {
+                        responseMessage: obj.responseMessage,
+                        groundingChunks: obj.groundingChunks ?? [],
+                        newHierarchy: obj.newHierarchy ?? null,
+                        allCards: obj.allCards ?? null,
+                    };
+                }
+            } catch (err) {
+                console.warn("Failed to parse JSON update:", jsonStr, err);
+                // ignore and continue scanning
+            }
+        } // end inner loop scanning for updates
+
+        // If we processed something (pos > 0), drop processed prefix from buffer.
+        // Otherwise (pos === 0) there were no complete updates; emit the whole buffer as a token
+        // and clear it (this handles pure-token chunks with no interleaved JSON).
+        if (pos > 0) {
+            buffer = buffer.slice(pos);
+        } else {
+            // no update markers processed this iteration -> emit buffer as streaming text
+            if (buffer.length > 0 && !done) {
+                onToken(buffer);
+                buffer = "";
+            } else if (done) {
+                // final flush: if buffer still contains text after done and no final message was found,
+                // send it as tokens (the backend should have sent a final object, but be resilient)
+                if (buffer.length > 0) {
+                    onToken(buffer);
+                    buffer = "";
+                }
             }
         }
+
+        if (done) break;
     }
 
     throw new Error("No final response received from stream");
