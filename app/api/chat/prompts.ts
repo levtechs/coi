@@ -21,17 +21,8 @@ You may or may not be provided:
 - A hierarchy of note cards
 - chat attachments
 
-Your response will be a JSON of the form: { "responseMessage": string, "hasNewInfo": boolean } with exactly these two parts.
+Your response will be plain text. If the response contains new information (more on this below), append ' [HAS_NEW_INFO]' at the end.
 `
-
-const searchChunk = `
-You will have access to search the web using the Google Search tool. 
-Use search when you need new information, specifically:
-- The information is outside of your training period, is recent 
-- The information is niche and you don't know much about it 
-- You are looking for additional resources for the user 
-- The user is directly asking you to search
-` 
 
 const userPasteChunk = `
 The user may paste in text from a book or article, or a list of terms or information. 
@@ -64,18 +55,18 @@ const markdownChunk = `
 - Use standard markdown formatting.
 - Use LaTex when nessesary, for math or other techincal topics`
 
-const jsonChunk = `
-Always respond with valid JSON. 
-- Escape all quotes in string values as \\"
-- Escape all backslashes as \\
-- Use valid Unicode escapes (\\uXXXX) for special characters
-- Do not include raw newlines in string values, use \\n
+const searchChunk = `
+You have access to the Google Search tool for finding new information.
 
-Return the entire new JSON.
-Output strictly in JSON format
-- Do not include any extra text outside the JSON. 
-- It should be valid and parasble JSON. see the example output for formatting.
-`
+Search when: 
+- The user instructs you to do sources
+- The user's querey requires up to date information 
+- The user's querey is about a niche topic that requires additional information
+
+The top 5 resources that result in the search will be automatically given to the user. Because of this:
+- Search for reliable sources
+- Search for useful resources for learning (ie youtube)
+` 
 
 // ==== Full prompts with new hierarchy examples ====
 
@@ -96,7 +87,7 @@ ${chatAttachmentsChunk}
 In the responseMessage
 ${markdownChunk}
 
-${jsonChunk}
+${searchChunk}
 
 EXAMPLE INPUT 1:
 
@@ -132,10 +123,7 @@ EXAMPLE CONTEXT INPUT (from getStringFromHierarchyAndCards):
 
 EXAMPLE CORRESPONDING OUTPUT 1:
 
-{
-  "responseMessage": "Sure! A neuron is a specialized cell in the nervous system. It has dendrites to receive signals, a soma (cell body) for processing, and an axon to transmit signals. Action potentials are rapid electrical signals that travel along the axon, enabling communication between neurons.",
-  "hasNewInfo": true
-}
+Sure! A neuron is a specialized cell in the nervous system. It has dendrites to receive signals, a soma (cell body) for processing, and an axon to transmit signals. Action potentials are rapid electrical signals that travel along the axon, enabling communication between neurons. [HAS_NEW_INFO]
 
 EXAMPLE INPUT 2:
 
@@ -149,12 +137,23 @@ EXAMPLE INPUT 2:
 
 EXAMPLE CORRESPONDING OUTPUT 2:
 
-{
-  "responseMessage": "You're welcome! If you want, I can also explain how neurons form networks and process complex information.",
-  "hasNewInfo": false
-}
+You're welcome! If you want, I can also explain how neurons form networks and process complex information.
 `   }]
 };
+
+
+const jsonChunk = `
+Always respond with valid JSON. 
+- Escape all quotes in string values as \\"
+- Escape all backslashes as \\
+- Use valid Unicode escapes (\\uXXXX) for special characters
+- Do not include raw newlines in string values, use \\n
+
+Return the entire new JSON.
+Output strictly in JSON format
+- Do not include any extra text outside the JSON. 
+- It should be valid and parasble JSON. see the example output for formatting.
+`
 
 export const generateCardsSystemInstruction = {
     parts: [{ text: `

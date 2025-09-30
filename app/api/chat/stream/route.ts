@@ -4,12 +4,9 @@ import {
     writeChatPairToDb,
     getPreviousHierarchy,
     generateAndWriteNewCards,
+    groundingChunksToCardsAndWrite,
     generateNewHierarchyFromCards,
     writeHierarchy,
-    //  === \/ below is depricated \/ 
-    writeNewContentToDb,
-    getPreviousContent,
-    getUpdatedContent,
 } from "../helpers";
 import { streamChatResponse } from "./helpers";
 import { fetchCardsFromProject } from "@/app/api/cards/helpers";
@@ -37,7 +34,6 @@ export async function POST(req: NextRequest) {
         const previousCards: Card[] = await fetchCardsFromProject(projectId);
         const effectivePreviousCards = previousCards.filter((card: Card) => !card.exclude); // cards that are not excluded
 
-
         const encoder = new TextEncoder();
 
         const stream = new ReadableStream({
@@ -59,59 +55,65 @@ export async function POST(req: NextRequest) {
                         );
                     };
                     
-                     updatePhase("starting");
+                    updatePhase("starting");
 
-                     const result = await streamChatResponse(
-                         message,
-                         messageHistory,
-                         effectivePreviousCards,
-                         previousContentHierarchy,
-                         attachments,
-                          (token: string) => {
-                             if (phase === "starting") updatePhase("streaming");
+                    const result = await streamChatResponse(
+                        message,
+                        messageHistory,
+                        effectivePreviousCards,
+                        previousContentHierarchy,
+                        attachments,
+                        (token: string) => {
+                            if (phase === "starting") updatePhase("streaming");
 
-                             // Skip JSON tokens
-                             if (token.trim().startsWith('{')) return;
+                            // Skip JSON tokens
+                            if (token.trim().startsWith('{')) return;
 
-                              // Since the response may be plain text, send tokens directly
-                              controller.enqueue(encoder.encode(token + "\n"));
-                         }
-                     );
-                     controller.enqueue(encoder.encode("\n")); // phase 2
+                            // Since the response may be plain text, send tokens directly
+                            controller.enqueue(encoder.encode(token + "\n"));
+                        }
+                    );
+                    controller.enqueue(encoder.encode("\n")); // phase 2
 
-                     updatePhase("processing"); // phase 2
+                    updatePhase("processing"); // phase 2
 
-                      const { responseMessage, hasNewInfo, groundingChunks } = result!;
+                    const { responseMessage, hasNewInfo, groundingChunks } = result!;
 
-                      let finalResponseMessage = responseMessage;
-                      // Remove citation markers
-                      finalResponseMessage = finalResponseMessage.replace(/\[cite:[^\]]*\]/g, '');
+                    let finalResponseMessage = responseMessage;
+                    // Remove citation markers
+                    finalResponseMessage = finalResponseMessage.replace(/\[cite:[^\]]*\]/g, '');
 
-                     //controller.enqueue(encoder.encode(JSON.stringify({ type: "update", responseMessage }) + "\n"));
-                      sendUpdate("responseMessage", finalResponseMessage, groundingChunks);
+                    //controller.enqueue(encoder.encode(JSON.stringify({ type: "update", responseMessage }) + "\n"));
+                    sendUpdate("responseMessage", finalResponseMessage, groundingChunks);
 
-                      // Save the chat pair
-                      await writeChatPairToDb(message, attachments, finalResponseMessage, projectId, uid, groundingChunks);
+                    // Save the chat pair
+                    await writeChatPairToDb(message, attachments, finalResponseMessage, projectId, uid, groundingChunks);
 
-                     // Generate/update content only if needed
-                     let finalObj: {
-                         type: "final";
-                         responseMessage: string;
-                         groundingChunks: GroundingChunk[];
-                         newHierarchy: ContentHierarchy | null;
-                         allCards: Card[] | null;
-                     } = {
-                         type: "final",
-                         responseMessage: finalResponseMessage,
-                         groundingChunks,
-                         newHierarchy: null,
-                         allCards: null
-                     };
+                    // Generate/update content only if needed
+                    let finalObj: {
+                        type: "final";
+                        responseMessage: string;
+                        groundingChunks: GroundingChunk[];
+                        newHierarchy: ContentHierarchy | null;
+                        allCards: Card[] | null;
+                    } = {
+                        type: "final",
+                        responseMessage: finalResponseMessage,
+                        groundingChunks,
+                        newHierarchy: null,
+                        allCards: null
+                    };
 
                     if (hasNewInfo) {
                         updatePhase("generating cards"); // phase 3
 
-                        const newCards: Card[] = await generateAndWriteNewCards(projectId, effectivePreviousCards, message, responseMessage);
+                        const [cardsFromChat, cardsFromGrounding] = await Promise.all([
+                            generateAndWriteNewCards(projectId, effectivePreviousCards, message, responseMessage),
+                            groundingChunksToCardsAndWrite(projectId, previousCards, groundingChunks),
+                        ]);
+
+                        const newCards = [...cardsFromChat, ...cardsFromGrounding];
+
                         const allCards = (previousCards ? [...previousCards, ...newCards] : newCards);
 
                         sendUpdate("newCards", JSON.stringify(newCards));

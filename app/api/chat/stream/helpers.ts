@@ -17,14 +17,12 @@ import {
     llmModel,
 } from "@/app/api/gemini/config";
 import {
-    chatResponseSystemInstruction, 
-    //  === \/ below is depricated \/ 
-    firstChatResponseSystemInstruction, 
+    chatResponseSystemInstruction,
 } from "../prompts"
 
 /**
  * Streams a Gemini chat response. Calls onToken(token) for each text chunk received.
- * Returns parsed final JSON (responseMessage, hasNewInfo) once streaming completes.
+ * Returns the response message with hasNewInfo detected from the token.
  */
 export async function streamChatResponse(
     message: string,
@@ -103,46 +101,17 @@ export async function streamChatResponse(
             }
         }
 
-        // when stream completes, accumulated may contain plain text followed by JSON
-        let parsed;
-        let jsonText = accumulated.trim();
-
-        // Try to extract JSON from the end
-        const jsonStart = jsonText.lastIndexOf('{');
-        if (jsonStart !== -1) {
-            const potentialJson = jsonText.substring(jsonStart);
-            try {
-                parsed = JSON.parse(potentialJson);
-                // If successful, the plain text before is the response only if JSON doesn't have responseMessage
-                const plainText = jsonText.substring(0, jsonStart).trim();
-                if (plainText && !parsed.responseMessage) {
-                    parsed.responseMessage = plainText;
-                }
-            } catch (err) {
-                // Not valid JSON at end
-            }
-        }
-
-        if (!parsed) {
-            // Check for markdown
-            if (jsonText.startsWith('```json') && jsonText.endsWith('```')) {
-                jsonText = jsonText.slice(7, -3).trim();
-                try {
-                    parsed = JSON.parse(jsonText);
-                } catch (err) {
-                    // Ignore
-                }
-            }
-        }
-
-        if (!parsed) {
-            // Fallback to plain text
-            parsed = { responseMessage: jsonText, hasNewInfo: groundingChunks.length > 0 };
+        // Detect hasNewInfo from token
+        let hasNewInfo = false;
+        let responseMessage = accumulated.trim();
+        if (responseMessage.endsWith(" [HAS_NEW_INFO]")) {
+            hasNewInfo = true;
+            responseMessage = responseMessage.slice(0, -16).trim();
         }
 
         return {
-            responseMessage: parsed.responseMessage,
-            hasNewInfo: parsed.hasNewInfo || false,
+            responseMessage,
+            hasNewInfo,
             groundingChunks,
         };
     } catch (err) {

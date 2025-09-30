@@ -37,12 +37,12 @@ export const sendMessage = async (
             updatePhase(phase);
         }
 
-        const finalData = await streamChat(
-            userInput, 
-            recentMessages, 
+        await streamChat(
+            userInput,
+            recentMessages,
             attatchments,
-            project.id, 
-            setPhase, 
+            project.id,
+            setPhase,
             (finalMessage: Message) => addMessage({...finalMessage, id: crypto.randomUUID()}),
             (newCards: Card[]) => setNewCards(newCards),
             (token) => {

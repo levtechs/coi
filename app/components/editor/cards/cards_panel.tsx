@@ -2,9 +2,9 @@
 
 import React, { useState } from "react";
 
-import { Card, PostCardPayload, Project } from "@/lib/types";
+import { Card, Project } from "@/lib/types";
 
-import { postCard, getCards } from "@/app/views/cards";
+import { postCard } from "@/app/views/cards";
 
 import DetailCard from "./detail_card";
 import NewCardPopup from "./new_card_popup";

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-import { FiCheck } from "react-icons/fi";
+
 
 import { useAuth } from "@/lib/AuthContext";
 
@@ -28,7 +28,7 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
     const [cards, setCards] = useState<Card[]>();
     const [clickedCard, setClickedCard] = useState<Card | null>(null);
 
-    const [useFR, setUseFR] = useState(false)
+
 
     const router = useRouter();
 
