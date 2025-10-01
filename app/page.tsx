@@ -14,10 +14,12 @@ const LandingPage = () => {
 
     const landingPageRef = useRef<HTMLDivElement>(null);
     const walkthroughRef = useRef<HTMLDivElement>(null);
+    const footerRef = useRef<HTMLDivElement>(null);
     const isScrolling = useRef(false);
 
     const [isDark, setIsDark] = useState(false);
     const [showButtons, setShowButtons] = useState(false);
+    const [isFooterIntersecting, setIsFooterIntersecting] = useState(false);
 
     useEffect(() => {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -36,6 +38,19 @@ const LandingPage = () => {
         );
         if (walkthroughRef.current) {
             observer.observe(walkthroughRef.current);
+        }
+        return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                setIsFooterIntersecting(entry.isIntersecting);
+            },
+            { threshold: 0 }
+        );
+        if (footerRef.current) {
+            observer.observe(footerRef.current);
         }
         return () => observer.disconnect();
     }, []);
@@ -118,21 +133,20 @@ const LandingPage = () => {
                 className="flex flex-col items-center bg-[var(--neutral-200)] text-[var(--foreground)] p-6 min-h-screen relative"
             >
                 <WalkthroughComponent themeFolder={themeFolder} />
+                {showButtons && (
+                    <div className={`${isFooterIntersecting ? "absolute bottom-4" : "fixed bottom-4"} left-1/2 transform -translate-x-1/2 flex gap-4 z-10`}>
+                        <Button color="var(--neutral-500)" onClick={() => router.push("/dashboard")} className="px-6 py-3 text-lg">
+                            Go to Dashboard
+                        </Button>
+                        <Button color="var(--accent-500)" onClick={() => router.push("/login?signup=true")} className="px-6 py-3 text-lg">
+                            Get Started
+                        </Button>
+                    </div>
+                )}
             </div>
 
-            {showButtons && (
-                <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4 z-10">
-                    <Button color="var(--neutral-500)" onClick={() => router.push("/dashboard")} className="px-6 py-3 text-lg">
-                        Go to Dashboard
-                    </Button>
-                    <Button color="var(--accent-500)" onClick={() => router.push("/login?signup=true")} className="px-6 py-3 text-lg">
-                        Get Started
-                    </Button>
-                </div>
-            )}
-
             {/* Footer */}
-            <Footer />
+            <Footer ref={footerRef} />
         </div>
     );
 };
@@ -278,9 +292,9 @@ const WalkthroughComponent = ({ themeFolder }: { themeFolder: string }) => {
     );
 };
 
-const Footer = () => {
+const Footer = React.forwardRef<HTMLDivElement>((props, ref) => {
     return (
-        <footer className="bg-[var(--neutral-100)] text-[var(--foreground)] p-6 w-full">
+        <footer ref={ref} className="bg-[var(--neutral-100)] text-[var(--foreground)] p-6 w-full">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-center">
                 <div className="text-left">
                     <p className="text-lg text-[var(--neutral-500)] mb-4">
@@ -350,4 +364,6 @@ const Footer = () => {
             </div>
         </footer>
     );
-};
+});
+
+Footer.displayName = 'Footer';
