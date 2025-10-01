@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 import { FaXTwitter } from "react-icons/fa6";
@@ -20,6 +20,9 @@ const LandingPage = () => {
     const [isDark, setIsDark] = useState(false);
     const [showButtons, setShowButtons] = useState(false);
     const [isFooterIntersecting, setIsFooterIntersecting] = useState(false);
+    const [animationsEnabled, setAnimationsEnabled] = useState(true);
+    const [isMobile, setIsMobile] = useState(false);
+    const [reducedMotion, setReducedMotion] = useState(false);
 
     useEffect(() => {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -27,6 +30,23 @@ const LandingPage = () => {
         const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
         mediaQuery.addEventListener('change', handler);
         return () => mediaQuery.removeEventListener('change', handler);
+    }, []);
+
+    useEffect(() => {
+        const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const mobileQuery = window.matchMedia('(max-width: 768px)');
+        const updateSettings = () => {
+            setAnimationsEnabled(!reducedMotionQuery.matches && !mobileQuery.matches);
+            setIsMobile(mobileQuery.matches);
+            setReducedMotion(reducedMotionQuery.matches);
+        };
+        updateSettings();
+        reducedMotionQuery.addEventListener('change', updateSettings);
+        mobileQuery.addEventListener('change', updateSettings);
+        return () => {
+            reducedMotionQuery.removeEventListener('change', updateSettings);
+            mobileQuery.removeEventListener('change', updateSettings);
+        };
     }, []);
 
     useEffect(() => {
@@ -56,7 +76,11 @@ const LandingPage = () => {
     }, []);
 
     // This function handles the scroll snapping
-    const handleScroll = (e: WheelEvent) => {
+    const handleScroll = useCallback((e: WheelEvent) => {
+        // Skip scroll snapping on mobile
+        if (isMobile) {
+            return;
+        }
         // Prevent multiple scroll events from firing at once
         if (isScrolling.current) {
             return;
@@ -69,29 +93,29 @@ const LandingPage = () => {
         if (e.deltaY > 0) { // Scrolling down
             // If at the top section, scroll to the walkthrough section
             if (currentScrollY < (walkthroughRef.current?.offsetTop || Infinity)) {
-                walkthroughRef.current?.scrollIntoView({ behavior: 'smooth' });
+                walkthroughRef.current?.scrollIntoView({ behavior: animationsEnabled ? 'smooth' : 'auto' });
             }
         } else { // Scrolling up
             // If at the top of the walkthrough section, scroll back to the landing page
             if (currentScrollY <= (walkthroughRef.current?.offsetTop || 0)) {
-                landingPageRef.current?.scrollIntoView({ behavior: 'smooth' });
+                landingPageRef.current?.scrollIntoView({ behavior: animationsEnabled ? 'smooth' : 'auto' });
             }
         }
-        
+
         // Reset the scrolling flag after a brief delay
         setTimeout(() => {
             isScrolling.current = false;
         }, 1000);
-    };
+    }, [animationsEnabled, isMobile]);
 
     // Attach and clean up the scroll listener
     useEffect(() => {
         window.addEventListener('wheel', handleScroll);
         return () => window.removeEventListener('wheel', handleScroll);
-    }, []);
+    }, [handleScroll]);
 
     const scrollToWalkthrough = () => {
-        walkthroughRef.current?.scrollIntoView({ behavior: 'smooth' });
+        walkthroughRef.current?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
     };
 
     const themeFolder = isDark ? 'dark' : 'light';
@@ -101,7 +125,7 @@ const LandingPage = () => {
             {/* Hero Section */}
             <div
                 ref={landingPageRef}
-                className="flex flex-col items-center justify-center min-h-screen bg-[var(--neutral-100)] text-[var(--foreground)] p-6 gap-6 transition-all duration-500"
+                className={`flex flex-col items-center justify-center min-h-screen bg-[var(--neutral-100)] text-[var(--foreground)] p-6 gap-6 ${animationsEnabled ? 'transition-all duration-500' : ''}`}
             >
                 <Image src="/logo.png" alt="Coi Logo" width={150} height={150} className="w-64 h-64" />
                 <h1 className="text-4xl font-bold flex items-center gap-2">
@@ -110,16 +134,16 @@ const LandingPage = () => {
                 <p className="text-center text-lg max-w-xl">
                     Welcome to Coi! Learn, create, and collaborate on projects seamlessly with our interactive platform.
                 </p>
-                <div className="flex gap-4 mt-4">
-                    <Button color="var(--neutral-500)" onClick={() => router.push("/dashboard")} className="px-6 py-3 text-lg">
-                        Go to Dashboard
-                    </Button>
-                    <Button color="var(--accent-500)" onClick={() => router.push("/login?signup=true")} className="px-6 py-3 text-lg">
-                        Get Started
-                    </Button>
-                </div>
+                 <div className="flex gap-4 mt-4">
+                     <Button color="var(--neutral-500)" onClick={() => router.push("/dashboard")} className="flex-1 md:flex-none px-0 py-2 md:px-6 md:py-3 text-base md:text-lg">
+                         Go to Dashboard
+                     </Button>
+                     <Button color="var(--accent-500)" onClick={() => router.push("/login?signup=true")} className="flex-1 md:flex-none px-0 py-2 md:px-6 md:py-3 text-base md:text-lg">
+                         Get Started
+                     </Button>
+                 </div>
                 <button className="flex flex-col items-center mt-8">
-                    <div className="text-sm font-semibold text-[var(--neutral-600)] animate-bounce flex items-center gap-1" onClick={scrollToWalkthrough}>
+                    <div className={`text-sm font-semibold text-[var(--neutral-600)] ${animationsEnabled ? 'animate-bounce' : ''} flex items-center gap-1`} onClick={scrollToWalkthrough}>
                         <FiChevronDown size={20} />
                         scroll for details
                         <FiChevronDown size={20} />
@@ -132,17 +156,17 @@ const LandingPage = () => {
                 ref={walkthroughRef}
                 className="flex flex-col items-center bg-[var(--neutral-200)] text-[var(--foreground)] p-6 min-h-screen relative"
             >
-                <WalkthroughComponent themeFolder={themeFolder} />
-                {showButtons && (
-                    <div className={`${isFooterIntersecting ? "absolute bottom-4" : "fixed bottom-4"} left-1/2 transform -translate-x-1/2 flex gap-4 z-10`}>
-                        <Button color="var(--neutral-500)" onClick={() => router.push("/dashboard")} className="px-6 py-3 text-lg">
-                            Go to Dashboard
-                        </Button>
-                        <Button color="var(--accent-500)" onClick={() => router.push("/login?signup=true")} className="px-6 py-3 text-lg">
-                            Get Started
-                        </Button>
-                    </div>
-                )}
+                <WalkthroughComponent themeFolder={themeFolder} animationsEnabled={animationsEnabled} />
+                 {showButtons && (
+                     <div className={`${isFooterIntersecting ? "absolute" : "fixed"} bottom-0 left-0 right-0 p-6 md:bottom-4 md:left-1/2 md:transform md:-translate-x-1/2 flex gap-4 z-10`}>
+                         <Button color="var(--neutral-500)" onClick={() => router.push("/dashboard")} className="flex-1 md:flex-none px-0 py-2 md:px-6 md:py-3 text-base md:text-lg">
+                             Go to Dashboard
+                         </Button>
+                         <Button color="var(--accent-500)" onClick={() => router.push("/login?signup=true")} className="flex-1 md:flex-none px-0 py-2 md:px-6 md:py-3 text-base md:text-lg">
+                             Get Started
+                         </Button>
+                     </div>
+                 )}
             </div>
 
             {/* Footer */}
@@ -153,7 +177,7 @@ const LandingPage = () => {
 
 export default LandingPage;
 
-const WalkthroughComponent = ({ themeFolder }: { themeFolder: string }) => {
+const WalkthroughComponent = ({ themeFolder, animationsEnabled }: { themeFolder: string, animationsEnabled: boolean }) => {
     const [visibleSections, setVisibleSections] = useState<Set<number>>(new Set());
 
     useEffect(() => {
@@ -180,8 +204,8 @@ const WalkthroughComponent = ({ themeFolder }: { themeFolder: string }) => {
             {/* Dashboard Section */}
             <div
                 data-index={0}
-                className={`flex items-center justify-center gap-8 py-8 transition-all duration-1000 ${
-                    visibleSections.has(0) ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full'
+                className={`flex items-center justify-center gap-8 py-8 ${animationsEnabled ? 'transition-all duration-1000' : ''} ${
+                    animationsEnabled ? (visibleSections.has(0) ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full') : 'opacity-100 translate-x-0'
                 }`}
             >
                 <div className="flex-1 text-right">
@@ -201,8 +225,8 @@ const WalkthroughComponent = ({ themeFolder }: { themeFolder: string }) => {
             {/* Chat Section */}
             <div
                 data-index={1}
-                className={`flex items-center justify-center gap-8 py-8 -mt-16 transition-all duration-1000 ${
-                    visibleSections.has(1) ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full'
+                className={`flex items-center justify-center gap-8 py-8 -mt-16 ${animationsEnabled ? 'transition-all duration-1000' : ''} ${
+                    animationsEnabled ? (visibleSections.has(1) ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full') : 'opacity-100 translate-x-0'
                 }`}
             >
                 <div className="relative">
@@ -222,8 +246,8 @@ const WalkthroughComponent = ({ themeFolder }: { themeFolder: string }) => {
             {/* Notes Section */}
             <div
                 data-index={2}
-                className={`flex items-center justify-center gap-8 py-8 -mt-16 transition-all duration-1000 ${
-                    visibleSections.has(2) ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full'
+                className={`flex items-center justify-center gap-8 py-8 -mt-16 ${animationsEnabled ? 'transition-all duration-1000' : ''} ${
+                    animationsEnabled ? (visibleSections.has(2) ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full') : 'opacity-100 translate-x-0'
                 }`}
             >
                 <div className="flex-1 text-right">
@@ -243,8 +267,8 @@ const WalkthroughComponent = ({ themeFolder }: { themeFolder: string }) => {
             {/* Cards Section */}
             <div
                 data-index={3}
-                className={`flex items-center justify-center gap-8 py-8 -mt-16 transition-all duration-1000 ${
-                    visibleSections.has(3) ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full'
+                className={`flex items-center justify-center gap-8 py-8 -mt-16 ${animationsEnabled ? 'transition-all duration-1000' : ''} ${
+                    animationsEnabled ? (visibleSections.has(3) ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full') : 'opacity-100 translate-x-0'
                 }`}
             >
                 <div className="relative flex items-start">
@@ -271,8 +295,8 @@ const WalkthroughComponent = ({ themeFolder }: { themeFolder: string }) => {
             {/* Quiz Section */}
             <div
                 data-index={4}
-                className={`flex items-center justify-center gap-8 py-8 -mt-16 transition-all duration-1000 ${
-                    visibleSections.has(4) ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full'
+                className={`flex items-center justify-center gap-8 py-8 mb-8 -mt-16 ${animationsEnabled ? 'transition-all duration-1000' : ''} ${
+                    animationsEnabled ? (visibleSections.has(4) ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full') : 'opacity-100 translate-x-0'
                 }`}
             >
                 <div className="flex-1 text-right">
