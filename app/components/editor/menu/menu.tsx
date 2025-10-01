@@ -7,6 +7,7 @@ import { FiHome } from "react-icons/fi";
 import Button from "../../button";
 import CollaboratorsDropdown from "./collabs_dd";
 import ShareMenu from "./share";
+import ProjectDetailsPanel from "./project_details";
 import { ModalContents } from "../types";
 import { Project, Quiz } from "@/lib/types";
 import { getQuiz } from "@/app/views/quiz";
@@ -94,63 +95,8 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents} :
                         setModalContents({
                             isOpen: true,
                             type: "info",
-                            width: "lg",
-                            children: (
-                                <div className="mb-4">
-                                    <h1 className="text-3xl mb-8 font-bold underline">
-                                        Project details
-                                    </h1>
-                                    <h2 className="text-xl mb-2 font-bold">
-                                        Available quizes:
-                                    </h2>
-                                    <div className="text-md flex flex-col gap-1 mb-4">
-                                        {project.quizIds && project.quizIds.length > 0 ? (
-                                            <>
-                                                {quizzes ? (
-                                                    <>
-                                                        {quizzes.map((quiz: Quiz) => {
-                                                            if (!quiz.id) return (
-                                                                <p key={quiz.title}>
-                                                                    {quiz.title}
-                                                                </p>
-                                                            )
-                                                            return (
-                                                                <a key={quiz.id} className="underline" href={`/quiz/${quiz.id}`} target="_blank" rel="noopener noreferrer">
-                                                                    {quiz.title.length > 45 ? quiz.title.slice(0, 45) + "..." : quiz.title}
-                                                                </a>
-                                                            )
-                                                        })}
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                    {project.quizIds?.map((id: string) => {
-                                                        return (<a key={id} className="underline" href={`/quiz/${id}`} target="_blank" rel="noopener noreferrer">{id}</a>)
-                                                    })}
-                                                    </>
-                                                )}
-                                            </>
-                                        ) : (
-                                            <p className="italic">No quizzes found.</p>
-                                        )}
-                                    </div>
-                                    {project.collaborators.length > 0 && (
-                                        <>
-                                        <h2 className="text-xl mb-2 mt-2 font-bold">
-                                            Collaborators:
-                                        </h2>
-                                        <div className="text-md flex flex-col gap-1 mb-4">
-                                            {project.collaborators.map((email: string, index: number) => {
-                                                return (
-                                                    <a key={project.sharedWith[index]} className="underline" href={`/profile/user/${project.sharedWith[index]}`} target="_blank" rel="noopener noreferrer">
-                                                        {email}
-                                                    </a>
-                                                )
-                                            })}
-                                        </div>
-                                        </>
-                                    )}
-                                </div>
-                            )
+                            width: "3xl",
+                            children: <ProjectDetailsPanel project={project} quizzes={quizzes} />
                         })
                     }}
                 > 
