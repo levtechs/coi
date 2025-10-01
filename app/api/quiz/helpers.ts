@@ -3,7 +3,7 @@ import { collection, addDoc, doc, updateDoc, arrayUnion } from "firebase/firesto
 
 import { defaultGeneralConfig } from "../gemini/config";
 import { callGeminiApi } from "../gemini/helpers";
-import { createQuizFromCardsSystemInstruction } from "./config";
+import { createQuizFromCardsSystemInstruction } from "./prompts";
 
 import { Card } from "@/lib/types";
 
