@@ -15,7 +15,7 @@ export default function Button({ color, children, onClick, type = "button", clas
         <button
             type={type}
             onClick={onClick}
-            className={`rounded-md p-2 transition text-white hover:brightness-90 ${className}`}
+            className={`rounded-md p-2 transition text-white hover:brightness-90 whitespace-nowrap ${className}`}
             style={{
                 backgroundColor: color,
             }}
