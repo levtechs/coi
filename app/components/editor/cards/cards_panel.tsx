@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 
-import { Card, Project } from "@/lib/types";
+import { Card, Project, CardFilter } from "@/lib/types";
 
 import { postCard } from "@/app/views/cards";
 
@@ -13,9 +13,10 @@ type CardsPanelProps = {
     project: Project;
     onCardClick: (cardId: Card) => void;
     hidden: boolean;
+    cardFilters: CardFilter;
 };
 
-export default function CardsPanel({ project, onCardClick, hidden }: CardsPanelProps) {
+export default function CardsPanel({ project, onCardClick, hidden, cardFilters }: CardsPanelProps) {
     const [isNewCardPopupOpen, setNewCardPopupOpen] = useState(false);
 
     const onAddCard = async (title: string, details: string[], exclude: boolean) => {
@@ -32,9 +33,16 @@ export default function CardsPanel({ project, onCardClick, hidden }: CardsPanelP
         );
     }
 
+    const filteredCards = project.cards ? project.cards.filter(card => {
+        const isResource = !!card.url;
+        const hideKnowledge = cardFilters[0] === '0';
+        const hideResource = cardFilters[1] === '0';
+        return !((isResource && hideResource) || (!isResource && hideKnowledge));
+    }) : [];
+
     return (
         <div className={`${hidden ? 'hidden' : ''}`}>
-            {!project.cards || project.cards.length === 0 ? (
+            {filteredCards.length === 0 ? (
                 <>
                     {/* Create Project Card */}
                     <div
@@ -45,7 +53,7 @@ export default function CardsPanel({ project, onCardClick, hidden }: CardsPanelP
                         onClick={()=>{setNewCardPopupOpen(true)}}
                     >
                         <span className="text-[var(--accent-500)] font-semibold text-lg">+ Create Card</span>
-                    </div> 
+                    </div>
                     <div className="text-[var(--neutral-600)] font-bold font-md text-center p-8">
                         No cards found for this project
                         <p className="font-light font-sm">
@@ -66,7 +74,7 @@ export default function CardsPanel({ project, onCardClick, hidden }: CardsPanelP
                     >
                         <span className="text-[var(--accent-500)] font-semibold text-lg">+ Create Card</span>
                     </div>
-                    {project.cards.map((card) => (
+                    {filteredCards.map((card) => (
                         <DetailCard key={card.id} card={card} onClick={onCardClick} />
                     ))}
                 </div>
