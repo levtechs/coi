@@ -123,17 +123,20 @@ const LandingPage = () => {
             {/* Hero Section */}
             <div
                 ref={landingPageRef}
-                className={`flex flex-col items-center justify-center min-h-screen bg-[var(--neutral-100)] text-[var(--foreground)] p-6 gap-6 ${animationsEnabled ? 'transition-all duration-500' : ''}`}
+                className={`flex flex-col items-center justify-center min-h-screen bg-[var(--neutral-100)] text-[var(--foreground)] p-6 gap-3 ${animationsEnabled ? 'transition-all duration-500' : ''}`}
             >
                 <Image src="/logo.png" alt="Coi Logo" width={150} height={150} className="w-64 h-64" />
                 <h1 className="text-4xl font-bold flex items-center gap-2">
                     Learn with Coi
                 </h1>
-                <p className="text-center text-lg max-w-xl">
+                <p className="text-center text-lg max-w-xl mb-4">
                     Welcome to Coi! Learn, create, and collaborate on projects seamlessly with our interactive platform.
                 </p>
                 <Buttons />
-                <button className="flex flex-col items-center mt-8">
+                <p className="text-center text-xl font-bold max-w-xl text-[var(--accent-400)]" style={{ textShadow: '0 0 10px var(--accent-100)' }}>
+                    Right now, it&apos;s 100% FREE!
+                </p>
+                <button className="flex flex-col items-center mt-12">
                     <div className={`text-sm font-semibold text-[var(--neutral-600)] ${animationsEnabled ? 'animate-bounce' : ''} flex items-center gap-1`} onClick={scrollToWalkthrough}>
                         <FiChevronDown size={20} />
                         scroll for details
