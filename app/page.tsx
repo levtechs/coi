@@ -10,8 +10,6 @@ import Button from "./components/button";
 import Image from "next/image";
 
 const LandingPage = () => {
-    const router = useRouter();
-
     const landingPageRef = useRef<HTMLDivElement>(null);
     const walkthroughRef = useRef<HTMLDivElement>(null);
     const footerRef = useRef<HTMLDivElement>(null);
@@ -134,14 +132,7 @@ const LandingPage = () => {
                 <p className="text-center text-lg max-w-xl">
                     Welcome to Coi! Learn, create, and collaborate on projects seamlessly with our interactive platform.
                 </p>
-                 <div className="flex gap-4 mt-4">
-                     <Button color="var(--neutral-500)" onClick={() => router.push("/dashboard")} className="flex-1 md:flex-none px-0 py-2 md:px-6 md:py-3 text-base md:text-lg">
-                         Go to Dashboard
-                     </Button>
-                     <Button color="var(--accent-500)" onClick={() => router.push("/login?signup=true")} className="flex-1 md:flex-none px-0 py-2 md:px-6 md:py-3 text-base md:text-lg">
-                         Get Started
-                     </Button>
-                 </div>
+                <Buttons />
                 <button className="flex flex-col items-center mt-8">
                     <div className={`text-sm font-semibold text-[var(--neutral-600)] ${animationsEnabled ? 'animate-bounce' : ''} flex items-center gap-1`} onClick={scrollToWalkthrough}>
                         <FiChevronDown size={20} />
@@ -156,17 +147,10 @@ const LandingPage = () => {
                 ref={walkthroughRef}
                 className="flex flex-col items-center bg-[var(--neutral-200)] text-[var(--foreground)] p-6 min-h-screen relative"
             >
-                <WalkthroughComponent themeFolder={themeFolder} animationsEnabled={animationsEnabled} />
-                 {showButtons && (
-                     <div className={`${isFooterIntersecting ? "absolute" : "fixed"} bottom-0 left-0 right-0 p-6 md:bottom-4 md:left-1/2 md:transform md:-translate-x-1/2 flex gap-4 z-10`}>
-                         <Button color="var(--neutral-500)" onClick={() => router.push("/dashboard")} className="flex-1 md:flex-none px-0 py-2 md:px-6 md:py-3 text-base md:text-lg">
-                             Go to Dashboard
-                         </Button>
-                         <Button color="var(--accent-500)" onClick={() => router.push("/login?signup=true")} className="flex-1 md:flex-none px-0 py-2 md:px-6 md:py-3 text-base md:text-lg">
-                             Get Started
-                         </Button>
-                     </div>
-                 )}
+                <WalkthroughComponent themeFolder={themeFolder} animationsEnabled={animationsEnabled} isMobile={isMobile} />
+                <div className={`${isFooterIntersecting ? "absolute w-full" : "fixed w-screen"} bottom-0 pb-4 p-6 transition-all duration-500 ${showButtons ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-full pointer-events-none'}`}>
+                    <Buttons />
+                </div>
             </div>
 
             {/* Footer */}
@@ -177,7 +161,21 @@ const LandingPage = () => {
 
 export default LandingPage;
 
-const WalkthroughComponent = ({ themeFolder, animationsEnabled }: { themeFolder: string, animationsEnabled: boolean }) => {
+const Buttons = () => {
+    const router = useRouter();
+    return (
+        <div className="w-full md:w-64 justify-center flex gap-4 mt-4 mx-auto">
+            <Button color="var(--neutral-500)" onClick={() => router.push("/dashboard")} className="flex-1 md:flex-none px-0 py-3 md:px-6 md:py-3 md:text-lg">
+                Go to Dashboard
+            </Button>
+            <Button color="var(--accent-500)" onClick={() => router.push("/login?signup=true")} className="flex-1 md:flex-none px-0 py-3 md:px-6 md:py-3 md:text-lg">
+                Get Started
+            </Button>
+        </div>
+    )
+}
+
+const WalkthroughComponent = ({ themeFolder, animationsEnabled, isMobile }: { themeFolder: string, animationsEnabled: boolean, isMobile: boolean }) => {
     const [visibleSections, setVisibleSections] = useState<Set<number>>(new Set());
 
     useEffect(() => {
@@ -204,114 +202,221 @@ const WalkthroughComponent = ({ themeFolder, animationsEnabled }: { themeFolder:
             {/* Dashboard Section */}
             <div
                 data-index={0}
-                className={`flex items-center justify-center gap-8 py-8 ${animationsEnabled ? 'transition-all duration-1000' : ''} ${
-                    animationsEnabled ? (visibleSections.has(0) ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full') : 'opacity-100 translate-x-0'
+                className={`flex ${isMobile ? 'flex-col' : 'items-center justify-center'} py-8 ${isMobile ? '' : '-mt-16'} ${animationsEnabled ? 'transition-all duration-1000' : ''} ${
+                    animationsEnabled ? (visibleSections.has(0) ? 'opacity-100 translate-x-0' : `opacity-0 ${isMobile ? '' : 'translate-x-full'}`) : 'opacity-100 translate-x-0'
                 }`}
             >
-                <div className="flex-1 text-right">
-                    <p className="text-xl">Create projects to learn independently or share with a study group</p>
-                </div>
-                <div className="relative">
-                    <Image
-                        src={`/demos/${themeFolder}/dashboard.png`}
-                        alt="Dashboard screenshot"
-                        width={500}
-                        height={375}
-                        className="rounded-lg shadow-lg hover:shadow-xl transition-shadow transform rotate-3"
-                    />
-                </div>
+                {isMobile ? (
+                    <>
+                        <div className="max-w-xs md:max-w-none mb-4 mx-auto">
+                            <Image
+                                src={`/demos/${themeFolder}/dashboard.png`}
+                                alt="Dashboard screenshot"
+                                width={500}
+                                height={375}
+                                className="rounded-lg shadow-lg hover:shadow-xl transition-shadow"
+                            />
+                        </div>
+                        <div className="text-center">
+                            <p className="text-md md:text-xl">Create projects to learn independently or share with a study group</p>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <div className="flex-1 text-right">
+                            <p className="text-md md:text-xl">Create projects to learn independently or share with a study group</p>
+                        </div>
+                        <div className="relative transform translate-x-1/4 md:transform-none max-w-xs md:max-w-none">
+                            <Image
+                                src={`/demos/${themeFolder}/dashboard.png`}
+                                alt="Dashboard screenshot"
+                                width={500}
+                                height={375}
+                                className="rounded-lg shadow-lg hover:shadow-xl transition-shadow transform rotate-3"
+                            />
+                        </div>
+                    </>
+                )}
             </div>
+            {isMobile && <hr className="w-full border-t border-[var(--neutral-300)] my-4" />}
 
             {/* Chat Section */}
             <div
                 data-index={1}
-                className={`flex items-center justify-center gap-8 py-8 -mt-16 ${animationsEnabled ? 'transition-all duration-1000' : ''} ${
-                    animationsEnabled ? (visibleSections.has(1) ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full') : 'opacity-100 translate-x-0'
+                className={`flex ${isMobile ? 'flex-col' : 'items-center justify-center'} py-8 ${isMobile ? '' : '-mt-16'} ${animationsEnabled ? 'transition-all duration-1000' : ''} ${
+                    animationsEnabled ? (visibleSections.has(1) ? 'opacity-100 translate-x-0' : `opacity-0 ${isMobile ? '' : '-translate-x-full'}`) : 'opacity-100 translate-x-0'
                 }`}
             >
-                <div className="relative">
-                    <Image
-                        src={`/demos/${themeFolder}/chat.png`}
-                        alt="Chat screenshot"
-                        width={500}
-                        height={375}
-                        className="rounded-lg shadow-lg hover:shadow-xl transition-shadow transform -rotate-3"
-                    />
-                </div>
-                <div className="flex-1 text-left">
-                    <p className="text-xl">Learn with an adaptive AI tutor</p>
-                </div>
+                {isMobile ? (
+                    <>
+                        <div className="max-w-xs md:max-w-none mb-4 mx-auto">
+                            <Image
+                                src={`/demos/${themeFolder}/chat.png`}
+                                alt="Chat screenshot"
+                                width={500}
+                                height={375}
+                                className="rounded-lg shadow-lg hover:shadow-xl transition-shadow"
+                            />
+                        </div>
+                        <div className="text-center">
+                            <p className="text-md md:text-xl">Learn with an adaptive AI tutor</p>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <div className="relative transform -translate-x-1/4 md:transform-none max-w-xs md:max-w-none">
+                            <Image
+                                src={`/demos/${themeFolder}/chat.png`}
+                                alt="Chat screenshot"
+                                width={500}
+                                height={375}
+                                className="rounded-lg shadow-lg hover:shadow-xl transition-shadow transform -rotate-3"
+                            />
+                        </div>
+                        <div className="flex-1 text-left min-w-xl">
+                            <p className="text-md md:text-xl">Learn with an adaptive AI tutor</p>
+                        </div>
+                    </>
+                )}
             </div>
+            {isMobile && <hr className="w-full border-t border-[var(--neutral-300)] my-4" />}
 
             {/* Notes Section */}
             <div
                 data-index={2}
-                className={`flex items-center justify-center gap-8 py-8 -mt-16 ${animationsEnabled ? 'transition-all duration-1000' : ''} ${
-                    animationsEnabled ? (visibleSections.has(2) ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full') : 'opacity-100 translate-x-0'
+                className={`flex ${isMobile ? 'flex-col' : 'items-center justify-center'} py-8 ${isMobile ? '' : '-mt-16'} ${animationsEnabled ? 'transition-all duration-1000' : ''} ${
+                    animationsEnabled ? (visibleSections.has(2) ? 'opacity-100 translate-x-0' : `opacity-0 ${isMobile ? '' : 'translate-x-full'}`) : 'opacity-100 translate-x-0'
                 }`}
             >
-                <div className="flex-1 text-right">
-                    <p className="text-xl">Organized hierarchy of notes curated for you and your study group as you learn</p>
-                </div>
-                <div className="relative">
-                    <Image
-                        src={`/demos/${themeFolder}/notes.png`}
-                        alt="Notes screenshot"
-                        width={500}
-                        height={375}
-                        className="rounded-lg shadow-lg hover:shadow-xl transition-shadow transform rotate-3"
-                    />
-                </div>
+                {isMobile ? (
+                    <>
+                        <div className="max-w-xs md:max-w-none mb-4 mx-auto">
+                            <Image
+                                src={`/demos/${themeFolder}/notes.png`}
+                                alt="Notes screenshot"
+                                width={500}
+                                height={375}
+                                className="rounded-lg shadow-lg hover:shadow-xl transition-shadow"
+                            />
+                        </div>
+                        <div className="text-center">
+                            <p className="text-md md:text-xl">Organized hierarchy of notes curated for you and your study group as you learn</p>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <div className="flex-1 text-right">
+                            <p className="text-md md:text-xl">Organized hierarchy of notes curated for you and your study group as you learn</p>
+                        </div>
+                        <div className="relative -transform translate-x-1/4 md:transform-none max-w-xs md:max-w-none">
+                            <Image
+                                src={`/demos/${themeFolder}/notes.png`}
+                                alt="Notes screenshot"
+                                width={500}
+                                height={375}
+                                className="rounded-lg shadow-lg hover:shadow-xl transition-shadow transform rotate-3"
+                            />
+                        </div>
+                    </>
+                )}
             </div>
+            {isMobile && <hr className="w-full border-t border-[var(--neutral-300)] my-4" />}
 
             {/* Cards Section */}
             <div
                 data-index={3}
-                className={`flex items-center justify-center gap-8 py-8 -mt-16 ${animationsEnabled ? 'transition-all duration-1000' : ''} ${
-                    animationsEnabled ? (visibleSections.has(3) ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full') : 'opacity-100 translate-x-0'
+                className={`flex ${isMobile ? 'flex-col' : 'items-center justify-center'} py-8 ${isMobile ? '' : '-mt-16'} ${animationsEnabled ? 'transition-all duration-1000' : ''} ${
+                    animationsEnabled ? (visibleSections.has(3) ? 'opacity-100 translate-x-0' : `opacity-0 ${isMobile ? '' : '-translate-x-full'}`) : 'opacity-100 translate-x-0'
                 }`}
             >
-                <div className="relative flex items-start">
-                    <Image
-                        src={`/demos/${themeFolder}/card1.png`}
-                        alt="Card1 screenshot"
-                        width={500}
-                        height={375}
-                        className="rounded-lg shadow-lg hover:shadow-xl transition-shadow transform rotate-3 z-10"
-                    />
-                    <Image
-                        src={`/demos/${themeFolder}/card2.png`}
-                        alt="Card2 screenshot"
-                        width={500}
-                        height={375}
-                        className="rounded-lg shadow-lg hover:shadow-xl transition-shadow transform -rotate-2 -ml-32 z-20"
-                    />
-                </div>
-                <div className="flex-1 text-left">
-                    <p className="text-xl">Cards generated automatically with information and resources</p>
-                </div>
+                {isMobile ? (
+                    <>
+                        <div className="relative flex justify-center items-center gap-4 max-w-xs md:max-w-none mb-4 mx-auto">
+                            <Image
+                                src={`/demos/${themeFolder}/card1.png`}
+                                alt="Card1 screenshot"
+                                width={500}
+                                height={375}
+                                className="rounded-lg shadow-lg hover:shadow-xl transition-shadow"
+                            />
+                            <Image
+                                src={`/demos/${themeFolder}/card2.png`}
+                                alt="Card2 screenshot"
+                                width={500}
+                                height={375}
+                                className="rounded-lg shadow-lg hover:shadow-xl transition-shadow"
+                            />
+                        </div>
+                        <div className="text-center">
+                            <p className="text-md md:text-xl">Cards generated automatically with information and resources</p>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <div className="relative flex items-start transform -translate-x-1/4 md:transform-none max-w-xs md:max-w-none">
+                            <Image
+                                src={`/demos/${themeFolder}/card1.png`}
+                                alt="Card1 screenshot"
+                                width={500}
+                                height={375}
+                                className="rounded-lg shadow-lg hover:shadow-xl transition-shadow transform rotate-3 z-10"
+                            />
+                            <Image
+                                src={`/demos/${themeFolder}/card2.png`}
+                                alt="Card2 screenshot"
+                                width={500}
+                                height={375}
+                                className="rounded-lg shadow-lg hover:shadow-xl transition-shadow transform -rotate-2 -ml-32 z-20"
+                            />
+                        </div>
+                        <div className="flex-1 text-left">
+                            <p className="text-md md:text-xl">Cards generated automatically with information and resources</p>
+                        </div>
+                    </>
+                )}
             </div>
+            {isMobile && <hr className="w-full border-t border-[var(--neutral-300)] my-4" />}
 
             {/* Quiz Section */}
             <div
                 data-index={4}
-                className={`flex items-center justify-center gap-8 py-8 mb-8 -mt-16 ${animationsEnabled ? 'transition-all duration-1000' : ''} ${
-                    animationsEnabled ? (visibleSections.has(4) ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full') : 'opacity-100 translate-x-0'
+                className={`flex ${isMobile ? 'flex-col' : 'items-center justify-center'} py-8 mb-8 ${isMobile ? '' : '-mt-16'} ${animationsEnabled ? 'transition-all duration-1000' : ''} ${
+                    animationsEnabled ? (visibleSections.has(4) ? 'opacity-100 translate-x-0' : `opacity-0 ${isMobile ? '' : 'translate-x-full'}`) : 'opacity-100 translate-x-0'
                 }`}
             >
-                <div className="flex-1 text-right">
-                    <p className="text-xl">Test your knowledge with custom-generated quizzes</p>
-                </div>
-                <div className="relative">
-                    <Image
-                        src={`/demos/${themeFolder}/quiz.png`}
-                        alt="Quiz screenshot"
-                        width={500}
-                        height={375}
-                        className="rounded-lg shadow-lg hover:shadow-xl transition-shadow transform rotate-3"
-                    />
-                </div>
+                {isMobile ? (
+                    <>
+                        <div className="max-w-xs md:max-w-none mb-4 mx-auto">
+                            <Image
+                                src={`/demos/${themeFolder}/quiz.png`}
+                                alt="Quiz screenshot"
+                                width={500}
+                                height={375}
+                                className="rounded-lg shadow-lg hover:shadow-xl transition-shadow"
+                            />
+                        </div>
+                        <div className="text-center">
+                            <p className="text-md md:text-xl">Test your knowledge with custom-generated quizzes</p>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <div className="flex-1 text-right">
+                            <p className="text-md md:text-xl">Test your knowledge with custom-generated quizzes</p>
+                        </div>
+                        <div className="relative transform translate-x-1/4 md:transform-none max-w-xs md:max-w-none">
+                            <Image
+                                src={`/demos/${themeFolder}/quiz.png`}
+                                alt="Quiz screenshot"
+                                width={500}
+                                height={375}
+                                className="rounded-lg shadow-lg hover:shadow-xl transition-shadow transform rotate-3"
+                            />
+                        </div>
+                    </>
+                )}
             </div>
+            {isMobile && <hr className="w-full border-t border-[var(--neutral-300)] my-4" />}
         </div>
     );
 };
@@ -380,7 +485,7 @@ const Footer = React.forwardRef<HTMLDivElement>((props, ref) => {
                         </a>
                     </div>
                 </div>
-                <div className="text-right">
+                <div className="text-center md:text-right">
                     <p className="text-lg text-[var(--neutral-500)]">
                         Contact: <a href="mailto:info@coilearn.com" className="text-[var(--accent-500)] hover:underline">info@coilearn.com</a>
                     </p>
