@@ -76,10 +76,6 @@ const LandingPage = () => {
         return () => observer.disconnect();
     }, []);
 
-
-
-
-
     useEffect(() => {
         const handleScroll = () => {
             if (walkthroughRef.current) {
@@ -148,7 +144,7 @@ const LandingPage = () => {
     return (
         <div className="flex flex-col">
             {!isMobile && (
-                <nav className={`fixed top-4 right-4 z-10 bg-[var(--neutral-100)] border border-[var(--neutral-300)] rounded-lg shadow-lg`}>
+                <nav className={`fixed top-4 right-4 z-20 bg-[var(--neutral-100)] z-20 border border-[var(--neutral-300)] rounded-lg shadow-lg`}>
                     <div className="px-4 py-2">
                         <ul className="flex space-x-4">
                             <li className="relative group">
@@ -182,8 +178,10 @@ const LandingPage = () => {
                 ref={landingPageRef}
                 className={`relative min-h-screen text-[var(--foreground)] ${animationsEnabled ? 'transition-all duration-500' : ''}`}
             >
-                <div className="absolute inset-0 bg-[var(--neutral-100)] z-0"></div>
-                {animationsEnabled && <FlickeringGrid className="absolute inset-0 z-0" />}
+
+                <div className="fixed inset-0 bg-[var(--neutral-100)] pointer-events-none"></div>
+                {animationsEnabled && <FlickeringGrid className="fixed inset-0 z-5" />}
+
                 <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6 gap-3">
                     <Image src="/favicon.png" alt="Coi Logo" width={150} height={150} className="w-48 h-48" />
 
@@ -193,12 +191,13 @@ const LandingPage = () => {
 
                     <p className="text-center text-3xl text-[var(--neutral-600)] max-w-xl mb-4">
                         Coi brings cards, projects, and collaboration into one interactive learning platform.
-
                     </p>
+
                     <Buttons />
                     <p className="text-center text-xl font-bold max-w-xl text-[var(--accent-400)]" style={{ textShadow: '0 0 10px var(--accent-100)' }}>
                         Right now, it&apos;s 100% FREE!
                     </p>
+                    
                     <button className="flex flex-col items-center mt-12">
                         <div className={`text-sm font-semibold text-[var(--neutral-600)] ${animationsEnabled ? 'animate-bounce' : ''} flex items-center gap-1`} onClick={scrollToWalkthrough}>
                             <FiChevronDown size={20} />
@@ -214,10 +213,10 @@ const LandingPage = () => {
                 ref={walkthroughRef}
                 className="flex flex-col items-center bg-[var(--neutral-200)] text-[var(--foreground)] p-6 min-h-screen relative"
             >
-                <WalkthroughComponent themeFolder={themeFolder} animationsEnabled={animationsEnabled} isMobile={isMobile} />
-                <div className={`${isFooterIntersecting ? "absolute w-full" : "fixed w-screen"} bottom-0 pb-4 p-6 transition-all duration-500 ${showButtons ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-full pointer-events-none'}`}>
+                 <div className={`${isFooterIntersecting ? "absolute w-full" : "fixed w-screen"} bottom-0 pb-4 p-6 transition-all duration-500 z-30 ${showButtons ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-full pointer-events-none'}`}>
                     <Buttons />
                 </div>
+                <WalkthroughComponent themeFolder={themeFolder} animationsEnabled={animationsEnabled} isMobile={isMobile} />
             </div>
 
             {/* Footer */}
@@ -231,7 +230,7 @@ export default LandingPage;
 const Buttons = () => {
     const router = useRouter();
     return (
-        <div className="w-full md:w-64 justify-center flex gap-4 mt-4 mx-auto">
+        <div className="w-full md:w-64 justify-center z-40 flex gap-4 mt-4 mx-auto">
             <Button color="var(--neutral-500)" onClick={() => router.push("/dashboard")} className="flex-1 md:flex-none px-0 py-3 md:px-6 md:py-3 md:text-lg">
                 Go to Dashboard
             </Button>
@@ -265,7 +264,7 @@ const WalkthroughComponent = ({ themeFolder, animationsEnabled, isMobile }: { th
     }, []);
 
     return (
-        <div className="w-full max-w-6xl">
+        <div className="w-full max-w-6xl z-10">
             {/* Dashboard Section */}
             <div
                 data-index={0}
@@ -490,7 +489,7 @@ const WalkthroughComponent = ({ themeFolder, animationsEnabled, isMobile }: { th
 
 const Footer = React.forwardRef<HTMLDivElement>((props, ref) => {
     return (
-        <footer ref={ref} className="bg-[var(--neutral-100)] text-[var(--foreground)] p-6 w-full">
+        <footer ref={ref} className="bg-[var(--neutral-100)] z-10 text-[var(--foreground)] p-6 w-full">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-center">
                 <div className="text-left">
                     <p className="text-lg text-[var(--neutral-500)] mb-4">
