@@ -78,3 +78,5 @@ export interface GroundingChunk {
         title: string;
     };
 }
+
+export type CardFilter = "00" | "01" | "10" | "11";

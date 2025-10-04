@@ -30,12 +30,10 @@ export async function getProjects(limitNum: number, lastId?: string): Promise<Pr
  */
 export async function getUsers(limitNum: number, lastId?: string): Promise<User[]> {
     try {
-        let q = query(collection(db, "users"), orderBy("__name__"), limit(limitNum));
-        if (lastId) {
-            q = query(collection(db, "users"), orderBy("__name__"), startAfter(lastId), limit(limitNum));
-        }
+        // Fetch all users since orderBy excludes documents without the field
+        const q = query(collection(db, "users"));
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => {
+        const allUsers = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
                 id: doc.id,
@@ -43,9 +41,19 @@ export async function getUsers(limitNum: number, lastId?: string): Promise<User[
                 displayName: data.displayName,
                 actions: data.actions,
                 dailyActions: data.dailyActions,
-                weeklyActions: data.weeklyActions,
+                weeklyActions: data.weeklyActions ?? 0,
             } as User;
         });
+        // Sort by weeklyActions desc
+        allUsers.sort((a, b) => (b.weeklyActions ?? 0) - (a.weeklyActions ?? 0));
+        // Paginate
+        if (!lastId) {
+            return allUsers.slice(0, limitNum);
+        } else {
+            const lastIndex = allUsers.findIndex(user => user.id === lastId);
+            if (lastIndex === -1) return [];
+            return allUsers.slice(lastIndex + 1, lastIndex + 1 + limitNum);
+        }
     } catch (err) {
         console.error("Error fetching users:", err);
         throw err;
