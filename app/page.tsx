@@ -183,7 +183,7 @@ const LandingPage = () => {
             >
                 <Image src="/favicon.png" alt="Coi Logo" width={150} height={150} className="w-48 h-48" />
 
-                <h1 className="text-6xl font-bold text-[var(--neutral-900)] flex items-center gap-2">
+                <h1 className="text-6xl font-bold t-[var(--neutral-900)] flex items-center gap-2">
                     Study Smarter,<br />Together.
                 </h1>
 
@@ -234,7 +234,7 @@ const Buttons = () => {
             </Button>
         </div>
     )
-}
+};
 
 const WalkthroughComponent = ({ themeFolder, animationsEnabled, isMobile }: { themeFolder: string, animationsEnabled: boolean, isMobile: boolean }) => {
     const [visibleSections, setVisibleSections] = useState<Set<number>>(new Set());
