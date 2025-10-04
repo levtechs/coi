@@ -26,7 +26,7 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
   width,
   height,
   className,
-  maxOpacity = 0.3,
+  maxOpacity = 0.2,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -167,7 +167,7 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
   }, [setupCanvas, updateSquares, drawGrid, width, height, isInView]);
 
   return (
-    <div ref={containerRef} className={`w-full h-full ${className || ''}`}>
+    <div ref={containerRef} className={`w-full h-full pointer-events-none ${className || ''}`}>
       <canvas
         ref={canvasRef}
         className="pointer-events-none"
