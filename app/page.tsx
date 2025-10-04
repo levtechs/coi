@@ -8,12 +8,14 @@ import { RxDiscordLogo } from "react-icons/rx";
 import { FiChevronDown, FiGithub } from "react-icons/fi";
 import Button from "./components/button";
 import Image from "next/image";
+import { FlickeringGrid } from "@/components/ui/shadcn-io/flickering-grid";
 
 const LandingPage = () => {
     const landingPageRef = useRef<HTMLDivElement>(null);
     const walkthroughRef = useRef<HTMLDivElement>(null);
     const footerRef = useRef<HTMLDivElement>(null);
     const isScrolling = useRef(false);
+    const router = useRouter();
 
     const [isDark, setIsDark] = useState(false);
     const [showButtons, setShowButtons] = useState(false);
@@ -21,6 +23,7 @@ const LandingPage = () => {
     const [animationsEnabled, setAnimationsEnabled] = useState(true);
     const [isMobile, setIsMobile] = useState(false);
     const [reducedMotion, setReducedMotion] = useState(false);
+    const [activeSection, setActiveSection] = useState<'home' | 'details' | null>('home');
 
     useEffect(() => {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -73,6 +76,22 @@ const LandingPage = () => {
         return () => observer.disconnect();
     }, []);
 
+
+
+
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (walkthroughRef.current) {
+                const detailsTop = walkthroughRef.current.offsetTop;
+                setActiveSection(window.scrollY >= detailsTop ? 'details' : 'home');
+            }
+        };
+        window.addEventListener('scroll', handleScroll);
+        handleScroll(); // call once to set initial
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
     // This function handles the scroll snapping
     const handleScroll = useCallback((e: WheelEvent) => {
         // Skip scroll snapping on mobile
@@ -112,6 +131,14 @@ const LandingPage = () => {
         return () => window.removeEventListener('wheel', handleScroll);
     }, [handleScroll]);
 
+    const scrollToHome = () => {
+        landingPageRef.current?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
+    };
+
+    const scrollToDetails = () => {
+        walkthroughRef.current?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
+    };
+
     const scrollToWalkthrough = () => {
         walkthroughRef.current?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
     };
@@ -120,17 +147,49 @@ const LandingPage = () => {
 
     return (
         <div className="flex flex-col">
+            {!isMobile && (
+                <nav className={`fixed top-4 right-4 z-10 bg-[var(--neutral-100)] border border-[var(--neutral-300)] rounded-lg shadow-lg`}>
+                    <div className="px-4 py-2">
+                        <ul className="flex space-x-4">
+                            <li className="relative group">
+                                <button onClick={scrollToHome} className="text-[var(--neutral-700)] hover:text-[var(--neutral-900)] transition-colors text-sm">
+                                    Home
+                                </button>
+                                <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-current transition-opacity ${activeSection === 'home' ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'}`}></div>
+                            </li>
+                            <li className="relative group">
+                                <button onClick={scrollToDetails} className="text-[var(--neutral-700)] hover:text-[var(--neutral-900)] transition-colors text-sm">
+                                    Details
+                                </button>
+                                <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-current transition-opacity ${activeSection === 'details' ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'}`}></div>
+                            </li>
+                            <li>
+                                <button onClick={() => router.push("/dashboard")} className="text-[var(--neutral-700)] hover:text-[var(--neutral-900)] transition-colors text-sm">
+                                    Dashboard
+                                </button>
+                            </li>
+                            <li>
+                                <button onClick={() => router.push("/login?signup=true")} className="text-[var(--accent-500)] hover:text-[var(--accent-600)] transition-colors text-sm">
+                                    Sign Up
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            )}
             {/* Hero Section */}
             <div
                 ref={landingPageRef}
                 className={`flex flex-col items-center justify-center min-h-screen bg-[var(--neutral-100)] text-[var(--foreground)] p-6 gap-6 ${animationsEnabled ? 'transition-all duration-500' : ''}`}
             >
-                <Image src="/logo.png" alt="Coi Logo" width={150} height={150} className="w-64 h-64" />
-                <h1 className="text-4xl font-bold flex items-center gap-2">
-                    Learn with Coi
+                <Image src="/favicon.png" alt="Coi Logo" width={150} height={150} className="w-48 h-48" />
+
+                <h1 className="text-6xl font-bold text-[var(--neutral-900)] flex items-center gap-2">
+                    Study Smarter,<br />Together.
                 </h1>
-                <p className="text-center text-lg max-w-xl">
-                    Welcome to Coi! Learn, create, and collaborate on projects seamlessly with our interactive platform.
+
+                <p className="text-center text-[var(--neutral-600)] text-3xl max-w-xl">
+                    Coi brings cards, projects, and collaboration into one interactive learning platform.
                 </p>
                 <Buttons />
                 <button className="flex flex-col items-center mt-8">
