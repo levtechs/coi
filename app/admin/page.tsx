@@ -82,7 +82,10 @@ const AdminPage = () => {
                 ...user,
                 projectIds: projects.filter(p => p.ownerId === user.id || p.collaborators.includes(user.email)).map(p => p.id)
             }));
-            setUsers(prev => [...prev, ...moreUsersWithIds]);
+            setUsers(prev => {
+                const newUsers = moreUsersWithIds.filter(user => !prev.some(p => p.id === user.id));
+                return [...prev, ...newUsers];
+            });
         } catch (err) {
             console.error("Error loading more users:", err);
         } finally {

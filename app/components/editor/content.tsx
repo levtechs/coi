@@ -2,7 +2,7 @@
 
 import React, { useState, Dispatch, SetStateAction } from "react";
 import { FiChevronRight, FiChevronDown, FiPlus } from "react-icons/fi";
-import { Card, ContentHierarchy, ContentNode, ChatAttachment } from "@/lib/types";
+import { Card, ContentHierarchy, ContentNode, ChatAttachment, CardFilter } from "@/lib/types";
 import MarkdownArticle from "../md";
 import DetailCard from "./cards/detail_card";
 
@@ -34,7 +34,8 @@ interface ContentHierarchyRendererProps {
     setClickedCard: React.Dispatch<React.SetStateAction<Card | null>>;
     level: number;
     addAttachment: (attachment: ChatAttachment) => void;
-    
+    cardFilters: CardFilter;
+
     // NEW: Props for state management
     path: string; // The unique path of this node (e.g., "C/A")
     collapsedState: CollapseStateMap;
@@ -44,12 +45,13 @@ interface ContentHierarchyRendererProps {
 /**
  * Helper component that reads its collapse state from the parent-managed map.
  */
-const HierarchicalNode = ({ 
-    hierarchy, 
-    cards, 
-    setClickedCard, 
-    level, 
+const HierarchicalNode = ({
+    hierarchy,
+    cards,
+    setClickedCard,
+    level,
     addAttachment,
+    cardFilters,
     path, // Use path for unique identification
     collapsedState,
     toggleCollapse
@@ -106,7 +108,13 @@ const HierarchicalNode = ({
                 case "card": {
                     const card = cards.find((c) => c.id === child.cardId);
                     if (card) {
-                        cardBuffer.push(card);
+                        const isResource = !!card.url;
+                        const hideKnowledge = cardFilters[0] === '0';
+                        const hideResource = cardFilters[1] === '0';
+                        const shouldShow = !((isResource && hideResource) || (!isResource && hideKnowledge));
+                        if (shouldShow) {
+                            cardBuffer.push(card);
+                        }
                     } else {
                         flushCardBuffer();
                         elements.push(
@@ -132,6 +140,7 @@ const HierarchicalNode = ({
                                 setClickedCard={setClickedCard}
                                 level={level < 5 ? level + 1 : 5}
                                 addAttachment={addAttachment}
+                                cardFilters={cardFilters}
                                 // Pass down the new path and the global state functions
                                 path={childPath}
                                 collapsedState={collapsedState}
@@ -193,11 +202,12 @@ interface ContentPanelProps {
     hierarchy: ContentHierarchy | null;
     cards: Card[];
     hidden?: boolean;
+    cardFilters: CardFilter;
     addAttachment: (attachment: ChatAttachment) => void;
     setClickedCard: Dispatch<SetStateAction<Card | null>>;
 }
 
-const ContentPanel = ({ hierarchy, cards, hidden = false, addAttachment, setClickedCard }: ContentPanelProps) => {
+const ContentPanel = ({ hierarchy, cards, hidden = false, cardFilters, addAttachment, setClickedCard }: ContentPanelProps) => {
     // NEW: State to store the collapsed status of all nodes by their path
     const [collapsedState, setCollapsedState] = useState<CollapseStateMap>({});
 
@@ -219,11 +229,12 @@ const ContentPanel = ({ hierarchy, cards, hidden = false, addAttachment, setClic
         <div className={`flex-1 w-full ${hidden ? "hidden" : ""}`}>
             <div className="relative p-3 rounded-md text-[var(--foreground)] bg-[var(--neutral-100)]">
                 {hierarchy ? (
-                    <HierarchicalNode 
-                        hierarchy={hierarchy} 
-                        cards={cards} 
-                        setClickedCard={setClickedCard} 
+                    <HierarchicalNode
+                        hierarchy={hierarchy}
+                        cards={cards}
+                        setClickedCard={setClickedCard}
                         addAttachment={addAttachment}
+                        cardFilters={cardFilters}
                         level={2}
                         // Pass global state props
                         path={rootPath}

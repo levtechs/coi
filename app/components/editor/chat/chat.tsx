@@ -181,7 +181,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, set
                     </div>
                 </div>
             ) : (
-                <div className="absolute top-0 right-2 m-4"> 
+                <div className="absolute top-12 right-2 m-4"> 
                     <BsFillChatRightTextFill 
                         className="text-[var(--accent-400)] text-xl cursor-pointer"
                         onClick={() => {setChatToggled(true)}}
