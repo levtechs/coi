@@ -8,6 +8,7 @@ import { RxDiscordLogo } from "react-icons/rx";
 import { FiChevronDown, FiGithub } from "react-icons/fi";
 import Button from "./components/button";
 import Image from "next/image";
+import { FlickeringGrid } from "./components/flickering-grid";
 
 const LandingPage = () => {
     const landingPageRef = useRef<HTMLDivElement>(null);
@@ -179,29 +180,33 @@ const LandingPage = () => {
             {/* Hero Section */}
             <div
                 ref={landingPageRef}
-                className={`flex flex-col items-center justify-center min-h-screen bg-[var(--neutral-100)] text-[var(--foreground)] p-6 gap-3 ${animationsEnabled ? 'transition-all duration-500' : ''}`}
+                className={`relative min-h-screen text-[var(--foreground)] ${animationsEnabled ? 'transition-all duration-500' : ''}`}
             >
-                <Image src="/favicon.png" alt="Coi Logo" width={150} height={150} className="w-48 h-48" />
+                <div className="absolute inset-0 bg-[var(--neutral-100)] z-0"></div>
+                {animationsEnabled && <FlickeringGrid className="absolute inset-0 z-0" />}
+                <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6 gap-3">
+                    <Image src="/favicon.png" alt="Coi Logo" width={150} height={150} className="w-48 h-48" />
 
-                <h1 className="text-6xl font-bold t-[var(--neutral-900)] flex items-center gap-2">
-                    Study Smarter,<br />Together.
-                </h1>
+                    <h1 className="text-6xl font-bold t-[var(--neutral-900)] flex items-center gap-2">
+                        Study Smarter,<br />Together.
+                    </h1>
 
-                <p className="text-center text-3xl text-[var(--neutral-600)] max-w-xl mb-4">
-                    Coi brings cards, projects, and collaboration into one interactive learning platform.
+                    <p className="text-center text-3xl text-[var(--neutral-600)] max-w-xl mb-4">
+                        Coi brings cards, projects, and collaboration into one interactive learning platform.
 
-                </p>
-                <Buttons />
-                <p className="text-center text-xl font-bold max-w-xl text-[var(--accent-400)]" style={{ textShadow: '0 0 10px var(--accent-100)' }}>
-                    Right now, it&apos;s 100% FREE!
-                </p>
-                <button className="flex flex-col items-center mt-12">
-                    <div className={`text-sm font-semibold text-[var(--neutral-600)] ${animationsEnabled ? 'animate-bounce' : ''} flex items-center gap-1`} onClick={scrollToWalkthrough}>
-                        <FiChevronDown size={20} />
-                        scroll for details
-                        <FiChevronDown size={20} />
-                    </div>
-                </button>
+                    </p>
+                    <Buttons />
+                    <p className="text-center text-xl font-bold max-w-xl text-[var(--accent-400)]" style={{ textShadow: '0 0 10px var(--accent-100)' }}>
+                        Right now, it&apos;s 100% FREE!
+                    </p>
+                    <button className="flex flex-col items-center mt-12">
+                        <div className={`text-sm font-semibold text-[var(--neutral-600)] ${animationsEnabled ? 'animate-bounce' : ''} flex items-center gap-1`} onClick={scrollToWalkthrough}>
+                            <FiChevronDown size={20} />
+                            scroll for details
+                            <FiChevronDown size={20} />
+                        </div>
+                    </button>
+                </div>
             </div>
 
             {/* Walkthrough Section */}
