@@ -189,6 +189,7 @@ const LandingPage = () => {
 
                 <p className="text-center text-3xl text-[var(--neutral-600)] max-w-xl mb-4">
                     Coi brings cards, projects, and collaboration into one interactive learning platform.
+
                 </p>
                 <Buttons />
                 <p className="text-center text-xl font-bold max-w-xl text-[var(--accent-400)]" style={{ textShadow: '0 0 10px var(--accent-100)' }}>
