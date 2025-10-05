@@ -56,11 +56,22 @@ export type ContentNode =
 
 export type ChatAttachment = Card | ContentNode | ContentHierarchy | GroundingChunk;
 
-export interface QuizQuestion {
-    question: string;
-    options: string[];
-    correctOptionIndex: number;
-}
+export type QuizQuestion =
+    | {
+          type: "MCQ";
+          question: string;
+          content: {
+              options: string[];
+              correctOptionIndex: number;
+          };
+      }
+    | {
+          type: "FRQ";
+          question: string;
+          content: {
+              gradingCriteria: string;
+          };
+      };
 
 export interface Quiz {
     id?: string;
@@ -68,6 +79,13 @@ export interface Quiz {
     description: string;       // Quiz description
     questions: QuizQuestion[]; // List of questions
     title: string;             // Quiz title
+}
+
+export interface QuizSettings {
+    minNumQuestions?: number;
+    maxNumQuestions?: number;
+    includeMCQ: boolean;
+    includeFRQ: boolean;
 }
 
 export type StreamPhase = "starting" | "streaming" | "processing" | "generating content" | "generating cards";

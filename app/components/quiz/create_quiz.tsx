@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/lib/AuthContext";
 
-import { Card } from "@/lib/types";
+import { Card, QuizSettings } from "@/lib/types";
 
 import { getCards } from "@/app/views/cards";
 import { createQuiz } from "@/app/views/quiz";
@@ -20,17 +20,17 @@ interface CreateQuizPageProps {
 }
 
 const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
+    const { user } = useAuth();
+    const router = useRouter();
+
     const [isLoadingCards, setIsLoadingCards] = useState(false)
     const [isLoadingQuiz, setIsLoadingQuiz] = useState<boolean | string>(false)
 
-    const { user } = useAuth();
+    const [quizSettings, setQuizSettings] = useState<QuizSettings>({includeMCQ: true, includeFRQ: false});
 
     const [cards, setCards] = useState<Card[]>();
     const [clickedCard, setClickedCard] = useState<Card | null>(null);
-
-
-
-    const router = useRouter();
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         setIsLoadingCards(true);
@@ -76,26 +76,47 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
                         )}
 
                         {isLoadingQuiz==false && (
-                            <>
+                            <div className="">
                                 <h2 className="mt-4 mb-4 italic">
-                                    No options available yet.
+                                    Quiz settings:
                                 </h2>
-                            </>
 
-                        )}
+                                <div className="flex flex-row gap-2"> 
+                                     <button
+                                        className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${quizSettings.includeMCQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
+                                        onClick={() => {setQuizSettings({...quizSettings, includeMCQ: !quizSettings.includeMCQ}); setError(null);}}
+                                    >
+                                        Include multiple choice questions
+                                    </button>
+
+                                    <button
+                                        className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${quizSettings.includeFRQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
+                                        onClick={() => {setQuizSettings({...quizSettings, includeFRQ: !quizSettings.includeFRQ}); setError(null);}}
+                                    >
+                                        Include free response questions
+                                    </button>
+                                 </div>
+                                 {error && <p className="text-[var(--error)] mt-2">{error}</p>}
+                             </div>
+
+                         )}
                         {isLoadingQuiz==true && (<LoadingComponent loadingText="Creating quiz" small={true} />)}
                         {typeof(isLoadingQuiz) != typeof("string") ? (
                             <Button 
                                 className="w-full mt-8"
                                 color={isLoadingQuiz ?  ("var(--neutral-400)") : ("var(--accent-400)")}
-                                onClick={async ()=>{
+                                 onClick={async ()=>{
+                                    if (!quizSettings.includeMCQ && !quizSettings.includeFRQ) {
+                                        setError("Please select at least one type of question to include in your quiz.");
+                                        return;
+                                    }
                                     setIsLoadingQuiz(true);
-                                    const quizId = await createQuiz(cards, projectId);
+                                    const quizId = await createQuiz(cards, quizSettings, projectId);
                                     setIsLoadingQuiz(quizId);
                                 }}
                                 type="submit"
                             >
-                                Go!
+                                Create Quiz
                             </Button>
                         ) : (
                             <Button 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { Card } from "@/lib/types";
+import { Card, QuizSettings } from "@/lib/types";
 
 import { getVerifiedUid } from "@/app/api/helpers"
 
@@ -13,12 +13,12 @@ export async function POST(req: NextRequest) {
     const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
-    const { cards, projectId } = await req.json() as { cards: Card[]; projectId: string };
+    const { cards, quizSettings, projectId } = await req.json() as { cards: Card[]; quizSettings: QuizSettings, projectId: string };
 
     if (!cards) return NextResponse.json({ error: "No cards provided" }, { status: 400 });
 
     try {
-        const quizJson = await createQuizFromCards(cards);
+        const quizJson = await createQuizFromCards(cards, quizSettings);
         if (!quizJson) {
             return NextResponse.json({ error: "Gemini API failed" }, { status: 500 });
         }
