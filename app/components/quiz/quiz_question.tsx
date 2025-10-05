@@ -9,58 +9,106 @@ interface QuizQuestionElementProps {
     qIndex: number;
     selectedOptions: { [key: number]: number | null };
     handleOptionSelect: (questionIndex: number, optionIndex: number) => void;
+    handleFRQResponse?: (questionIndex: number, response: string) => void; // optional callback for FRQs
+    showAnswer: boolean | null;
 }
 
-const QuizQuestionElement = ({ q, qIndex, selectedOptions, handleOptionSelect }: QuizQuestionElementProps) => {
+const QuizQuestionElement = ({
+    q,
+    qIndex,
+    selectedOptions,
+    handleOptionSelect,
+    handleFRQResponse,
+    showAnswer,
+}: QuizQuestionElementProps) => {
     const [shuffledIndices, setShuffledIndices] = useState<number[]>([]);
-    const hasSelected = selectedOptions[qIndex] !== undefined && selectedOptions[qIndex] !== null;
+    const [frqResponse, setFrqResponse] = useState<string>("");
 
-    // Shuffle options once when the question is first rendered
+    const hasSelected =
+        selectedOptions[qIndex] !== undefined && selectedOptions[qIndex] !== null;
+
+    // Shuffle only for MCQs
     useEffect(() => {
-        const indices = q.options.map((_, i) => i);
-        for (let i = indices.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [indices[i], indices[j]] = [indices[j], indices[i]];
+        if (q.type === "MCQ") {
+            const indices = q.content.options.map((_, i) => i);
+            for (let i = indices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [indices[i], indices[j]] = [indices[j], indices[i]];
+            }
+            setShuffledIndices(indices);
         }
-        setShuffledIndices(indices);
-    }, [q.options]);
+    }, [q]);
 
     return (
         <div className="bg-[var(--neutral-200)] p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-semibold mb-4 text-[var(--foreground)]">
-                <MarkdownArticle markdown={q.question} />
+                <MarkdownArticle markdown={q.question} singleLine={true}/>
             </h2>
-            <div className="space-y-3">
-                {shuffledIndices.map((shuffledIndex) => {
-                    const option = q.options[shuffledIndex];
-                    const isSelected = selectedOptions[qIndex] === shuffledIndex;
-                    const isCorrect = shuffledIndex === q.correctOptionIndex;
 
-                    let optionClasses = "p-4 border rounded-md cursor-pointer transition-all duration-200";
+            {q.type === "MCQ" ? (
+                <div className="space-y-3">
+                    {shuffledIndices.map((shuffledIndex) => {
+                        const option = q.content.options[shuffledIndex];
+                        const isSelected = selectedOptions[qIndex] === shuffledIndex;
+                        const isCorrect =
+                            shuffledIndex === q.content.correctOptionIndex;
 
-                    if (hasSelected) {
-                        if (isCorrect) {
-                            optionClasses += " bg-[var(--accent-400)] border-[var(--neutral-500)] text-[var(--neutral-800)] font-semibold";
-                        } else if (isSelected) {
-                            optionClasses += " bg-[var(--error)] border-[var(--neutral-500)] text-[var(--neutral-800)] font-semibold";
+                        let optionClasses =
+                            "p-4 border rounded-md cursor-pointer transition-all duration-200";
+
+                        if ((showAnswer === null && hasSelected) || (hasSelected && showAnswer)) {
+                            if (isCorrect) {
+                                optionClasses +=
+                                    " bg-[var(--accent-400)] border-[var(--neutral-500)] text-[var(--neutral-800)] font-semibold";
+                            } else if (isSelected) {
+                                optionClasses +=
+                                    " bg-[var(--error)] border-[var(--neutral-500)] text-[var(--neutral-800)] font-semibold";
+                            } else {
+                                optionClasses +=
+                                    " bg-[var(--neutral-200)] border-[var(--neutral-300)] text-[var(--neutral-500)]";
+                            }
+                        } else if (showAnswer === false && hasSelected && isSelected) {
+                            optionClasses +=
+                                " bg-[var(--neutral-300)] border-[var(--neutral-400)]";
                         } else {
-                            optionClasses += " bg-[var(--neutral-200)] border-[var(--neutral-300)] text-[var(--neutral-500)]";
+                            optionClasses +=
+                                " border-[var(--neutral-300)] hover:bg-[var(--neutral-200)]";
                         }
-                    } else {
-                        optionClasses += " border-[var(--neutral-300)] hover:bg-[var(--neutral-200)]";
-                    }
 
-                    return (
-                        <div
-                            key={shuffledIndex}
-                            className={optionClasses}
-                            onClick={() => handleOptionSelect(qIndex, shuffledIndex)}
-                        >
-                            <MarkdownArticle markdown={option} />
-                        </div>
-                    );
-                })}
-            </div>
+                        return (
+                            <div
+                                key={shuffledIndex}
+                                className={optionClasses}
+                                onClick={() =>
+                                    handleOptionSelect(qIndex, shuffledIndex)
+                                }
+                            >
+                                <MarkdownArticle markdown={option} singleLine={true}/>
+                            </div>
+                        );
+                    })}
+                </div>
+            ) : (
+                // Render FRQ input
+                <div className="space-y-3">
+                    <textarea
+                        className="w-full p-4 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-400)]"
+                        rows={4}
+                        placeholder="Type your answer here..."
+                        value={frqResponse}
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            setFrqResponse(value);
+                            handleFRQResponse?.(qIndex, value);
+                        }}
+                    />
+                     {showAnswer !== false && (
+                         <p className="text-sm text-[var(--neutral-600)] italic">
+                             Grading criteria: {q.content.gradingCriteria}
+                         </p>
+                     )}
+                </div>
+            )}
         </div>
     );
 };

@@ -5,7 +5,7 @@ import { defaultGeneralConfig } from "../gemini/config";
 import { callGeminiApi } from "../gemini/helpers";
 import { createQuizFromCardsSystemInstruction } from "./prompts";
 
-import { Card } from "@/lib/types";
+import { Card, QuizSettings } from "@/lib/types";
 
 /**
  * Writes a new quiz entry to the project's quizes collection.
@@ -44,7 +44,7 @@ export const writeQuizToDb = async (quiz: object, projectId: string): Promise<st
  * @param cards The cards to base the quiz on.
  * @returns A promise that resolves to a JSON with the quiz content.
  */
-export const createQuizFromCards = async (cards: Card[]): Promise<JSON | null> => {
+export const createQuizFromCards = async (cards: Card[], quizSettings: QuizSettings): Promise<JSON | null> => {
     if (!cards || cards.length === 0) {
         throw new Error("Must have at least one card to create a quiz.");
     }
@@ -60,27 +60,12 @@ export const createQuizFromCards = async (cards: Card[]): Promise<JSON | null> =
     const generationConfig = {
         ...defaultGeneralConfig,
         responseMimeType: "application/json",
-        responseSchema: {
-            type: "OBJECT",
-            properties: {
-                "title": { "type": "STRING" },
-                "description": { "type": "string" },
-                "questions": { "type": "ARRAY", "items": {
-                    type: "OBJECT",
-                    properties: {
-                        "question": { "type": "STRING" },
-                        "options": { "type": "ARRAY", "items": { "type": "STRING" } },
-                        "correctOptionIndex": { "type": "NUMBER" }
-                    },
-                    required: ["question", "options", "correctOptionIndex"]
-                }}
-            },
-        },
+        responseSchema: buildQuizSchema(quizSettings),
     };
 
     const body = {
         contents,
-        systemInstruction: createQuizFromCardsSystemInstruction,
+        systemInstruction: createQuizFromCardsSystemInstruction(quizSettings),
         generationConfig: generationConfig,
     };
 
@@ -99,4 +84,79 @@ export const createQuizFromCards = async (cards: Card[]): Promise<JSON | null> =
         console.error("Error calling Gemini API or parsing response:", err);
         return null;
     }
+};
+
+export const buildQuizSchema = (settings: QuizSettings = { includeMCQ: true, includeFRQ: true }) => {
+    const { minNumQuestions, maxNumQuestions, includeMCQ, includeFRQ } = settings;
+
+    const allowedTypes: string[] = [];
+    const contentSchemas: any[] = [];
+
+    // Add MCQ branch if enabled
+    if (includeMCQ) {
+        allowedTypes.push("MCQ");
+        contentSchemas.push({
+            type: "object",
+            properties: {
+                options: {
+                    type: "array",
+                    items: { type: "string" },
+                    minItems: 2,
+                },
+                correctOptionIndex: { type: "number" },
+            },
+            required: ["options", "correctOptionIndex"],
+        });
+    }
+
+    // Add FRQ branch if enabled
+    if (includeFRQ) {
+        allowedTypes.push("FRQ");
+        contentSchemas.push({
+            type: "object",
+            properties: {
+                gradingCriteria: { type: "string" },
+            },
+            required: ["gradingCriteria"],
+        });
+    }
+
+    // Safety check: if no types enabled, throw clear error
+    if (allowedTypes.length === 0) {
+        throw new Error("At least one of includeMCQ or includeFRQ must be true in QuizSettings.");
+    }
+
+    const questionSchema = {
+        type: "object",
+        properties: {
+            type: {
+                type: "string",
+                enum: allowedTypes,
+            },
+            question: { type: "string" },
+            content: {
+                oneOf: contentSchemas,
+            },
+        },
+        required: ["type", "question", "content"],
+    };
+
+    const quizSchema = {
+        type: "object",
+        properties: {
+            id: { type: "string" },
+            createdAt: { type: "string" },
+            description: { type: "string" },
+            title: { type: "string" },
+            questions: {
+                type: "array",
+                items: questionSchema,
+                ...(minNumQuestions ? { minItems: minNumQuestions } : {}),
+                ...(maxNumQuestions ? { maxItems: maxNumQuestions } : {}),
+            },
+        },
+        required: ["description", "title", "questions"],
+    };
+
+    return quizSchema;
 };
