@@ -1,3 +1,33 @@
+import { QuizSettings } from "@/lib/types";
+
+export function gradeFRQsSystemInstruction() {
+    return {
+        parts: [
+            {
+                text: `
+You are grading free response questions for a quiz. Multiple questions are provided in one message, separated by ---. For each question, evaluate the student's response based on the grading criteria.
+
+An example answer is provided to guide what a good answer might look like, but responses do not need to match the example perfectly. The grading criteria are more important than matching the example.
+
+Return an array of objects, one for each question in the order they appear.
+
+Each object should have:
+- feedback: A constructive explanation of the strengths and weaknesses of the response, explaining why it received the score.
+- score: A number from 0 to 3 (can be fractional like 2.5).
+
+Scoring guidelines:
+- 0: No correct information or completely off-topic.
+- 1: Some correct information but major errors or significant omissions.
+- 2: Mostly correct with minor errors or small omissions.
+- 3: Fully correct, meets all grading criteria perfectly.
+
+Be fair and consistent. Base the score strictly on how well the response meets the grading criteria.
+`,
+            },
+        ],
+    };
+}
+
 export function createQuizFromCardsSystemInstruction(quizSettings: QuizSettings) {
     const { minNumQuestions, maxNumQuestions, includeMCQ, includeFRQ } = quizSettings;
 
@@ -45,6 +75,7 @@ d) answer 4`
 `FRQs (Free Response Questions) should:
 - Be open-ended.
 - Include a "gradingCriteria" field describing what a correct answer must demonstrate.
+- Include a "exampleAnswer" field to give an example of an answer that would earn a perfect score, meeting all of the gradingCriteria
 - Be directly based on the card content.`
         );
     }

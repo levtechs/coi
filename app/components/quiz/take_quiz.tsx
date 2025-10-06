@@ -56,9 +56,9 @@ const TakeQuizPage = ({ quizId, quiz: providedQuiz }: TakeQuizPageProps) => {
                     <h1 className="font-bold text-2xl mb-4">{quiz.title}</h1>
                     <p className="mb-6">{quiz.description}</p>
                     <p className="mb-6 italic">{quiz.questions.length} questions</p>
-                    <div className="flex gap-4 justify-center">
-                        <Button color="var(--neutral-500)" onClick={() => setIsGraded(false)}>Preview Quiz</Button>
-                        <Button color="var(--accent-400)" onClick={() => setIsGraded(true)}>Take Quiz</Button>
+                    <div className="flex flex-col gap-4">
+                        <Button color="var(--neutral-500)" onClick={() => setIsGraded(false)} className="py-4 text-lg">Preview Quiz - See answers immediately</Button>
+                        <Button color="var(--accent-400)" onClick={() => setIsGraded(true)} className="py-4 text-lg">Take Quiz - Graded with feedback</Button>
                     </div>
                 </div>
             </div>

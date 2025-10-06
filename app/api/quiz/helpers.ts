@@ -90,7 +90,7 @@ export const buildQuizSchema = (settings: QuizSettings = { includeMCQ: true, inc
     const { minNumQuestions, maxNumQuestions, includeMCQ, includeFRQ } = settings;
 
     const allowedTypes: string[] = [];
-    const contentSchemas: any[] = [];
+    const contentSchemas: object[] = [];
 
     // Add MCQ branch if enabled
     if (includeMCQ) {
@@ -116,8 +116,9 @@ export const buildQuizSchema = (settings: QuizSettings = { includeMCQ: true, inc
             type: "object",
             properties: {
                 gradingCriteria: { type: "string" },
+                exampleAnswer: { type: "string" }, 
             },
-            required: ["gradingCriteria"],
+            required: ["gradingCriteria", "exampleAnswer"],
         });
     }
 

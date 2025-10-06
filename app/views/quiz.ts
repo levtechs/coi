@@ -29,3 +29,16 @@ export async function getQuiz(quizId: string): Promise<Quiz | null> {
         return null;
     }
 }
+
+export async function gradeQuiz(quizId: string, answers: (number | string)[]): Promise<{results: {isCorrect: boolean, score: number, correctAnswer: string, feedback?: string}[], totalScore: number, maxScore: number}> {
+    try {
+        const data = await apiFetch<{results: {isCorrect: boolean, score: number, correctAnswer: string, feedback?: string}[], totalScore: number, maxScore: number}>(`/api/quiz/${quizId}`, {
+            method: "PUT",
+            body: JSON.stringify({answers}),
+        });
+        return data;
+    } catch (err) {
+        console.error("Error grading quiz:", err);
+        throw Error("Error grading quiz");
+    }
+}
