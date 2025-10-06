@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getVerifiedUid } from "../../helpers";
 import { fetchQuiz, gradeFRQs } from "./helpers";
-
+import { QuizQuestion } from "@/lib/types"
 /*
  * Retrieves a quiz by its ID.
  */
@@ -52,8 +52,8 @@ export async function PUT(
 
         let score = 0;
         let total = 0;
-        const results = [];
-        const frqList = [];
+        const results: {isCorrect: boolean, score: number, correctAnswer: string, feedback?: string}[] = [];
+        const frqList: {question: QuizQuestion, response: string, index: number}[] = [];
 
         quiz.questions.forEach((q, qIndex) => {
             if (q.type === "MCQ") {
@@ -83,7 +83,7 @@ export async function PUT(
             results[qIndex] = {
                 isCorrect: frqResult.score === 3,
                 score: frqResult.score,
-                correctAnswer: quiz.questions[qIndex].content.exampleAnswer,
+                correctAnswer: (quiz.questions[qIndex].content as {gradingCriteria: string, exampleAnswer: string}).exampleAnswer,
                 feedback: frqResult.feedback
             };
         });

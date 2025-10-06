@@ -1,7 +1,7 @@
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-import { Quiz } from "@/lib/types";
+import { Quiz, QuizQuestion } from "@/lib/types";
 import { defaultGeneralConfig } from "../../gemini/config";
 import { callGeminiApi } from "../../gemini/helpers";
 import { gradeFRQsSystemInstruction } from "../prompts";
@@ -28,7 +28,7 @@ export const gradeFRQs = async (
 ): Promise<{feedback: string, score: number}[]> => {
     if (frqList.length === 0) return [];
 
-    const combinedText = frqList.map((f, i) => `Question ${i + 1}: ${f.question.question}\nResponse: ${f.response}\nGrading Criteria: ${f.question.content.gradingCriteria}\nExample Answer: ${f.question.content.exampleAnswer}`).join('\n\n---\n\n');
+    const combinedText = frqList.map((f, i) => `Question ${i + 1}: ${f.question.question}\nResponse: ${f.response}\nGrading Criteria: ${(f.question.content as {gradingCriteria: string, exampleAnswer: string}).gradingCriteria}\nExample Answer: ${(f.question.content as {gradingCriteria: string, exampleAnswer: string}).exampleAnswer}`).join('\n\n---\n\n');
 
     const contents = [{
         role: "user",
