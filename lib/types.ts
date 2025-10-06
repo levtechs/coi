@@ -56,22 +56,21 @@ export type ContentNode =
 
 export type ChatAttachment = Card | ContentNode | ContentHierarchy | GroundingChunk;
 
-export type QuizQuestion =
-    | {
-          type: "MCQ";
-          question: string;
-          content: {
-              options: string[];
-              correctOptionIndex: number;
-          };
-      }
-    | {
-          type: "FRQ";
-          question: string;
-          content: {
-              gradingCriteria: string;
-          };
-      };
+export type QuizQuestion = {
+    type: "MCQ";
+    question: string;
+    content: {
+        options: string[];
+        correctOptionIndex: number;
+    };
+} | {
+    type: "FRQ";
+    question: string;
+    content: {
+        gradingCriteria: string;
+        exampleAnswer: string; 
+    };
+};
 
 export interface Quiz {
     id?: string;

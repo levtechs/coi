@@ -11,6 +11,7 @@ interface QuizQuestionElementProps {
     handleOptionSelect: (questionIndex: number, optionIndex: number) => void;
     handleFRQResponse?: (questionIndex: number, response: string) => void; // optional callback for FRQs
     showAnswer: boolean | null;
+    result: {isCorrect: boolean, score: number, correctAnswer: string, feedback?: string} | null;
 }
 
 const QuizQuestionElement = ({
@@ -20,6 +21,7 @@ const QuizQuestionElement = ({
     handleOptionSelect,
     handleFRQResponse,
     showAnswer,
+    result,
 }: QuizQuestionElementProps) => {
     const [shuffledIndices, setShuffledIndices] = useState<number[]>([]);
     const [frqResponse, setFrqResponse] = useState<string>("");
@@ -40,7 +42,12 @@ const QuizQuestionElement = ({
     }, [q]);
 
     return (
-        <div className="bg-[var(--neutral-200)] p-6 rounded-lg shadow-md">
+        <div className="bg-[var(--neutral-200)] p-6 rounded-lg shadow-md relative">
+            {result && (
+                <div className="absolute top-2 right-2 bg-[var(--neutral-300)] px-2 py-1 rounded text-sm">
+                    {result.score}/{q.type === "MCQ" ? 1 : 3}
+                </div>
+            )}
             <h2 className="text-xl font-semibold mb-4 text-[var(--foreground)]">
                 <MarkdownArticle markdown={q.question} singleLine={true}/>
             </h2>
@@ -103,12 +110,33 @@ const QuizQuestionElement = ({
                         }}
                     />
                      {showAnswer !== false && (
-                         <p className="text-sm text-[var(--neutral-600)] italic">
-                             Grading criteria: {q.content.gradingCriteria}
-                         </p>
+                         <div>
+                             <p className="text-sm text-[var(--neutral-600)] italic">
+                                 Grading criteria: {q.content.gradingCriteria}
+                             </p>
+                     {showAnswer === null && (
+                         <div className="text-sm text-[var(--neutral-600)] italic">
+                             <p>Example answer:</p>
+                             <MarkdownArticle markdown={q.content.exampleAnswer} />
+                         </div>
+                     )}
+                         </div>
                      )}
                 </div>
             )}
+            {result && q.type === "FRQ" && (
+                <div className="mt-4 p-4 bg-[var(--neutral-200)] rounded">
+                    <h3 className="font-semibold">Example Correct Answer</h3>
+                    <div className="mt-1"><MarkdownArticle markdown={result.correctAnswer} /></div>
+                    {result.feedback && (
+                        <>
+                            <h3 className="font-semibold mt-4">Feedback</h3>
+                            <div className="mt-1"><MarkdownArticle markdown={result.feedback} /></div>
+                        </>
+                    )}
+                </div>
+            )}
+
         </div>
     );
 };
