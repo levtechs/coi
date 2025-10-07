@@ -7,7 +7,7 @@ Official source code of the coi project
 - chat with AI tutor
 - auto-updating study guide and note cards
 - add collaborators via email or invite via invite link
-- generate quiz tailored to projet that will automatically grade you
+- generate quiz with both multiple-choice and free-response tailored to your project that will automatically grade you and give you feedback
 
 ## Purpose
 
