@@ -9,19 +9,29 @@ import CollaboratorsDropdown from "./collabs_dd";
 import ShareMenu from "./share";
 import ProjectDetailsPanel from "./project_details";
 import { ModalContents } from "../types";
-import { Project, Quiz } from "@/lib/types";
+import { Project, Quiz, CardFilter } from "@/lib/types";
 import { getQuiz } from "@/app/views/quiz";
+import TabSelector from "../tab_selector";
 
 interface MenuBarProps {
     project: Project;
     user: { uid: string } | null;
     addCollaborator: (projectId: string, email: string) => Promise<void>;
     setTitle: (projectId: string, newTitle: string) => Promise<void>;
-    setModalContents: (newContent: ModalContents) => void
+    setModalContents: (newContent: ModalContents) => void;
+    tab: "content" | "cards";
+    setTab: (tab: "content" | "cards") => void;
+    cardFilters: CardFilter;
+    filtersExpanded: boolean;
+    setFiltersExpanded: (expanded: boolean) => void;
+    toggleKnowledge: () => void;
+    toggleResource: () => void;
 }
 
-const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents} : MenuBarProps) => {
+const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, tab, setTab, cardFilters, filtersExpanded, setFiltersExpanded, toggleKnowledge, toggleResource} : MenuBarProps) => {
     const [quizzes, setQuizzes] = useState<Quiz[] | null>(null);
+
+    const truncatedTitle = project.title.length > 15 ? project.title.slice(0, 15) + '...' : project.title;
 
     useEffect(() => {
         const fetchQuizzes = async () => {
@@ -52,7 +62,7 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents} :
                     />
                 </Link>
                 <div className="flex items-center gap-2 group mr-4 ml-4">
-                    <h1 className="text-[var(--foreground)] text-2xl font-bold">{project.title}</h1>
+                    <h1 className="text-[var(--foreground)] text-2xl font-bold truncate">{truncatedTitle}</h1>
                     <FiEdit2
                         className="text-[var(--accent-500)] cursor-pointer opacity-0 group-hover:opacity-100 hover:text-[var(--accent-600)] transition"
                         size={20}
@@ -72,6 +82,33 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents} :
                             })
                         }
                     />
+                </div>
+                <TabSelector
+                    tabs={["content", "cards"]}
+                    activeTab={tab}
+                    onTabChange={(tabName) => setTab(tabName as "content" | "cards")}
+                />
+                <div className="relative inline-block ml-4">
+                    <div className={`absolute right-0 top-full mt-2 flex space-x-4 transition-opacity duration-300 bg-[var(--neutral-100)] border border-[var(--neutral-300)] rounded-md p-2 shadow-md ${filtersExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                        <button
+                            className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${cardFilters[0] === '1' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
+                            onClick={toggleKnowledge}
+                        >
+                            Show Knowledge Cards
+                        </button>
+                        <button
+                            className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${cardFilters[1] === '1' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
+                            onClick={toggleResource}
+                        >
+                            Show Resource Cards
+                        </button>
+                    </div>
+                    <button
+                        onClick={() => setFiltersExpanded(!filtersExpanded)}
+                        className="px-3 py-1 text-sm bg-[var(--neutral-200)] hover:bg-[var(--neutral-300)] rounded-md transition-colors duration-200"
+                    >
+                        Filters
+                    </button>
                 </div>
             </div>
 

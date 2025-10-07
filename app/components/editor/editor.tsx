@@ -7,7 +7,6 @@ import MenuBar from "./menu/menu";
 import ContentPanel from "./content";
 import ChatPanel from "./chat/chat";
 import { noModal } from "./types";
-import TabSelector from "./tab_selector";
 import CardsPanel from "./cards/cards_panel";
 import CardPopup from "./cards/card_popup";
 
@@ -61,42 +60,19 @@ const Editor = ({
                     addCollaborator={addCollaborator}
                     setTitle={setTitle}
                     setModalContents={setModalContents}
+                    tab={tab}
+                    setTab={setTab}
+                    cardFilters={cardFilters}
+                    filtersExpanded={filtersExpanded}
+                    setFiltersExpanded={setFiltersExpanded}
+                    toggleKnowledge={toggleKnowledge}
+                    toggleResource={toggleResource}
                 />
 
                 {/* Main Content Area */}
                 <div className="relative mt-4 flex flex-row flex-1 w-full overflow-hidden">
                     {/* Main Content Panel - occupies the available space */}
                     <div className={`flex flex-col flex-1 h-full overflow-y-auto transition-all duration-300`}>
-                        <div className="flex flex-row items-center justify-between mb-4">
-                            <TabSelector
-                                tabs={["content", "cards"]}
-                                onTabChange={(tabName) => setTab(tabName as "content" | "cards")}
-                            />
-                            <div className="pl-4">
-                                <div className="relative inline-block">
-                                    <div className={`absolute right-full mr-2 top-1/2 -translate-y-1/2 flex space-x-4 transition-all duration-300 ${filtersExpanded ? 'opacity-100' : 'opacity-0'}`}>
-                                        <button
-                                            className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${knowledgeShown ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
-                                            onClick={toggleKnowledge}
-                                        >
-                                            Show Knowledge Cards
-                                        </button>
-                                        <button
-                                            className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${resourceShown ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
-                                            onClick={toggleResource}
-                                        >
-                                            Show Resource Cards
-                                        </button>
-                                    </div>
-                                    <button
-                                        onClick={() => setFiltersExpanded(!filtersExpanded)}
-                                        className="px-3 py-1 text-sm bg-[var(--neutral-200)] hover:bg-[var(--neutral-300)] rounded-md transition-colors duration-200"
-                                    >
-                                        Filters
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
                             <ContentPanel
                                 hierarchy={project.hierarchy}
                                 cards={project.cards}
