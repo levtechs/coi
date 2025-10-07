@@ -102,12 +102,9 @@ export async function streamChatResponse(
         }
 
         // Detect hasNewInfo from token
-        let hasNewInfo = false;
         let responseMessage = accumulated.trim();
-        if (responseMessage.endsWith(" [HAS_NEW_INFO]")) {
-            hasNewInfo = true;
-            responseMessage = responseMessage.slice(0, -16).trim();
-        }
+        let hasNewInfo = responseMessage.includes("[HAS_NEW_INFO]");
+        responseMessage = responseMessage.replace(/\[HAS_NEW_INFO\]/g, '').trim();
 
         return {
             responseMessage,
