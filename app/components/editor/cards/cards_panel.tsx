@@ -7,7 +7,7 @@ import { Card, Project, CardFilter } from "@/lib/types";
 import { postCard } from "@/app/views/cards";
 
 import DetailCard from "./detail_card";
-import NewCardPopup from "./new_card_popup";
+import EditCardPopup from "./edit_card_popup";
 
 type CardsPanelProps = {
     project: Project;
@@ -75,11 +75,11 @@ export default function CardsPanel({ project, onCardClick, hidden, cardFilters }
                         <span className="text-[var(--accent-500)] font-semibold text-lg">+ Create Card</span>
                     </div>
                     {filteredCards.map((card) => (
-                        <DetailCard key={card.id} card={card} onClick={onCardClick} />
+                        <DetailCard key={card.id} card={card} onClick={onCardClick} projectId={project.id} />
                     ))}
                 </div>
             )}
-            {isNewCardPopupOpen && <NewCardPopup onSubmit={onAddCard} onCancel={() => setNewCardPopupOpen(false)}/>}
+            {isNewCardPopupOpen && <EditCardPopup onSubmit={onAddCard} onCancel={() => setNewCardPopupOpen(false)}/>}
         </div>
     );
 }

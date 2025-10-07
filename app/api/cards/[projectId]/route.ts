@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { db } from "@/lib/firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
 
 import { Card, PostCardPayload } from "@/lib/types";
 
@@ -65,5 +65,74 @@ export async function POST (req: NextRequest, context: { params: Promise<{ proje
     } catch (err) {
         console.error("Error creating card:", err);
         return NextResponse.json({ error: "Failed to create card" }, { status: 500 });
+    }
+}
+
+export async function PUT(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
+    const uid = await getVerifiedUid(req);
+    if (!uid) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { projectId } = await context.params;
+
+    try {
+        const body = await req.json();
+        const { cardId, title, details, exclude } = body;
+
+        if (!cardId) {
+            return NextResponse.json({ error: "Card ID is required" }, { status: 400 });
+        }
+
+        if (!title || title.trim() === "") {
+            return NextResponse.json({ error: "Title is required" }, { status: 400 });
+        }
+
+        const cardDocRef = doc(db, "projects", projectId, "cards", cardId);
+
+        await updateDoc(cardDocRef, {
+            title,
+            details: details || [],
+            exclude: exclude ?? true,
+        });
+
+        const updatedCard: Card = {
+            id: cardId,
+            title,
+            details: details || [],
+            exclude: exclude ?? true,
+        };
+
+        return NextResponse.json(updatedCard);
+    } catch (err) {
+        console.error("Error updating card:", err);
+        return NextResponse.json({ error: "Failed to update card" }, { status: 500 });
+    }
+}
+
+export async function DELETE(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
+    const uid = await getVerifiedUid(req);
+    if (!uid) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { projectId } = await context.params;
+
+    try {
+        const body = await req.json();
+        const { cardId } = body;
+
+        if (!cardId) {
+            return NextResponse.json({ error: "Card ID is required" }, { status: 400 });
+        }
+
+        const cardDocRef = doc(db, "projects", projectId, "cards", cardId);
+
+        await deleteDoc(cardDocRef);
+
+        return NextResponse.json({ success: true });
+    } catch (err) {
+        console.error("Error deleting card:", err);
+        return NextResponse.json({ error: "Failed to delete card" }, { status: 500 });
     }
 }

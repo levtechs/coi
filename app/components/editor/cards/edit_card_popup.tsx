@@ -1,20 +1,30 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 import { FiX, FiPlus, FiTrash2, FiCheck} from "react-icons/fi";
 import Button from "../../button";
+import { Card } from "@/lib/types";
 
 
-type NewCardPopupProps = {
+type EditCardPopupProps = {
     onCancel: () => void;
-    onSubmit: (title: string, details: string[], exclude: boolean) => void;
+    onSubmit: (title: string, details: string[], exclude: boolean, cardId?: string) => void;
+    card?: Card | null;
 };
 
-export default function NewCardPopup({ onSubmit, onCancel }: NewCardPopupProps) {
-    const [title, setTitle] = useState("");
-    const [details, setDetails] = useState<string[]>([""]);
-    const [exclude, setExclude] = useState(true);
+export default function EditCardPopup({ onSubmit, onCancel, card }: EditCardPopupProps) {
+    const [title, setTitle] = useState(card?.title || "");
+    const [details, setDetails] = useState<string[]>(card?.details && card.details.length > 0 ? card.details : [""]);
+    const [exclude, setExclude] = useState(card?.exclude ?? true);
+
+    useEffect(() => {
+        if (card) {
+            setTitle(card.title);
+            setDetails(card.details && card.details.length > 0 ? card.details : [""]);
+            setExclude(card.exclude ?? true);
+        }
+    }, [card]);
 
     const handleDetailChange = (index: number, value: string) => {
         const newDetails = [...details];
@@ -32,7 +42,7 @@ export default function NewCardPopup({ onSubmit, onCancel }: NewCardPopupProps) 
 
     const handleSubmit = () => {
         if (!title.trim()) return; // require title
-        onSubmit(title, details, exclude);
+        onSubmit(title, details, exclude, card?.id);
         onCancel();
     };
 
@@ -96,26 +106,16 @@ export default function NewCardPopup({ onSubmit, onCancel }: NewCardPopupProps) 
                     )}
                 </div>
 
-                <h2 className="mt-4">
+                <h2 className="mt-4 italic">
                     Options:
                 </h2>
-                <div className="flex items-center gap-4">
-                    <label className="relative flex items-center cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={exclude}
-                            onChange={(e) => setExclude(e.target.checked)}
-                            className="peer sr-only"
-                        />
-                        <div className="w-6 h-6 rounded-md border border-[var(--neutral-300)] bg-[var(--neutral-100)] flex items-center justify-center transition-all duration-200 peer-checked:bg-[var(--accent-500)] peer-checked:border-[var(--accent-500)]">
-                            <FiCheck
-                                className="text-white opacity-0 transition-opacity duration-200 peer-checked:opacity-100"
-                            />
-                        </div>
-                    </label>
-                    <label htmlFor="longLived" className="text-[var(--foreground)] text-lg cursor-pointer" onClick={() => setExclude(!exclude)}>
+                <div className="flex flex-row gap-2">
+                    <button
+                        className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${exclude ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
+                        onClick={() => setExclude(!exclude)}
+                    >
                         Exclude from hierarchy
-                    </label>
+                    </button>
                 </div>
 
 
@@ -133,7 +133,7 @@ export default function NewCardPopup({ onSubmit, onCancel }: NewCardPopupProps) 
                         onClick={handleSubmit}
                         color="var(--accent-400)"
                     >
-                        Save card
+                        {card ? "Update card" : "Save card"}
                     </Button>
                 </div>
             </div>
