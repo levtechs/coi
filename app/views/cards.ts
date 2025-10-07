@@ -43,7 +43,7 @@ export async function postCard(projectId: string, cardData: PostCardPayload): Pr
  * @param updates The fields to update (title, details, exclude).
  * @returns A promise that resolves to the updated Card or null on failure.
  */
-export async function updateCard(projectId: string, cardId: string, updates: { title?: string; details?: any[]; exclude?: boolean }): Promise<Card | null> {
+export async function updateCard(projectId: string, cardId: string, updates: { title?: string; details?: string[]; exclude?: boolean }): Promise<Card | null> {
     try {
         const payload = { cardId, ...updates };
         const updatedCard = await apiFetch<Card>(`/api/cards/${projectId}`, {

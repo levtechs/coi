@@ -36,7 +36,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, set
         isOpen: true,
         type: "info",
         width: "3xl",
-        children: <NewCardsPopup newCards={newCards} setClickedCard={setClickedCard}/>
+        children: <NewCardsPopup newCards={newCards} setClickedCard={setClickedCard} projectId={project.id}/>
     })
 
     const onSend = () => sendMessage(input, messages, attachments, project, addMessage, setStream, setNewCards, setStreamPhase, setInput, setLoading)
