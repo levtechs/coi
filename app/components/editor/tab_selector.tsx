@@ -1,17 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 
 type TabProps = {
     tabs: string[];
+    activeTab: string;
     onTabChange: (tabName: string) => void;
 };
 
-const TabSelector = ({ tabs, onTabChange }: TabProps) => {
-    const [activeTab, setActiveTab] = useState(tabs[0]);
-
+const TabSelector = ({ tabs, activeTab, onTabChange }: TabProps) => {
     const handleTabClick = (tabName: string) => {
-        setActiveTab(tabName);
         onTabChange(tabName);
     };
 
