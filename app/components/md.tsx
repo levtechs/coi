@@ -39,7 +39,7 @@ type Props = {
     singleLine?: boolean;
 };
 
-export default function MarkdownArticle({ markdown, singleLine }: Props) {
+export default function MarkdownArticle({ markdown, singleLine = false }: Props) {
     const processedMarkdown = useMemo(() => normalizeMathMarkdown(markdown), [markdown]);
 
     const balance = useMemo(() => checkMathBalance(processedMarkdown), [processedMarkdown]);
@@ -50,50 +50,56 @@ export default function MarkdownArticle({ markdown, singleLine }: Props) {
 
     const baseStyle = "text-[var(--foreground)] leading-relaxed";
     const headingBase = "font-semibold text-[var(--foreground)]";
-    const paragraphBase = "text-[var(--foreground)] leading-relaxed mb-3";
+    const paragraphBase = `${baseStyle} ${singleLine ? "" : "mb-3"}`;
+    const headingSpacing = singleLine ? "" : "mt-3 mb-2";
+    const listSpacing = singleLine ? "" : "ml-6 mb-3 space-y-1";
 
     return (
-        <div className="prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-[var(--foreground)] prose-p:text-[var(--foreground)]">
+        <div
+            className={`prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-[var(--foreground)] prose-p:text-[var(--foreground)] ${
+                singleLine ? "m-0 p-0" : ""
+            }`}
+        >
             <ReactMarkdown
                 remarkPlugins={[remarkMath]}
                 rehypePlugins={[rehypeRaw, rehypeKatex]}
                 components={{
                     h1: ({ ...props }) => (
                         <h1
-                            className={`${headingBase} text-4xl mt-6 mb-3 border-b border-[var(--neutral-400)] pb-1`}
+                            className={`${headingBase} text-4xl ${headingSpacing} ${
+                                singleLine ? "" : "border-b border-[var(--neutral-400)] pb-1"
+                            }`}
                             {...props}
                         />
                     ),
                     h2: ({ ...props }) => (
                         <h2
-                            className={`${headingBase} text-3xl mt-5 mb-2 border-b border-[var(--neutral-400)] pb-[2px]`}
+                            className={`${headingBase} text-3xl ${headingSpacing} ${
+                                singleLine ? "" : "border-b border-[var(--neutral-400)] pb-[2px]"
+                            }`}
                             {...props}
                         />
                     ),
                     h3: ({ ...props }) => (
                         <h3
-                            className={`${headingBase} text-2xl mt-4 mb-2 text-[var(--accent-600)]`}
+                            className={`${headingBase} text-2xl ${headingSpacing} ${
+                                singleLine ? "" : "text-[var(--accent-600)]"
+                            }`}
                             {...props}
                         />
                     ),
                     h4: ({ ...props }) => (
-                        <h4 className={`${headingBase} text-xl mt-3 mb-1`} {...props} />
+                        <h4 className={`${headingBase} text-xl ${headingSpacing}`} {...props} />
                     ),
                     h5: ({ ...props }) => (
-                        <h5 className={`${headingBase} text-lg mt-2 mb-1`} {...props} />
+                        <h5 className={`${headingBase} text-lg ${headingSpacing}`} {...props} />
                     ),
                     h6: ({ ...props }) => (
-                        <h6 className={`${headingBase} text-base mt-2 mb-1`} {...props} />
+                        <h6 className={`${headingBase} text-base ${headingSpacing}`} {...props} />
                     ),
-                    p: ({ ...props }) => (
-                        <p className={paragraphBase} {...props} />
-                    ),
-                    ul: ({ ...props }) => (
-                        <ul className="list-disc list-outside ml-6 mb-3 space-y-1" {...props} />
-                    ),
-                    ol: ({ ...props }) => (
-                        <ol className="list-decimal list-outside ml-6 mb-3 space-y-1" {...props} />
-                    ),
+                    p: ({ ...props }) => <p className={paragraphBase} {...props} />,
+                    ul: ({ ...props }) => <ul className={`list-disc list-outside ${listSpacing}`} {...props} />,
+                    ol: ({ ...props }) => <ol className={`list-decimal list-outside ${listSpacing}`} {...props} />,
                 }}
             >
                 {processedMarkdown}
