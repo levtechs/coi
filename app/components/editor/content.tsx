@@ -9,16 +9,18 @@ import DetailCard from "./cards/detail_card";
 // Define the type for the global collapse state map
 type CollapseStateMap = Record<string, boolean>;
 
-// --- New Component: AddIcon (unchanged) ---
+// --- New Component: AddIcon ---
 interface AddIconProps {
     onClick: () => void;
+    position?: 'top' | 'bottom';
 }
 
-const AddIcon = React.memo(({ onClick }: AddIconProps) => {
+const AddIcon = React.memo(({ onClick, position = 'top' }: AddIconProps) => {
+    const positionClass = position === 'bottom' ? 'bottom-1 right-1' : 'top-1 right-1';
     return (
-        <div className="hidden group-hover:block absolute top-1 right-1 z-10">
-            <FiPlus 
-                className="text-3xl text-[var(--accent-400)] cursor-pointer"
+        <div className={`hidden group-hover:block absolute ${positionClass} z-10`}>
+            <FiPlus
+                className="text-3xl text-[var(--neutral-700)] hover:text-[var(--accent-500)] cursor-pointer"
                 onClick={onClick}
             />
         </div>
@@ -40,6 +42,7 @@ interface ContentHierarchyRendererProps {
     path: string; // The unique path of this node (e.g., "C/A")
     collapsedState: CollapseStateMap;
     toggleCollapse: (path: string) => void;
+    projectId: string;
 }
 
 /**
@@ -54,10 +57,10 @@ const HierarchicalNode = ({
     cardFilters,
     path, // Use path for unique identification
     collapsedState,
-    toggleCollapse
+    toggleCollapse,
+    projectId
 }: ContentHierarchyRendererProps) => {
     
-    // CRITICAL FIX: Read collapse state from the prop map, defaulting to expanded (false)
     const isCollapsed = !!collapsedState[path];
     
     if (!hierarchy) return <p className="text-[var(--neutral-500)]">(No content)</p>;
@@ -77,8 +80,8 @@ const HierarchicalNode = ({
                     <div key={`row-${rowKey}`} className="flex flex-row gap-4 p-2 overflow-x-auto">
                         {cardBuffer.map((card) => (
                             <div key={card.id} className="group shrink-0 relative">
-                                <DetailCard card={card} onClick={() => setClickedCard(card)} />
-                                <AddIcon onClick={() => { addAttachment(card) }} />
+                                <DetailCard card={card} onClick={() => setClickedCard(card)} projectId={projectId} />
+                                <AddIcon onClick={() => { addAttachment(card) }} position="bottom" />
                             </div>
                         ))}
                     </div>
@@ -145,6 +148,7 @@ const HierarchicalNode = ({
                                 path={childPath}
                                 collapsedState={collapsedState}
                                 toggleCollapse={toggleCollapse}
+                                projectId={projectId}
                             />
                         </div>
                     );
@@ -205,9 +209,10 @@ interface ContentPanelProps {
     cardFilters: CardFilter;
     addAttachment: (attachment: ChatAttachment) => void;
     setClickedCard: Dispatch<SetStateAction<Card | null>>;
+    projectId: string;
 }
 
-const ContentPanel = ({ hierarchy, cards, hidden = false, cardFilters, addAttachment, setClickedCard }: ContentPanelProps) => {
+const ContentPanel = ({ hierarchy, cards, hidden = false, cardFilters, addAttachment, setClickedCard, projectId }: ContentPanelProps) => {
     // NEW: State to store the collapsed status of all nodes by their path
     const [collapsedState, setCollapsedState] = useState<CollapseStateMap>({});
 
@@ -240,6 +245,7 @@ const ContentPanel = ({ hierarchy, cards, hidden = false, cardFilters, addAttach
                         path={rootPath}
                         collapsedState={collapsedState}
                         toggleCollapse={toggleCollapse}
+                        projectId={projectId}
                     />
                 ) : (
                     <p className="text-[var(--neutral-500)]">(No content)</p>

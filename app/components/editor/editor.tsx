@@ -91,6 +91,7 @@ const Editor = ({
                                     })
                                 }
                                 setClickedCard={setCardPopup}
+                                projectId={project.id}
                             />
                             <CardsPanel
                                 project={project}

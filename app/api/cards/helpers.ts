@@ -9,45 +9,6 @@ import {
 import { db } from "@/lib/firebase";
 import { Card } from "@/lib/types";
 
-/**
- * Recursively searches a nested object for "card" objects, which are
- * defined as having a 'title' and a 'details' array. It extracts only
- * the string-based details.
- * @param obj The object to search.
- * @param foundCards An array to accumulate the found cards.
- */
-const recursivelyFindCards = (obj: unknown, foundCards: Omit<Card, 'id'>[]) => {
-    if (typeof obj !== 'object' || obj === null) {
-        return;
-    }
-
-    const typedObj = obj as { [key: string]: unknown };
-
-    // Check if the current object is a valid card (has title and a details array)
-    if (typeof typedObj.title === 'string' && Array.isArray(typedObj.details)) {
-        // This is a card. Extract only its string details, discarding sub-elements.
-        const stringDetails = typedObj.details.filter(item => typeof item === 'string') as string[];
-        foundCards.push({
-            title: typedObj.title,
-            details: stringDetails
-        });
-
-        // Continue searching for nested cards within the details array
-        typedObj.details.forEach(item => {
-            if (typeof item === 'object' && item !== null) {
-                recursivelyFindCards(item, foundCards);
-            }
-        });
-    } else {
-        // If not a card, just continue the search in its properties.
-        for (const key in typedObj) {
-            if (typeof typedObj[key] === 'object' && typedObj[key] !== null) {
-                recursivelyFindCards(typedObj[key], foundCards);
-            }
-        }
-    }
-};
-
 export const fetchCardsFromProject = async (projectId: string): Promise<Card[]> => {
     try {
         const projectRef = doc(db, "projects", projectId);
@@ -118,6 +79,45 @@ export const writeCardsToDb = async (
  * ========================================================
  * ========================================================
  */
+
+/**
+ * Recursively searches a nested object for "card" objects, which are
+ * defined as having a 'title' and a 'details' array. It extracts only
+ * the string-based details.
+ * @param obj The object to search.
+ * @param foundCards An array to accumulate the found cards.
+ */
+const recursivelyFindCards = (obj: unknown, foundCards: Omit<Card, 'id'>[]) => {
+    if (typeof obj !== 'object' || obj === null) {
+        return;
+    }
+
+    const typedObj = obj as { [key: string]: unknown };
+
+    // Check if the current object is a valid card (has title and a details array)
+    if (typeof typedObj.title === 'string' && Array.isArray(typedObj.details)) {
+        // This is a card. Extract only its string details, discarding sub-elements.
+        const stringDetails = typedObj.details.filter(item => typeof item === 'string') as string[];
+        foundCards.push({
+            title: typedObj.title,
+            details: stringDetails
+        });
+
+        // Continue searching for nested cards within the details array
+        typedObj.details.forEach(item => {
+            if (typeof item === 'object' && item !== null) {
+                recursivelyFindCards(item, foundCards);
+            }
+        });
+    } else {
+        // If not a card, just continue the search in its properties.
+        for (const key in typedObj) {
+            if (typeof typedObj[key] === 'object' && typedObj[key] !== null) {
+                recursivelyFindCards(typedObj[key], foundCards);
+            }
+        }
+    }
+};
 
 /**
  * Extracts card objects from a nested JSON string, compares them to existing
