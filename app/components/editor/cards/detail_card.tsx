@@ -12,7 +12,7 @@ import EditCardPopup from "./edit_card_popup";
 type DetailCardProps = {
     card: Card;
     onClick: (card: Card) => void;
-    projectId: string;
+    projectId?: string;
 };
 
 export default function DetailCard({ card, onClick, projectId }: DetailCardProps) {
@@ -82,17 +82,21 @@ export default function DetailCard({ card, onClick, projectId }: DetailCardProps
             </div>
 
         </div>
-        <MenuDropdown isOpen={isMenuOpen} position={menuPosition} onClose={() => setIsMenuOpen(false)} menuRef={menuRef} projectId={projectId} card={card} onEdit={() => setIsEditPopupOpen(true)} />
-        {isEditPopupOpen && (
-            <EditCardPopup
-                card={card}
-                onSubmit={async (title, details, exclude, cardId) => {
-                    if (cardId) {
-                        await updateCard(projectId, cardId, { title, details, exclude });
-                    }
-                }}
-                onCancel={() => setIsEditPopupOpen(false)}
-            />
+        {projectId && (
+            <>
+                <MenuDropdown isOpen={isMenuOpen} position={menuPosition} onClose={() => setIsMenuOpen(false)} menuRef={menuRef} projectId={projectId} card={card} onEdit={() => setIsEditPopupOpen(true)} />
+                {isEditPopupOpen && (
+                    <EditCardPopup
+                        card={card}
+                        onSubmit={async (title, details, exclude, cardId) => {
+                            if (cardId) {
+                                await updateCard(projectId, cardId, { title, details, exclude });
+                            }
+                        }}
+                        onCancel={() => setIsEditPopupOpen(false)}
+                    />
+                )}
+            </>
         )}
     </>
     );
