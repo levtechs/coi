@@ -2,5 +2,7 @@
 
 import Error from './components/error';
 
-const NotFound = () => {<Error h1="404" h2="Page Not Found" p="Could not find the requested resource."/>};
+const NotFound = () => {
+  return <Error h1="404" h2="Page Not Found" p="Could not find the requested resource."/>;
+};
 export default NotFound;
