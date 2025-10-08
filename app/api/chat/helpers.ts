@@ -389,6 +389,38 @@ export const groundingChunksToCardsAndWrite = async (
 };
 
 /**
+ * Deduplicates cards under each category in the hierarchy by removing duplicate card IDs.
+ * Keeps the first occurrence of each card ID.
+ */
+const deduplicateHierarchy = (hierarchy: ContentHierarchy): ContentHierarchy => {
+    const seen = new Set<string>();
+    const deduplicatedChildren = hierarchy.children.filter(child => {
+        if (child.type === 'card') {
+            if (seen.has(child.cardId)) {
+                return false;
+            } else {
+                seen.add(child.cardId);
+                return true;
+            }
+        }
+        return true;
+    });
+
+    return {
+        title: hierarchy.title,
+        children: deduplicatedChildren.map(child => {
+            if (child.type === 'subcontent') {
+                return {
+                    type: 'subcontent',
+                    content: deduplicateHierarchy(child.content)
+                };
+            }
+            return child;
+        })
+    };
+};
+
+/**
  * Generates a new content hierarchy from cards using Gemini.
  *
  * @param oldHierarchy - Existing content hierarchy, if any (can be null).
@@ -424,7 +456,7 @@ export const generateNewHierarchyFromCards = async (
         const responseJSON = JSON.parse(jsonString!);
 
         if (responseJSON.type === "new") {
-            hierarchy = responseJSON.fullHierarchy;
+            hierarchy = deduplicateHierarchy(responseJSON.fullHierarchy);
         } else if (responseJSON.type === "modified") {
             // Start with a deep copy of oldHierarchy
             hierarchy = JSON.parse(JSON.stringify(oldHierarchy));
@@ -533,13 +565,14 @@ export const generateNewHierarchyFromCards = async (
 
             if (hierarchy) {
                 applyActions(hierarchy);
+                hierarchy = deduplicateHierarchy(hierarchy);
             } else {
                 console.warn("[generateNewHierarchyFromCards] No oldHierarchy to modify.");
             }
         }
 
         if (hierarchy) return hierarchy;
-        else if (oldHierarchy) return oldHierarchy;
+        else if (oldHierarchy) return deduplicateHierarchy(oldHierarchy);
         else throw "could not create or update new hierarchy";
     } catch (err) {
         console.error("Failed to parse hierarchy from Gemini:", err, jsonString);
