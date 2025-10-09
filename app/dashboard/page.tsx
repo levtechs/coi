@@ -35,14 +35,17 @@ export default function DashboardPage() {
                     <h1 className="text-3xl font-extrabold text-[var(--foreground)]">
                         Welcome, {user.displayName}!
                     </h1>
-                    <div className="flex flex-row gap-4" >
-                        <Button color="var(--error)" onClick={() => signOut(auth)}>
-                            <FiLogOut className="h-[25px] w-[25px]"/>
-                        </Button>
-                        <Button color="var(--accent-400)" onClick={() => window.location.href = "/profile"}>
-                            <FiUser className="h-[25px] w-[25px]"/>
-                        </Button>
-                    </div>
+                     <div className="flex flex-row gap-4 items-center" >
+                         <Button color="var(--neutral-300)" onClick={() => window.location.href = "/courses"}>
+                             Courses
+                         </Button>
+                         <Button color="var(--error)" onClick={() => signOut(auth)}>
+                             <FiLogOut className="h-[25px] w-[25px]"/>
+                         </Button>
+                         <Button color="var(--accent-400)" onClick={() => window.location.href = "/profile"}>
+                             <FiUser className="h-[25px] w-[25px]"/>
+                         </Button>
+                     </div>
                 </div>
 
                 <hr/>
