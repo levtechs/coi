@@ -140,15 +140,28 @@ const AdminPage = () => {
                                 Show All Projects
                             </Button>
                         )}
-                        <ul className="space-y-4 mb-4">
-                            {(selectedUser ? userProjects : projects).map(project => (
-                                <li key={project.id} className="bg-[var(--neutral-50)] p-4 rounded">
-                                    <h3 className="font-bold">{project.title}</h3>
-                                    <p>Owner: {project.ownerId}</p>
-                                    <p>Collaborators: {project.collaborators.join(', ')}</p>
-                                </li>
-                            ))}
-                        </ul>
+                        <div className="overflow-x-auto">
+                            <table className="w-full table-auto bg-[var(--neutral-300)] rounded-md">
+                                <thead>
+                                    <tr className="bg-[var(--neutral-300)]">
+                                        <th className="px-4 py-2 text-left">ID</th>
+                                        <th className="px-4 py-2 text-left">Title</th>
+                                        <th className="px-4 py-2 text-left">Owner</th>
+                                        <th className="px-4 py-2 text-left">Collaborators</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(selectedUser ? userProjects : projects).map(project => (
+                                        <tr key={project.id} className="border-t hover:bg-[var(--neutral-200)]">
+                                            <td className="px-4 py-2">{project.id}</td>
+                                            <td className="px-4 py-2">{project.title}</td>
+                                            <td className="px-4 py-2">{project.ownerId}</td>
+                                            <td className="px-4 py-2">{project.collaborators.join(', ')}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                         {!selectedUser && (
                             <Button color="var(--accent-500)" onClick={loadMoreProjects}>
                                 {loadingMoreProjects ? "Loading..." : "Load More Projects"}
