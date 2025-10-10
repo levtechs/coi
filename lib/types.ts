@@ -101,4 +101,18 @@ export interface QuizSettings {
     includeFRQ: boolean;
 }
 
+// Course
 
+export interface Course {
+    id: string;
+    title: string;
+    projects: CourseProject[];
+    public?: boolean;
+    sharedWith?: string[]; // ids
+    category?: string;
+}
+
+export interface CourseProject {
+    id: string;
+    index?: number;
+}
