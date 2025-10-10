@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore";
 
-import { Card, PostCardPayload } from "@/lib/types";
+import { Card } from "@/lib/types";
 
 import { fetchCardsFromProject } from "../helpers";
 import { getVerifiedUid } from "@/app/api/helpers";
@@ -36,7 +36,7 @@ export async function POST (req: NextRequest, context: { params: Promise<{ proje
 
     try {
         // Parse request body
-        const body: PostCardPayload = await req.json();
+        const body: Omit<Card, "id"> = await req.json();
 
         if (!body.title || body.title.trim() === "") {
             return NextResponse.json({ error: "Title is required" }, { status: 400 });

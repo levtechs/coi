@@ -1,5 +1,7 @@
 import { Timestamp } from "firebase/firestore";
 
+// General 
+
 export type Project = {
     id: string;
     title: string;
@@ -11,13 +13,6 @@ export type Project = {
     quizIds?: string[]; // ids of quizzes 
 };
 
-export interface Message {
-    id?: string
-    content: string; //markdown
-    attachments?: null | ChatAttachment[];
-    isResponse: boolean;
-}
-
 export interface User {
     id: string
     email: string;
@@ -28,11 +23,26 @@ export interface User {
     projectIds?: string[];
 }
 
-export interface PostCardPayload {
-    title: string;
-    details?: string[];
-    exclude?: boolean;
+// Chat
+
+export interface Message {
+    id?: string
+    content: string; //markdown
+    attachments?: null | ChatAttachment[];
+    isResponse: boolean;
 }
+
+export type ChatAttachment = Card | ContentNode | ContentHierarchy | GroundingChunk;
+export type StreamPhase = "starting" | "streaming" | "processing" | "generating content" | "generating cards";
+
+export interface GroundingChunk {
+    web: {
+        uri: string;
+        title: string;
+    };
+}
+
+// Cards 
 
 export interface Card {
     id: string;
@@ -44,6 +54,10 @@ export interface Card {
     exclude?: boolean;
 }
 
+export type CardFilter = "00" | "01" | "10" | "11";
+
+// Content 
+
 export interface ContentHierarchy {
     title: string;
     children: ContentNode[];
@@ -54,7 +68,7 @@ export type ContentNode =
     | { type: "card"; cardId: string }
     | { type: "subcontent"; content: ContentHierarchy };
 
-export type ChatAttachment = Card | ContentNode | ContentHierarchy | GroundingChunk;
+// Quiz 
 
 export type QuizQuestion = {
     type: "MCQ";
@@ -87,13 +101,4 @@ export interface QuizSettings {
     includeFRQ: boolean;
 }
 
-export type StreamPhase = "starting" | "streaming" | "processing" | "generating content" | "generating cards";
 
-export interface GroundingChunk {
-    web: {
-        uri: string;
-        title: string;
-    };
-}
-
-export type CardFilter = "00" | "01" | "10" | "11";

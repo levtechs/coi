@@ -1,4 +1,4 @@
-import { Card, PostCardPayload } from "@/lib/types";
+import { Card } from "@/lib/types";
 import { apiFetch } from "./helpers";
 
 /**
@@ -23,7 +23,7 @@ export async function getCards(projectId: string): Promise<Card[]> {
  * @param cardData The card details (title, details, exclude).
  * @returns A promise that resolves to the newly created Card (with ID).
  */
-export async function postCard(projectId: string, cardData: PostCardPayload): Promise<Card | null> {
+export async function postCard(projectId: string, cardData: Omit<Card, "id">): Promise<Card | null> {
     try {
         const newCard = await apiFetch<Card>(`/api/cards/${projectId}`, {
             method: "POST",
