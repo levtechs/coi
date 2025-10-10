@@ -6,14 +6,14 @@ import { Course, CourseProject } from "@/lib/types";
 
 export async function GET(
     req: NextRequest,
-    { params }: { params: { courseId: string } }
+    { params }: { params: Promise<{ courseId: string }> }
 ) {
     const uid = await getVerifiedUid(req);
     if (!uid) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { courseId } = params;
+    const { courseId } = await params;
 
     try {
         const courseRef = doc(db, 'courses', courseId);
