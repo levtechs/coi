@@ -77,7 +77,18 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ proj
             return NextResponse.json({ error: "Only the owner can delete a project" }, { status: 403 });
         }
 
+        // Delete the project document
         await deleteDoc(projectRef);
+
+        // Remove the projectId from the user's projectIds array
+        const userRef = doc(db, "users", uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+            const userData = userSnap.data();
+            const currentProjectIds = userData.projectIds || [];
+            const updatedProjectIds = currentProjectIds.filter((id: string) => id !== projectId);
+            await updateDoc(userRef, { projectIds: updatedProjectIds });
+        }
 
         return NextResponse.json({ success: true });
     } catch (err) {

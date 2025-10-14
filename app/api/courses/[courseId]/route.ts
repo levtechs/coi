@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { getVerifiedUid } from "../../helpers";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
-import { Course, CourseProject } from "@/lib/types";
+import { Course, CourseLesson } from "@/lib/types";
 
 export async function GET(
     req: NextRequest,
@@ -35,18 +35,20 @@ export async function GET(
             return NextResponse.json({ error: "Access denied" }, { status: 403 });
         }
 
-        // Fetch projects subcollection
-        const projectsRef = collection(db, 'courses', courseId, 'projects');
-        const projectsSnap = await getDocs(projectsRef);
-        const projects = projectsSnap.docs.map((p) => ({
+        // Fetch lessons subcollection
+        const lessonsRef = collection(db, 'courses', courseId, 'lessons');
+        const lessonsSnap = await getDocs(lessonsRef);
+        const lessons = lessonsSnap.docs.map((p) => ({
             id: p.id,
+            courseId: courseId,
             ...p.data(),
-        })) as CourseProject[];
+                })) as CourseLesson[];
 
         const course: Course = {
             id: courseSnap.id,
             title: courseData.title,
-            projects,
+            description: courseData.description,
+            lessons,
             public: courseData.public,
             sharedWith: courseData.sharedWith || [],
             category: courseData.category,

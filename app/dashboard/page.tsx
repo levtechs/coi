@@ -50,11 +50,9 @@ export default function DashboardPage() {
 
                 <hr/>
 
-                <p className="mt-8 text-[var(--foreground)] text-lg  mb-4">
-                    Your projects
-                </p>
-
-                <Dashboard user={user} />
+                <div className="mt-8">
+                    <Dashboard user={user} />
+                </div>
             </div>
         </div>
     );

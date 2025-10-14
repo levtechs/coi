@@ -22,6 +22,17 @@ const Dashboard = ({ user }: DashboardProps) => {
     const [modalVisible, setModalVisible] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
 
+    // Separate projects into regular and lesson projects
+    const isLessonProject = (project: Project) => {
+        return project.hierarchy &&
+               project.hierarchy.children &&
+               project.hierarchy.children.length === 1 &&
+               project.hierarchy.children[0].type === 'text';
+    };
+
+    const regularProjects = projects.filter(p => !isLessonProject(p));
+    const lessonProjects = projects.filter(p => isLessonProject(p));
+
     useEffect(() => {
         if (!user) return;
 
@@ -75,8 +86,8 @@ const Dashboard = ({ user }: DashboardProps) => {
 
     return (
         <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Create Project Card */}
+            {/* Create Project Card - Always shown */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 <div
                     className="flex items-center justify-center border border-[var(--neutral-300)] rounded-lg p-6 cursor-pointer
                             bg-[var(--neutral-100)]
@@ -86,18 +97,45 @@ const Dashboard = ({ user }: DashboardProps) => {
                 >
                     <span className="text-[var(--accent-500)] font-semibold text-lg">+ Create Project</span>
                 </div>
-
-
-                {/* Project Cards */}
-                {projects.map((project) => (
-                    <ProjectCard 
-                        key={project.id} 
-                        project={project} 
-                        onEdit={openEditModal} 
-                        setProjects={setProjects}
-                    />
-                ))}
             </div>
+
+            {/* Regular Projects Section */}
+            {regularProjects.length > 0 && (
+                <div className="mb-8">
+                    <p className="text-[var(--foreground)] text-lg mb-4">
+                        Your projects
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {regularProjects.map((project) => (
+                            <ProjectCard
+                                key={project.id}
+                                project={project}
+                                onEdit={openEditModal}
+                                setProjects={setProjects}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Lesson Projects Section */}
+            {lessonProjects.length > 0 && (
+                <div>
+                    <p className="text-[var(--foreground)] text-lg mb-4">
+                        Your lessons
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {lessonProjects.map((project) => (
+                            <ProjectCard
+                                key={project.id}
+                                project={project}
+                                onEdit={openEditModal}
+                                setProjects={setProjects}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Modal for Create/Edit */}
             <Modal

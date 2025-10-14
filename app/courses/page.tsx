@@ -1,8 +1,10 @@
 "use client";
 
 import { useAuth } from "@/lib/AuthContext";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import LoginPrompt from "../components/login_prompt";
-import { FiHome } from "react-icons/fi";
+import { FiHome, FiLogOut, FiUser } from "react-icons/fi";
 import Link from "next/link";
 import Button from "../components/button";
 import CoursesDashboard from "../components/courses/dashboard";
@@ -37,9 +39,17 @@ export default function CoursesPage() {
                             Courses
                         </h1>
                     </div>
-                    <Button color="var(--accent-500)">
-                        Create Course
-                    </Button>
+                     <div className="flex flex-row gap-4 items-center">
+                         <Button color="var(--accent-500)">
+                             Create Course
+                         </Button>
+                         <Button color="var(--error)" onClick={() => signOut(auth)}>
+                             <FiLogOut className="h-[25px] w-[25px]" />
+                         </Button>
+                         <Button color="var(--accent-400)" onClick={() => window.location.href = "/profile"}>
+                             <FiUser className="h-[25px] w-[25px]" />
+                         </Button>
+                     </div>
                 </div>
 
                 <hr />
