@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { getVerifiedUid } from "../helpers";
 import { collection, getDocs, query, where, or } from "firebase/firestore";
-import { Course, CourseProject } from "@/lib/types";
+import { Course, CourseLesson } from "@/lib/types";
 
 /*
  * Fetches all courses available to a user.
@@ -29,17 +29,22 @@ export async function GET(req: NextRequest) {
         const courses = await Promise.all(
             snapshot.docs.map(async (doc) => {
                 const data = doc.data();
-                const projectsRef = collection(db, 'courses', doc.id, 'projects');
-                const projectsSnap = await getDocs(projectsRef);
-                const projects = projectsSnap.docs.map((p) => ({
+                const lessonsRef = collection(db, 'courses', doc.id, 'lessons');
+                const lessonsSnap = await getDocs(lessonsRef);
+                const lessons = lessonsSnap.docs.map((p) => ({
                     id: p.id,
+                    courseId: doc.id,
                     ...p.data(),
-                })) as CourseProject[];
+                })) as CourseLesson[];
 
                 return {
                     id: doc.id,
-                    ...data,
-                    projects,
+                    title: data.title,
+                    description: data.description,
+                    lessons,
+                    public: data.public,
+                    sharedWith: data.sharedWith,
+                    category: data.category,
                 } as Course;
             })
         );

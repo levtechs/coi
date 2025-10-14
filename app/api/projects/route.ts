@@ -2,8 +2,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { Project } from "@/lib/types";
-import { doc, getDoc, collection, updateDoc, addDoc} from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { getVerifiedUid } from "../helpers";
+import { createProject } from "./helpers";
 
 export async function GET(req: NextRequest) {
     const uid = await getVerifiedUid(req);
@@ -61,26 +62,18 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const title = body.title || "Untitled Project";
-    const content = body.content || "";
+    const hierarchy = body.content || { title: "", children: [] };
+    const cards = body.cards || [];
 
     try {
-        // 1️⃣ Create the new project document
-        const projectsCol = collection(db, "projects");
-        const docRef = await addDoc(projectsCol, {
+        const projectId = await createProject({
             title,
-            content,
-            ownerId: uid,
-            collaborators: [],
-            sharedWith: [],
-        });
+            hierarchy,
+            cards,
+            quizIds: body.quizIds,
+        }, uid);
 
-        // 2️⃣ Add the projectId to the user's projectIds array
-        const userRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userRef);
-        const currentProjectIds = (userSnap.exists() ? userSnap.data().projectIds || [] : []);
-        await updateDoc(userRef, { projectIds: [...currentProjectIds, docRef.id] });
-
-        return NextResponse.json({ id: docRef.id });
+        return NextResponse.json({ id: projectId });
     } catch (err) {
         return NextResponse.json({ error: (err as Error).message }, { status: 500 });
     }

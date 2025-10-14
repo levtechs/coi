@@ -33,6 +33,9 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
 
     const truncatedTitle = project.title.length > 15 ? project.title.slice(0, 15) + '...' : project.title;
 
+    // Check if this project is from a lesson
+    const isLessonProject = !!project.courseLesson;
+
     useEffect(() => {
         const fetchQuizzes = async () => {
             if (!project.quizIds) return;
@@ -114,7 +117,7 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
 
             {/* Right side: Share + Collaborators */}
             <div className="flex items-center gap-4">
-                <h2 
+                <h2
                     className="text-[var(--foreground)] text-l font-bold hover:underline cursor-pointer"
                     onClick={() => {setModalContents({
                         isOpen: true,
@@ -126,8 +129,16 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                 >
                     Quiz me!
                 </h2>
-                <Button 
-                    color="var(--neutral-300)" 
+                {isLessonProject && project.courseId && (
+                    <Button
+                        color="var(--neutral-300)"
+                        onClick={() => window.location.href = `/courses/${project.courseId}/${project.courseLesson!.index}`}
+                    >
+                        View Lesson
+                    </Button>
+                )}
+                <Button
+                    color="var(--neutral-300)"
                     onClick={()=>{
                         setModalContents({
                             isOpen: true,
@@ -136,7 +147,7 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                             children: <ProjectDetailsPanel project={project} quizzes={quizzes} />
                         })
                     }}
-                > 
+                >
                     Details
                 </Button>
                 <CollaboratorsDropdown 

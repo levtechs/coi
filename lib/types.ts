@@ -8,9 +8,11 @@ export type Project = {
     ownerId: string;
     collaborators: string[]; // emails
     sharedWith: string[]; // ids
-    cards: Card[]; 
+    cards: Card[];
     hierarchy: ContentHierarchy;
-    quizIds?: string[]; // ids of quizzes 
+    quizIds?: string[]; // ids of quizzes
+    courseLesson?: CourseLesson; // if project is part of a courseLesson
+    courseId?: string; // if project is part of a course
 };
 
 export interface User {
@@ -106,13 +108,19 @@ export interface QuizSettings {
 export interface Course {
     id: string;
     title: string;
-    projects: CourseProject[];
+    description?: string;
+    lessons: CourseLesson[];
     public?: boolean;
     sharedWith?: string[]; // ids
     category?: string;
 }
 
-export interface CourseProject {
+export interface CourseLesson {
     id: string;
-    index?: number;
+    courseId: string;
+    index: number;
+    title: string;
+    description: string;
+    cardsToUnlock: Card[];
+    quizIds?: string[];
 }
