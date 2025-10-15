@@ -12,9 +12,9 @@ const CoursesDashboard = () => {
     const { user } = useAuth();
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
-    const [mathExpanded, setMathExpanded] = useState(false);
-    const [scienceExpanded, setScienceExpanded] = useState(false);
-    const [historyExpanded, setHistoryExpanded] = useState(false);
+    const [mathExpanded, setMathExpanded] = useState(true);
+    const [scienceExpanded, setScienceExpanded] = useState(true);
+    const [historyExpanded, setHistoryExpanded] = useState(true);
 
     useEffect(() => {
         const fetchCourses = async () => {
