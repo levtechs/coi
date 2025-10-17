@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/lib/AuthContext";
+import { ThemeProvider } from "@/lib/ThemeContext";
 
 import { Mona_Sans } from 'next/font/google';
 
@@ -18,7 +19,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="en" className={font.className}>
             <body>
-                <AuthProvider>{children}</AuthProvider>
+                <ThemeProvider>
+                    <AuthProvider>{children}</AuthProvider>
+                </ThemeProvider>
             </body>
         </html>
     );
