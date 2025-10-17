@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiChevronDown, FiChevronRight } from "react-icons/fi";
 import Button from "../../button";
 import FastCreatePopup from "./fast_create_popup";
 import { CourseLesson, Card, NewCard } from "@/lib/types";
@@ -47,28 +47,28 @@ export default function LessonComponent({
     const [isGeneratingLesson, setIsGeneratingLesson] = useState(false);
     return (
         <div
-            className="mb-6 p-4 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] min-h-[200px]"
+            className={`mb-6 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] ${collapsed ? 'p-3' : 'p-4 min-h-[200px]'}`}
         >
-            <div className="flex justify-between items-center mb-2">
+                                 <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => onToggleCollapse(index)}
                         className="text-[var(--foreground)] hover:text-[var(--accent-500)] px-2 py-1"
                     >
                         {collapsed ? (
-                            <FiChevronDown size={16} />
+                            <FiChevronRight size={16} />
                         ) : (
-                            <FiChevronUp size={16} />
+                            <FiChevronDown size={16} />
                         )}
                     </button>
-                    <div className="cursor-pointer" onClick={() => onToggleCollapse(index)}>
-                        <div className="text-lg font-medium text-[var(--foreground)] px-2 py-1 line-clamp-2">
+                    <div className="flex justify-between items-center cursor-pointer" onClick={() => onToggleCollapse(index)}>
+                        <div className="text-lg font-medium text-[var(--foreground)] px-2 py-1 line-clamp-2 flex-shrink-0">
                             {lesson.title || `Lesson ${index + 1}`}
                         </div>
-                        {collapsed && lesson.description && (
-                            <p className="text-sm text-[var(--foreground)] opacity-70 ml-8">
-                                {lesson.description.length > 100 ? lesson.description.substring(0, 100) + "..." : lesson.description}
-                            </p>
+                        {lesson.description && (
+                            <div className="text-sm text-[var(--foreground)] opacity-70 flex-1 ml-4 truncate">
+                                {lesson.description}
+                            </div>
                         )}
                     </div>
                 </div>
@@ -81,7 +81,7 @@ export default function LessonComponent({
             </div>
             {!collapsed && (
                 <div>
-                    <div className="mb-3">
+                    <div className="mb-3 mt-2">
                         <div
                             className="flex items-center justify-center border border-[var(--neutral-300)] rounded-lg p-3 cursor-pointer
                                     bg-[var(--neutral-100)]
@@ -116,27 +116,27 @@ export default function LessonComponent({
                         />
                     </div>
                     <div className="mb-3">
-                        <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
+                        <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                             Cards to Unlock
                         </label>
-                                    {lesson.cardsToUnlock.map((card, cardIndex) => (
-                            <div key={`card-${index}-${cardIndex}`} className="mb-4 p-3 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-200)] min-h-[100px]">
-                                <div className="flex justify-between items-center mb-2">
+                        {lesson.cardsToUnlock.map((card, cardIndex) => (
+                            <div key={`card-${index}-${cardIndex}`} className={`mb-4 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-200)] p-3 ${!(collapsedCards[index] && collapsedCards[index][cardIndex]) ? 'min-h-[100px]' : ''}`}>
+                                <div className="flex justify-between items-center">
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => onToggleCardCollapse(index, cardIndex)}
                                             className="text-[var(--foreground)] hover:text-[var(--accent-500)] px-2 py-1"
                                         >
-                                            {(collapsedCards[index] && collapsedCards[index][cardIndex]) ? <FiChevronDown size={14} /> : <FiChevronUp size={14} />}
+                                            {(collapsedCards[index] && collapsedCards[index][cardIndex]) ? <FiChevronRight size={14} /> : <FiChevronDown size={14} />}
                                         </button>
-                                        <div className="cursor-pointer" onClick={() => onToggleCardCollapse(index, cardIndex)}>
-                                            <div className="text-md font-medium text-[var(--foreground)] px-2 py-1 line-clamp-2">
+                                        <div className="flex justify-between items-center cursor-pointer" onClick={() => onToggleCardCollapse(index, cardIndex)}>
+                                            <div className="text-md font-medium text-[var(--foreground)] px-2 py-1 line-clamp-2 flex-shrink-0">
                                                 {card.title || `Card ${cardIndex + 1}`}
                                             </div>
-                                            {collapsedCards[index] && collapsedCards[index][cardIndex] && card.details && card.details[0] && (
-                                                <p className="text-sm text-[var(--foreground)] opacity-70 ml-6">
-                                                    {card.details[0].length > 50 ? card.details[0].substring(0, 50) + "..." : card.details[0]}
-                                                </p>
+                                            {card.details && card.details[0] && (
+                                                <div className="text-sm text-[var(--foreground)] opacity-70 flex-1 ml-4 truncate">
+                                                    {card.details[0]}
+                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -147,7 +147,7 @@ export default function LessonComponent({
                                         Remove Card
                                     </button>
                                 </div>
-                                {!(collapsedCards[index] && collapsedCards[index][cardIndex]) && (
+                                {(!collapsedCards[index] || !collapsedCards[index][cardIndex]) && (
                                     <div>
                                         <div className="mb-2">
                                             <label className="block text-xs font-medium text-[var(--foreground)] mb-1">

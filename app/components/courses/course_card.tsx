@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { FiLock, FiMoreVertical, FiEdit2, FiTrash2 } from "react-icons/fi";
 import { Course } from "@/lib/types";
+import { deleteCourse } from "@/app/views/courses";
 
 type CourseCardProps = {
     course: Course;
@@ -78,6 +79,7 @@ export default function CourseCard({ course }: CourseCardProps) {
                 position={menuPosition}
                 onClose={() => setIsMenuOpen(false)}
                 menuRef={menuRef}
+                course={course}
             />
         </div>
     );
@@ -88,11 +90,13 @@ const MenuDropdown = ({
     position,
     onClose,
     menuRef,
+    course,
 }: {
     isOpen: boolean;
     position: { top: number; left: number };
     onClose: () => void;
     menuRef: React.RefObject<HTMLDivElement>;
+    course: Course;
 }) => {
     if (!isOpen) return null;
     return (
@@ -106,16 +110,21 @@ const MenuDropdown = ({
                 className="flex items-center gap-2 px-4 py-2 text-[var(--neutral-800)] hover:bg-[var(--neutral-200)] cursor-pointer"
                 onClick={() => {
                     onClose();
-                    // Edit action - implement later
+                    window.location.assign(`/courses?edit=${course.id}`);
                 }}
             >
                 <FiEdit2 size={16} /> Edit
             </div>
             <div
                 className="flex items-center gap-2 px-4 py-2 text-red-500 hover:bg-[var(--neutral-200)] cursor-pointer"
-                onClick={() => {
+                onClick={async () => {
                     onClose();
-                    // Delete action - implement later
+                    if (confirm("Are you sure you want to delete this course?")) {
+                        const success = await deleteCourse(course.id);
+                        if (success) {
+                            window.location.reload();
+                        }
+                    }
                 }}
             >
                 <FiTrash2 size={16} /> Delete

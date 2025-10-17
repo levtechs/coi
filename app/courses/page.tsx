@@ -14,7 +14,7 @@ import CreateCourse from "../components/courses/create/create_course";
 export default function CoursesPage() {
     const { user, loading } = useAuth();
     const searchParams = useSearchParams();
-    const isCreateMode = searchParams.get('new') === 'true' || searchParams.has('new');
+    const isCreateMode = searchParams.get('new') === 'true' || searchParams.has('new') || searchParams.has('edit');
 
     if (loading) {
         return (
@@ -44,9 +44,9 @@ export default function CoursesPage() {
                                  Back to Courses
                              </Button>
                          )}
-                         <h1 className="text-3xl font-extrabold text-[var(--foreground)]">
-                             {isCreateMode ? 'Create Course' : 'Courses'}
-                         </h1>
+                          <h1 className="text-3xl font-extrabold text-[var(--foreground)]">
+                              {isCreateMode ? (searchParams.has('edit') ? 'Edit Course' : 'Create Course') : 'Courses'}
+                          </h1>
                      </div>
                      <div className="flex flex-row gap-4 items-center">
                           {!isCreateMode && (
