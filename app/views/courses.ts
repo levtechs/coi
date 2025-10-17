@@ -1,9 +1,9 @@
 import { apiFetch } from "./helpers";
 
-import { Course, CourseLesson } from "@/lib/types";
+import { Course, CourseLesson, NewCard } from "@/lib/types";
 
-type NewCourse = Omit<Course, "id"> & { lessons: NewLesson[] };
-type NewLesson = Omit<CourseLesson, "id" | "courseId">;
+type NewCourse = Omit<Course, "id" | "lessons"> & { lessons: NewLesson[] };
+type NewLesson = Omit<CourseLesson, "id" | "courseId" | "cardsToUnlock"> & { cardsToUnlock: NewCard[] };
 
 export async function getCourses(): Promise<Course[]> {
     try {
@@ -66,5 +66,30 @@ export async function generateLessonFromText(text: string): Promise<NewLesson | 
     } catch (err) {
         console.error("Error generating lesson from text:", err);
         return null;
+    }
+}
+
+export async function updateCourse(courseId: string, courseData: Omit<Course, "id">): Promise<boolean> {
+    try {
+        await apiFetch(`/api/courses/${courseId}`, {
+            method: "PUT",
+            body: JSON.stringify(courseData),
+        });
+        return true;
+    } catch (err) {
+        console.error("Error updating course:", err);
+        return false;
+    }
+}
+
+export async function deleteCourse(courseId: string): Promise<boolean> {
+    try {
+        await apiFetch(`/api/courses/${courseId}`, {
+            method: "DELETE",
+        });
+        return true;
+    } catch (err) {
+        console.error("Error deleting course:", err);
+        return false;
     }
 }

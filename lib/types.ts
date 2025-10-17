@@ -56,6 +56,8 @@ export interface Card {
     exclude?: boolean;
 }
 
+export type NewCard = Omit<Card, "id">;
+
 export type CardFilter = "00" | "01" | "10" | "11";
 
 // Content 
@@ -124,3 +126,6 @@ export interface CourseLesson {
     cardsToUnlock: Card[];
     quizIds?: string[];
 }
+
+export type NewLesson = Omit<CourseLesson, "id" | "courseId" | "cardsToUnlock"> & { cardsToUnlock: NewCard[]; content: string };
+export type NewCourse = Omit<Course, "id" | "lessons"> & { lessons: NewLesson[] };

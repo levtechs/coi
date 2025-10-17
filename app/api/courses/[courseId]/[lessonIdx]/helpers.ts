@@ -43,6 +43,10 @@ export async function getLessonFromCourse(courseId: string, lessonIdx: number, u
         // Find the lesson by index
         const lesson = lessons.find((l) => l.index === lessonIdx);
 
+        if (!lesson) {
+            return { lesson: null, hasAccess: false };
+        }
+
         return { lesson, hasAccess: true };
     } catch (error) {
         console.error("Error fetching lesson:", error);

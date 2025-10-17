@@ -1,7 +1,7 @@
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, setDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
 
-import { Message, Card, ContentNode, ContentHierarchy, ChatAttachment, GroundingChunk} from "@/lib/types"; // { content: string; isResponse: boolean }
+import { Message, Card, NewCard, ContentNode, ContentHierarchy, ChatAttachment, GroundingChunk} from "@/lib/types"; // { content: string; isResponse: boolean }
 import { Contents } from "./types";
 
 import { 
@@ -179,7 +179,7 @@ export const generateAndWriteNewCards = async (
     const result = await llmModel.generateContent(requestBody);
     const jsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    let newCardsRaw: Omit<Card, "id">[];
+    let newCardsRaw: NewCard[];
     try {
         newCardsRaw = JSON.parse(jsonString!);
     } catch (err) {
@@ -219,7 +219,7 @@ export const groundingChunksToCardsAndWrite = async (
     // Sort chunks by priority desc
     const sortedChunks = groundingChunks.sort((a, b) => getPriority(b.web.uri) - getPriority(a.web.uri));
 
-    const newCardsRaw: Omit<Card, "id">[] = [];
+    const newCardsRaw: NewCard[] = [];
 
     // We will limit the number of websites scraped with this cost. 
     // Some may be cheaper to scrape or are more usefull so they will contribute to cost less
