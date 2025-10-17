@@ -51,13 +51,77 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Dark mode overrides */
+/* Dark theme class */
+.theme-dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+
+  /* Neutral palette */
+  --neutral-50: #1a1a1a;
+  --neutral-100: #1f1f1f;
+  --neutral-200: #262626;
+  --neutral-300: #2f2f2f;
+  --neutral-400: #525252;
+  --neutral-500: #737373;
+  --neutral-600: #a3a3a3;
+  --neutral-700: #d4d4d4;
+  --neutral-800: #e5e5e5;
+  --neutral-900: #fafafaff;
+
+  /* Accent (Green) adjusted slightly for contrast */
+  --accent-50: #052e16;
+  --accent-100: #064e3b;
+  --accent-200: #065f46;
+  --accent-300: #047857;
+  --accent-400: #059669;
+  --accent-500: #10b981;
+  --accent-600: #34d399;
+  --accent-700: #6ee7b7;
+  --accent-800: #a7f3d0;
+  --accent-900: #d1fae5;
+
+  /* Semantic colors adjusted */
+  --success: var(--accent-400);
+  --warning: #fbbf24; /* amber-400 */
+  --error: #f87171;   /* red-400 */
+  --info: #60a5fa;    /* blue-400 */
+}
+
+/* Pink theme class */
+.theme-pink {
+  --background: #fce4ec;
+  --foreground: #880e4f;
+  --neutral-50: #fce4ec;
+  --neutral-100: #f8bbd9;
+  --neutral-200: #f48fb1;
+  --neutral-300: #f06292;
+  --neutral-400: #ec407a;
+  --neutral-500: #e91e63;
+  --neutral-600: #d81b60;
+  --neutral-700: #c2185b;
+  --neutral-800: #ad1457;
+  --neutral-900: #880e4f;
+  --accent-50: #fce4ec;
+  --accent-100: #f8bbd9;
+  --accent-200: #f48fb1;
+  --accent-300: #f06292;
+  --accent-400: #ec407a;
+  --accent-500: #e91e63;
+  --accent-600: #d81b60;
+  --accent-700: #c2185b;
+  --accent-800: #ad1457;
+  --accent-900: #880e4f;
+  --success: var(--accent-500);
+  --warning: #ff9800;
+  --error: #e91e63;
+  --info: #9c27b0;
+}
+
+/* Device mode (media query, no class) */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.theme-light):not(.theme-dark):not(.theme-pink) {
     --background: #0a0a0a;
     --foreground: #ededed;
-
-    /* Neutral palette */
     --neutral-50: #1a1a1a;
     --neutral-100: #1f1f1f;
     --neutral-200: #262626;
@@ -68,8 +132,6 @@
     --neutral-700: #d4d4d4;
     --neutral-800: #e5e5e5;
     --neutral-900: #fafafaff;
-
-    /* Accent (Green) adjusted slightly for contrast */
     --accent-50: #052e16;
     --accent-100: #064e3b;
     --accent-200: #065f46;
@@ -80,12 +142,10 @@
     --accent-700: #6ee7b7;
     --accent-800: #a7f3d0;
     --accent-900: #d1fae5;
-
-    /* Semantic colors adjusted */
     --success: var(--accent-400);
-    --warning: #fbbf24; /* amber-400 */
-    --error: #f87171;   /* red-400 */
-    --info: #60a5fa;    /* blue-400 */
+    --warning: #fbbf24;
+    --error: #f87171;
+    --info: #60a5fa;
   }
 }
 
