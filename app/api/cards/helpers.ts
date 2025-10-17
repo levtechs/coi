@@ -7,7 +7,7 @@ import {
     getDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Card } from "@/lib/types";
+import { Card, NewCard } from "@/lib/types";
 
 export const fetchCardsFromProject = async (projectId: string): Promise<Card[]> => {
     try {
@@ -28,7 +28,7 @@ export const fetchCardsFromProject = async (projectId: string): Promise<Card[]> 
         // It is critical to include the document's id in the returned object.
         const cards: Card[] = querySnapshot.docs.map(doc => ({
             id: doc.id,
-            ...doc.data() as Omit<Card, 'id'>,
+            ...doc.data() as NewCard
         }));
 
         // Return the list of cards.
@@ -50,7 +50,7 @@ export const fetchCardsFromProject = async (projectId: string): Promise<Card[]> 
  */
 export const writeCardsToDb = async (
     projectId: string,
-    newCards: Omit<Card, "id">[]
+    newCards: NewCard[]
 ): Promise<Card[]> => {
     try {
         const cardsCollectionRef = collection(db, "projects", projectId, "cards");
@@ -87,7 +87,7 @@ export const writeCardsToDb = async (
  * @param obj The object to search.
  * @param foundCards An array to accumulate the found cards.
  */
-const recursivelyFindCards = (obj: unknown, foundCards: Omit<Card, 'id'>[]) => {
+const recursivelyFindCards = (obj: unknown, foundCards: NewCard[]) => {
     if (typeof obj !== 'object' || obj === null) {
         return;
     }
@@ -133,7 +133,7 @@ export const extractWriteCards = async (projectId: string, content: JSON): Promi
     try {
         // Step 1: Parse the JSON content and extract new cards.
         const parsedContent = content;
-        const newExtractedCards: Omit<Card, 'id'>[] = [];
+        const newExtractedCards: NewCard[] = [];
         recursivelyFindCards(parsedContent, newExtractedCards);
 
         // Step 2: Fetch all existing cards from Firestore.
@@ -143,7 +143,7 @@ export const extractWriteCards = async (projectId: string, content: JSON): Promi
         // Use a Map for efficient lookup of existing cards.
         const existingCardMap = new Map<string, { id: string, details: string[] }>();
         existingDocs.forEach(doc => {
-            const cardData = doc.data() as Omit<Card, 'id'>;
+            const cardData = doc.data() as NewCard;
             // Create a unique key for each card based on its title and details.
             // This allows us to compare and identify cards easily.
             const cardKey = `${cardData.title}-${JSON.stringify(cardData.details)}`;
@@ -196,7 +196,7 @@ export const extractWriteCards = async (projectId: string, content: JSON): Promi
         const finalCards = await getDocs(cardsCollectionRef);
         const allCards: Card[] = finalCards.docs.map(doc => ({
             id: doc.id,
-            ...doc.data() as Omit<Card, 'id'>
+            ...doc.data() as NewCard,
         }));
 
         return allCards;

@@ -1,19 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { getVerifiedUid } from "../../helpers";
-import { Course, CourseLesson } from "@/lib/types";
+import { Course, CourseLesson, Card } from "@/lib/types";
 import { collection, addDoc } from "firebase/firestore";
-import { createCourseFromText, createLessonFromText } from "./helpers";
-
-interface NewCourse {
-    title: string;
-    description?: string;
-    lessons: Omit<CourseLesson, "id" | "courseId">[];
-    public?: boolean;
-    sharedWith?: string[];
-}
-
-
+import { createCourseFromText, createLessonFromText, NewCourse } from "./helpers";
 
 /**
  * POST /api/courses/create
@@ -55,7 +45,8 @@ export async function POST(req: NextRequest) {
             lessons.push({
                 ...lesson,
                 id: lessonRef.id,
-                courseId: courseId
+                courseId: courseId,
+                cardsToUnlock: lesson.cardsToUnlock as Card[]
             });
         }
 
@@ -79,7 +70,7 @@ export async function POST(req: NextRequest) {
 /**
  * PUT /api/courses/create
  * Generates a new course structure from the provided text using AI processing.
- * Returns the NewCourse object without saving to database.
+ * Returns a streaming response with updates during generation.
  * Expects JSON body with { text: string }
  */
 export async function PUT(req: NextRequest) {
@@ -95,12 +86,33 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ error: "Text is required" }, { status: 400 });
         }
 
-        // Generate course structure from text
-        const courseData = await createCourseFromText(text);
+        // Create a streaming response
+        const stream = new ReadableStream({
+            async start(controller) {
+                const enqueue = (data: string) => {
+                    controller.enqueue(new TextEncoder().encode(data + '\n'));
+                };
 
-        return NextResponse.json(courseData);
+                try {
+                    // Generate course structure from text with streaming updates
+                    const courseData = await createCourseFromText(text, enqueue);
+                    enqueue(JSON.stringify({ type: "final", course: courseData }));
+                } catch (error) {
+                    console.error("Error generating course from text:", error);
+                    enqueue(JSON.stringify({ type: "error", message: "Failed to generate course from text" }));
+                } finally {
+                    controller.close();
+                }
+            },
+        });
+
+        return new Response(stream, {
+            headers: {
+                'Content-Type': 'text/plain; charset=utf-8',
+            },
+        });
     } catch (error) {
-        console.error("Error generating course from text:", error);
+        console.error("Error in PUT route:", error);
         return NextResponse.json({ error: "Failed to generate course from text" }, { status: 500 });
     }
 }

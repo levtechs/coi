@@ -3,26 +3,30 @@
 import { useState } from "react";
 import Button from "../../button";
 import Loading from "../../loading";
+import FastCreatePopup from "./fast_create_popup";
 import LessonComponent from "./edit_lesson";
-import { CourseLesson, Card } from "@/lib/types";
-import { createCourse, generateCourseFromText, generateLessonFromText } from "@/app/views/courses";
+import { CourseLesson, Card, NewCard } from "@/lib/types";
+import { createCourse } from "@/app/views/courses";
+import { NewCourse } from "@/app/api/courses/create/helpers";
+import { auth } from "@/lib/firebase";
+import { getIdToken } from "firebase/auth";
 
-type Lesson = Omit<CourseLesson, "id" | "courseId" | "index"> & { text: string; cards: Card[] };
+type Lesson = Omit<CourseLesson, "id" | "courseId" | "index"> & { text: string; cardsToUnlock: NewCard[] };
 
 export default function CreateCourse() {
     const [courseTitle, setCourseTitle] = useState("");
     const [courseDescription, setCourseDescription] = useState("");
-    const [pastedText, setPastedText] = useState("");
-    const [lessons, setLessons] = useState<Lesson[]>([{ title: "", description: "", text: "", cards: [] }]);
+    const [lessons, setLessons] = useState<Lesson[]>([{ title: "", description: "", text: "", cardsToUnlock: [] }]);
     const [collapsedLessons, setCollapsedLessons] = useState<boolean[]>([false]);
     const [collapsedCards, setCollapsedCards] = useState<{ [lessonIndex: number]: boolean[] }>({});
     const [isGeneratingCourse, setIsGeneratingCourse] = useState(false);
     const [isCreatingCourse, setIsCreatingCourse] = useState(false);
     const [isGeneratingLesson, setIsGeneratingLesson] = useState(false);
     const [isPublic, setIsPublic] = useState(false);
+    const [isFastCreatePopupOpen, setIsFastCreatePopupOpen] = useState(false);
 
     const addLesson = () => {
-        setLessons([...lessons, { title: "", description: "", text: "", cards: [] }]);
+        setLessons([...lessons, { title: "", description: "", text: "", cardsToUnlock: [] }]);
         setCollapsedLessons([...collapsedLessons, false]);
     };
 
@@ -45,7 +49,7 @@ export default function CreateCourse() {
         setCollapsedCards(shifted);
     };
 
-    const updateLesson = (index: number, field: keyof Lesson, value: string) => {
+    const updateLesson = (index: number, field: "title" | "description" | "text", value: string) => {
         const newLessons = [...lessons];
         newLessons[index][field] = value;
         setLessons(newLessons);
@@ -53,11 +57,10 @@ export default function CreateCourse() {
 
     const addCard = (lessonIndex: number) => {
         const newLessons = [...lessons];
-        newLessons[lessonIndex].cards.push({
-            id: `card-${Date.now()}`,
+        newLessons[lessonIndex].cardsToUnlock.push({
             title: "",
             details: [""],
-        } as Card);
+        });
         setLessons(newLessons);
         // Add collapsed state for new card
         const newCollapsed = { ...collapsedCards };
@@ -70,31 +73,31 @@ export default function CreateCourse() {
 
     const removeCardFromLesson = (lessonIndex: number, cardIndex: number) => {
         const newLessons = [...lessons];
-        newLessons[lessonIndex].cards.splice(cardIndex, 1);
+        newLessons[lessonIndex].cardsToUnlock.splice(cardIndex, 1);
         setLessons(newLessons);
     };
 
     const updateCard = (lessonIndex: number, cardIndex: number, field: "title", value: string) => {
         const newLessons = [...lessons];
-        newLessons[lessonIndex].cards[cardIndex][field] = value;
+        newLessons[lessonIndex].cardsToUnlock[cardIndex][field] = value;
         setLessons(newLessons);
     };
 
     const addDetailToCard = (lessonIndex: number, cardIndex: number) => {
         const newLessons = [...lessons];
-        newLessons[lessonIndex].cards[cardIndex].details!.push("");
+        newLessons[lessonIndex].cardsToUnlock[cardIndex].details!.push("");
         setLessons(newLessons);
     };
 
     const removeDetailFromCard = (lessonIndex: number, cardIndex: number, detailIndex: number) => {
         const newLessons = [...lessons];
-        newLessons[lessonIndex].cards[cardIndex].details!.splice(detailIndex, 1);
+        newLessons[lessonIndex].cardsToUnlock[cardIndex].details!.splice(detailIndex, 1);
         setLessons(newLessons);
     };
 
     const updateCardDetail = (lessonIndex: number, cardIndex: number, detailIndex: number, value: string) => {
         const newLessons = [...lessons];
-        newLessons[lessonIndex].cards[cardIndex].details![detailIndex] = value;
+        newLessons[lessonIndex].cardsToUnlock[cardIndex].details![detailIndex] = value;
         setLessons(newLessons);
     };
 
@@ -113,66 +116,25 @@ export default function CreateCourse() {
         setCollapsedCards(newCollapsed);
     };
 
-    const handleGenerateCourseFromText = async () => {
-        setIsGeneratingCourse(true);
-        try {
-            const data = await generateCourseFromText(pastedText);
-            if (data) {
-                setCourseTitle(data.title);
-                setCourseDescription(data.description);
-                // Map the lessons
-                const mappedLessons = data.lessons.map((lesson) => ({
-                    title: lesson.title,
-                    description: lesson.description,
-                    text: '', // no text in API
-                    cards: lesson.cardsToUnlock,
-                }));
-                setLessons(mappedLessons);
-                setCollapsedLessons(mappedLessons.map(() => false));
-                setCollapsedCards({});
-            }
-        } catch (error) {
-            console.error('Error generating course:', error);
-        } finally {
-            setIsGeneratingCourse(false);
-        }
-    };
 
-    const handleGenerateLessonFromText = async (lessonIndex: number) => {
-        setIsGeneratingLesson(true);
-        try {
-            const data = await generateLessonFromText(lessons[lessonIndex].text);
-            if (data) {
-                updateLesson(lessonIndex, 'title', data.title);
-                updateLesson(lessonIndex, 'description', data.description);
-                // Update cards if available
-                if (data.cardsToUnlock) {
-                    const newLessons = [...lessons];
-                    newLessons[lessonIndex].cards = data.cardsToUnlock;
-                    setLessons(newLessons);
-                }
-            }
-        } catch (error) {
-            console.error('Error generating lesson:', error);
-        } finally {
-            setIsGeneratingLesson(false);
-        }
-    };
+
+
 
     const handleCreateCourse = async () => {
         setIsCreatingCourse(true);
         try {
-            const courseData = {
+            const courseData: NewCourse = {
                 title: courseTitle,
                 description: courseDescription,
                 lessons: lessons.map((lesson, index) => ({
                     index,
                     title: lesson.title,
                     description: lesson.description,
-                    cardsToUnlock: lesson.cards,
+                    cardsToUnlock: lesson.cardsToUnlock,
                     quizIds: [],
                 })),
                 public: isPublic,
+                sharedWith: [],
             };
             const data = await createCourse(courseData);
             if (data) {
@@ -191,19 +153,17 @@ export default function CreateCourse() {
     return (
         <div className="mt-8">
             {isLoading && <Loading small={true} loadingText="Processing" />}
-            {/* --- Fast Create Course --- */}
+
+            {/* --- Fast Create Course Button --- */}
             <div className="mb-8">
-                <h3 className="text-lg font-semibold text-[var(--foreground)] mb-4">Fast Create Course</h3>
-                <textarea
-                    value={pastedText}
-                    onChange={(e) => setPastedText(e.target.value)}
-                    className="w-full p-3 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-200)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] h-48"
-                    placeholder="Paste the text content that will be processed into a course with lessons"
-                />
-                <div className="mt-4">
-                    <Button color="var(--accent-500)" onClick={handleGenerateCourseFromText} disabled={isGeneratingCourse}>
-                        Generate Course from Text
-                    </Button>
+                <div
+                    className="flex items-center justify-center border border-[var(--neutral-300)] rounded-lg p-4 cursor-pointer
+                            bg-[var(--neutral-100)]
+                            hover:bg-[var(--neutral-300)]
+                            transition-colors duration-200"
+                    onClick={() => setIsFastCreatePopupOpen(true)}
+                >
+                    <span className="text-[var(--accent-500)] font-semibold text-lg">+ Fast Create Course</span>
                 </div>
             </div>
 
@@ -254,7 +214,37 @@ export default function CreateCourse() {
                         onAddDetail={addDetailToCard}
                         onRemoveDetail={removeDetailFromCard}
                         onUpdateDetail={updateCardDetail}
-                        onGenerateLesson={() => handleGenerateLessonFromText(index)}
+                         onGenerateLesson={async (text) => {
+                             setIsGeneratingLesson(true);
+                             try {
+                                 const response = await fetch('/api/courses/create', {
+                                     method: 'PATCH',
+                                     headers: {
+                                         'Content-Type': 'application/json',
+                                         'Authorization': `Bearer ${await getIdToken(auth.currentUser!)}`,
+                                     },
+                                     body: JSON.stringify({ text }),
+                                 });
+                                 if (!response.ok) {
+                                     throw new Error('Failed to generate lesson');
+                                 }
+                                 const data = await response.json();
+                                 if (data) {
+                                     updateLesson(index, 'title', data.title);
+                                     updateLesson(index, 'description', data.description);
+                                     // Update cards if available
+                                     if (data.cardsToUnlock) {
+                                         const newLessons = [...lessons];
+                                         newLessons[index].cardsToUnlock = data.cardsToUnlock;
+                                         setLessons(newLessons);
+                                     }
+                                 }
+                             } catch (error) {
+                                 console.error('Error generating lesson:', error);
+                             } finally {
+                                 setIsGeneratingLesson(false);
+                             }
+                         }}
                     />
                 ))}
                 <div className="flex gap-4 mb-8">
@@ -290,6 +280,95 @@ export default function CreateCourse() {
                     </Button>
                 )}
             </div>
+
+            {/* --- Fast Create Popup --- */}
+            <FastCreatePopup
+                isOpen={isFastCreatePopupOpen}
+                onClose={() => setIsFastCreatePopupOpen(false)}
+                title="Fast Create Course"
+                placeholder="Paste the text content that will be processed into a course with lessons"
+                onGenerate={async (text, onUpdate) => {
+                    setIsGeneratingCourse(true);
+                    try {
+                        const response = await fetch('/api/courses/create', {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${await getIdToken(auth.currentUser!)}`,
+                            },
+                            body: JSON.stringify({ text }),
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Failed to generate course');
+                        }
+
+                        const reader = response.body?.getReader();
+                        if (!reader) throw new Error('No response body');
+
+                        const decoder = new TextDecoder();
+                        let buffer = '';
+
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+
+                            buffer += decoder.decode(value, { stream: true });
+                            const lines = buffer.split('\n');
+                            buffer = lines.pop() || '';
+
+                            for (const line of lines) {
+                                console.log("Received line:", line);
+                                if (line.trim()) {
+                                    try {
+                                        const update = JSON.parse(line.trim());
+                                        console.log("Parsed update:", update);
+                                        if (update.type === 'status') {
+                                            onUpdate(update.message);
+                                        } else if (update.type === 'outline') {
+                                            onUpdate(`Course outline created: ${update.courseStructure.courseTitle}`);
+                                        } else if (update.type === 'lesson_start') {
+                                            onUpdate(`Creating lesson ${update.lessonNumber}: ${update.lessonTitle}`);
+                                        } else if (update.type === 'lesson_complete') {
+                                            onUpdate(`Completed lesson ${update.lessonNumber}`);
+                                         } else if (update.type === 'complete') {
+                                             const data = update.course;
+                                             setCourseTitle(data.title);
+                                             setCourseDescription(data.description);
+                                             const mappedLessons = data.lessons.map((lesson: { title: string; description: string; cardsToUnlock: NewCard[] }) => ({
+                                                 title: lesson.title,
+                                                 description: lesson.description,
+                                                 text: '',
+                                                 cardsToUnlock: lesson.cardsToUnlock,
+                                             }));
+                                             setLessons(mappedLessons);
+                                             setCollapsedLessons(mappedLessons.map(() => true));
+                                             const newCollapsedCards: { [lessonIndex: number]: boolean[] } = {};
+                                             mappedLessons.forEach((lesson: Lesson, index: number) => {
+                                                 newCollapsedCards[index] = lesson.cardsToUnlock.map(() => true);
+                                             });
+                                             setCollapsedCards(newCollapsedCards);
+                                             onUpdate('Course generation complete!');
+                                        } else if (update.type === 'error') {
+                                            onUpdate(`Error: ${update.message}`);
+                                        }
+                                    } catch (e) {
+                                        console.error('Failed to parse update:', line, e);
+                                        onUpdate(`Parsing error: ${line.substring(0, 50)}...`);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error generating course:', error);
+                        onUpdate('Error generating course');
+                    } finally {
+                        setIsGeneratingCourse(false);
+                        setIsFastCreatePopupOpen(false);
+                    }
+                }}
+                isGenerating={isGeneratingCourse}
+            />
         </div>
     );
 }
