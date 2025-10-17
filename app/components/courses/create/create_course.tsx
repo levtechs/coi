@@ -1,33 +1,73 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Button from "../../button";
 import Loading from "../../loading";
 import FastCreatePopup from "./fast_create_popup";
 import LessonComponent from "./edit_lesson";
-import { CourseLesson, Card, NewCard } from "@/lib/types";
-import { createCourse } from "@/app/views/courses";
+import { CourseLesson, Card, NewCard, Course } from "@/lib/types";
+import { createCourse, getCourse, updateCourse } from "@/app/views/courses";
 import { NewCourse } from "@/app/api/courses/create/helpers";
 import { auth } from "@/lib/firebase";
 import { getIdToken } from "firebase/auth";
 
-type Lesson = Omit<CourseLesson, "id" | "courseId" | "index"> & { text: string; cardsToUnlock: NewCard[] };
+type Lesson = Omit<CourseLesson, "courseId" | "index"> & { text: string; cardsToUnlock: NewCard[] };
 
 export default function CreateCourse() {
     const [courseTitle, setCourseTitle] = useState("");
     const [courseDescription, setCourseDescription] = useState("");
     const [lessons, setLessons] = useState<Lesson[]>([{ title: "", description: "", text: "", cardsToUnlock: [] }]);
-    const [collapsedLessons, setCollapsedLessons] = useState<boolean[]>([false]);
+    const [collapsedLessons, setCollapsedLessons] = useState<boolean[]>([true]);
     const [collapsedCards, setCollapsedCards] = useState<{ [lessonIndex: number]: boolean[] }>({});
     const [isGeneratingCourse, setIsGeneratingCourse] = useState(false);
     const [isCreatingCourse, setIsCreatingCourse] = useState(false);
     const [isGeneratingLesson, setIsGeneratingLesson] = useState(false);
     const [isPublic, setIsPublic] = useState(false);
     const [isFastCreatePopupOpen, setIsFastCreatePopupOpen] = useState(false);
+    const [isEdit, setIsEdit] = useState(false);
+    const [editCourseId, setEditCourseId] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+
+    const searchParams = useSearchParams();
+
+    useEffect(() => {
+        const editId = searchParams.get('edit');
+        if (editId) {
+            setIsEdit(true);
+            setEditCourseId(editId);
+            setLoading(true);
+            getCourse(editId).then((course) => {
+                if (course) {
+                    setCourseTitle(course.title);
+                    setCourseDescription(course.description || "");
+                    setIsPublic(course.public || false);
+                    const loadedLessons: Lesson[] = course.lessons.map((lesson) => ({
+                        id: lesson.id,
+                        title: lesson.title,
+                        description: lesson.description,
+                        text: "",
+                        cardsToUnlock: lesson.cardsToUnlock.map((card) => ({
+                            title: card.title,
+                            details: card.details || [],
+                        })),
+                    }));
+                    setLessons(loadedLessons);
+                    setCollapsedLessons(new Array(loadedLessons.length).fill(true));
+                    const newCollapsedCards: { [key: number]: boolean[] } = {};
+                    loadedLessons.forEach((lesson, i) => {
+                        newCollapsedCards[i] = new Array(lesson.cardsToUnlock.length).fill(true);
+                    });
+                    setCollapsedCards(newCollapsedCards);
+                }
+                setLoading(false);
+            });
+        }
+    }, [searchParams]);
 
     const addLesson = () => {
         setLessons([...lessons, { title: "", description: "", text: "", cardsToUnlock: [] }]);
-        setCollapsedLessons([...collapsedLessons, false]);
+        setCollapsedLessons([...collapsedLessons, true]);
     };
 
     const removeLesson = (index: number) => {
@@ -67,7 +107,7 @@ export default function CreateCourse() {
         if (!newCollapsed[lessonIndex]) {
             newCollapsed[lessonIndex] = [];
         }
-        newCollapsed[lessonIndex].push(false);
+        newCollapsed[lessonIndex].push(true);
         setCollapsedCards(newCollapsed);
     };
 
@@ -120,39 +160,60 @@ export default function CreateCourse() {
 
 
 
-    const handleCreateCourse = async () => {
+    const handleSubmit = async () => {
         setIsCreatingCourse(true);
         try {
-            const courseData: NewCourse = {
-                title: courseTitle,
-                description: courseDescription,
-                lessons: lessons.map((lesson, index) => ({
-                    index,
-                    title: lesson.title,
-                    description: lesson.description,
-                    cardsToUnlock: lesson.cardsToUnlock,
-                    quizIds: [],
-                })),
-                public: isPublic,
-                sharedWith: [],
-            };
-            const data = await createCourse(courseData);
-            if (data) {
-                // Redirect to the course page
-                window.location.href = `/courses/${data.id}`;
+            if (isEdit && editCourseId) {
+                const courseData = {
+                    title: courseTitle,
+                    description: courseDescription,
+                    lessons: lessons.map((lesson, index) => ({
+                        id: lesson.id,
+                        courseId: editCourseId,
+                        index,
+                        title: lesson.title,
+                        description: lesson.description,
+                        cardsToUnlock: lesson.cardsToUnlock,
+                        quizIds: [],
+                    })),
+                    public: isPublic,
+                    sharedWith: [],
+                };
+                const success = await updateCourse(editCourseId, courseData);
+                if (success) {
+                    window.location.href = `/courses/${editCourseId}`;
+                }
+            } else {
+                const courseData: NewCourse = {
+                    title: courseTitle,
+                    description: courseDescription,
+                    lessons: lessons.map((lesson, index) => ({
+                        index,
+                        title: lesson.title,
+                        description: lesson.description,
+                        cardsToUnlock: lesson.cardsToUnlock,
+                        quizIds: [],
+                    })),
+                    public: isPublic,
+                    sharedWith: [],
+                };
+                const data = await createCourse(courseData);
+                if (data) {
+                    // Redirect to the course page
+                    window.location.href = `/courses/${data.id}`;
+                }
             }
         } catch (error) {
-            console.error('Error creating course:', error);
+            console.error('Error submitting course:', error);
         } finally {
             setIsCreatingCourse(false);
         }
     };
 
-    const isLoading = isGeneratingCourse || isCreatingCourse || isGeneratingLesson;
+    const isLoading = isGeneratingCourse || isCreatingCourse || isGeneratingLesson || loading;
 
     return (
         <div className="mt-8">
-            {isLoading && <Loading small={true} loadingText="Processing" />}
 
             {/* --- Fast Create Course Button --- */}
             <div className="mb-8">
@@ -196,7 +257,7 @@ export default function CreateCourse() {
 
             {/* --- Lessons --- */}
             <div className="mb-8">
-                <h3 className="text-xl font-semibold text-[var(--foreground)] mb-4">Lessons</h3>
+                <h3 className="text-xl font-semibold text-[var(--foreground)] mb-4">{isEdit ? "Edit Course" : "Create Course"}</h3>
                 {lessons.map((lesson, index) => (
                     <LessonComponent
                         key={index}
@@ -272,11 +333,11 @@ export default function CreateCourse() {
 
             {/* --- Create Course --- */}
             <div className="flex justify-center">
-                {isCreatingCourse ? (
-                    <Loading small={true} loadingText="Creating Course" />
+                {isLoading ? (
+                    <Loading small={true} loadingText={isCreatingCourse ? "Creating Course" : isEdit ? "Loading Course" : "Processing"} />
                 ) : (
-                    <Button color="var(--accent-500)" onClick={handleCreateCourse}>
-                        Create Course
+                    <Button color="var(--accent-500)" onClick={handleSubmit}>
+                        {isEdit ? "Update Course" : "Create Course"}
                     </Button>
                 )}
             </div>
