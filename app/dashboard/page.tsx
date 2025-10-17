@@ -7,10 +7,14 @@ import Dashboard from "@/app/components/dashboard/dashboard";
 import Button from "@/app/components/button";
 import LoginPrompt from "../components/login_prompt";
 import { FiLogOut, FiUser } from "react-icons/fi";
-import { useEffect } from "react";
+import { FaPaintbrush } from "react-icons/fa6";
+import { useEffect, useState } from "react";
+import { useTheme } from "@/lib/ThemeContext";
 
 export default function DashboardPage() {
     const { user, loading } = useAuth();
+    const { setTheme } = useTheme();
+    const [showThemeMenu, setShowThemeMenu] = useState(false);
 
     useEffect(() => {
         document.title = "Dashboard - coi";
@@ -42,6 +46,24 @@ export default function DashboardPage() {
                         <Button color="var(--accent-400)" onClick={() => window.location.href = "/profile"}>
                             <FiUser className="h-[25px] w-[25px]"/>
                         </Button>
+                        <div className="relative">
+                            <Button color="var(--neutral-400)" onClick={() => setShowThemeMenu(!showThemeMenu)}>
+                                <FaPaintbrush className="h-[25px] w-[25px]"/>
+                            </Button>
+                            {showThemeMenu && (
+                                <div className="absolute right-0 mt-2 w-32 bg-[var(--neutral-100)] border border-[var(--neutral-300)] rounded shadow-lg z-10">
+                                    {["light", "dark", "device", "pink"].map((t) => (
+                                        <button
+                                            key={t}
+                                            className="block w-full text-left px-4 py-2 hover:bg-[var(--neutral-200)] capitalize text-[var(--foreground)]"
+                                            onClick={() => { setTheme(t as "light" | "dark" | "device" | "pink"); setShowThemeMenu(false); }}
+                                        >
+                                            {t}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
