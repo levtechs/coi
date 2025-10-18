@@ -1,6 +1,6 @@
 import { apiFetch } from "./helpers";
 
-import { Course, CourseLesson, NewCard } from "@/lib/types";
+import { Course, CourseLesson, NewCard, Project } from "@/lib/types";
 
 type NewCourse = Omit<Course, "id" | "lessons"> & { lessons: NewLesson[] };
 type NewLesson = Omit<CourseLesson, "id" | "courseId" | "cardsToUnlock"> & { cardsToUnlock: NewCard[] };
@@ -17,12 +17,12 @@ export async function getCourses(): Promise<Course[]> {
     }
 }
 
-export async function getCourse(courseId: string): Promise<Course | null> {
+export async function getCourse(courseId: string): Promise<{ course: Course; lessonProjects: { [lessonId: string]: Project[] } } | null> {
     try {
-        const data = await apiFetch<Course>(`/api/courses/${courseId}`, {
+        const data = await apiFetch<{ course: Course; lessonProjects: { [lessonId: string]: Project[] } }>(`/api/courses/${courseId}`, {
             method: "GET",
         });
-        if (data) data.id = courseId;
+        if (data) data.course.id = courseId;
         return data;
     } catch (err) {
         console.error("Error fetching course:", err);

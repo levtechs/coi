@@ -67,36 +67,36 @@ export default function LessonDetailPage() {
     return (
         <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] p-6">
             <div className="max-w-5xl mx-auto bg-[var(--neutral-100)] shadow-lg rounded-lg p-8">
-                <div className="flex justify-between items-center mb-8 gap-4">
-                    <div className="flex items-center gap-4">
-                        <Link href="/dashboard">
-                            <FiHome
-                                size={32}
-                                className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
-                            />
-                        </Link>
-                        <Button color="var(--neutral-300)" onClick={() => window.location.href = `/courses/${courseId}`}>
-                            Back to Course
-                        </Button>
-                        <h1 className="text-3xl font-extrabold text-[var(--foreground)]">
-                            {lesson.title}
-                        </h1>
-                    </div>
-                    <div className="flex flex-row gap-4 items-center">
-                        <Button color="var(--error)" onClick={() => signOut(auth)}>
-                            <FiLogOut className="h-[25px] w-[25px]" />
-                        </Button>
-                        <Button color="var(--accent-400)" onClick={() => window.location.href = "/profile"}>
-                            <FiUser className="h-[25px] w-[25px]" />
-                        </Button>
-                    </div>
-                </div>
+                 <div className="flex justify-between items-center mb-8 gap-4">
+                     <div className="flex items-center gap-4">
+                         <Link href="/dashboard">
+                             <FiHome
+                                 size={32}
+                                 className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
+                             />
+                         </Link>
+                         <Button color="var(--neutral-300)" onClick={() => window.location.href = `/courses/${courseId}`}>
+                             Back to Course
+                         </Button>
+                     </div>
+                     <div className="flex flex-row gap-4 items-center">
+                         <Button color="var(--error)" onClick={() => signOut(auth)}>
+                             <FiLogOut className="h-[25px] w-[25px]" />
+                         </Button>
+                         <Button color="var(--accent-400)" onClick={() => window.location.href = "/profile"}>
+                             <FiUser className="h-[25px] w-[25px]" />
+                         </Button>
+                     </div>
+                 </div>
 
-                <hr />
+                 <hr />
 
-                <div className="mt-8">
-                    <LessonPage lesson={lesson} courseId={courseId} lessonIdx={lessonIdx} projectIds={projectIds} />
-                </div>
+                 <div className="mt-8">
+                     <h1 className="text-3xl font-extrabold text-[var(--foreground)] mb-4">
+                         {lesson.title}
+                     </h1>
+                     <LessonPage lesson={lesson} courseId={courseId} lessonIdx={lessonIdx} projectIds={projectIds} />
+                 </div>
             </div>
         </div>
     );

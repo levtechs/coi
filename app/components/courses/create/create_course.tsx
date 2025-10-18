@@ -6,18 +6,17 @@ import Button from "../../button";
 import Loading from "../../loading";
 import FastCreatePopup from "./fast_create_popup";
 import LessonComponent from "./edit_lesson";
-import { CourseLesson, Card, NewCard, Course } from "@/lib/types";
+import { CourseLesson, Card, NewCard, Course, NewCourse } from "@/lib/types";
 import { createCourse, getCourse, updateCourse } from "@/app/views/courses";
-import { NewCourse } from "@/app/api/courses/create/helpers";
 import { auth } from "@/lib/firebase";
 import { getIdToken } from "firebase/auth";
 
-type Lesson = Omit<CourseLesson, "courseId" | "index"> & { text: string; cardsToUnlock: NewCard[] };
+type CourseLessonForm = Omit<CourseLesson, "id" | "courseId" | "index" | "cardsToUnlock"> & { text: string; cardsToUnlock: NewCard[]; id?: string };
 
 export default function CreateCourse() {
     const [courseTitle, setCourseTitle] = useState("");
     const [courseDescription, setCourseDescription] = useState("");
-    const [lessons, setLessons] = useState<Lesson[]>([{ title: "", description: "", text: "", cardsToUnlock: [] }]);
+    const [lessons, setLessons] = useState<CourseLessonForm[]>([{ title: "", description: "", text: "", cardsToUnlock: [] }]);
     const [collapsedLessons, setCollapsedLessons] = useState<boolean[]>([true]);
     const [collapsedCards, setCollapsedCards] = useState<{ [lessonIndex: number]: boolean[] }>({});
     const [isGeneratingCourse, setIsGeneratingCourse] = useState(false);
@@ -37,12 +36,13 @@ export default function CreateCourse() {
             setIsEdit(true);
             setEditCourseId(editId);
             setLoading(true);
-            getCourse(editId).then((course) => {
-                if (course) {
+            getCourse(editId).then((result) => {
+                if (result) {
+                    const { course } = result;
                     setCourseTitle(course.title);
                     setCourseDescription(course.description || "");
                     setIsPublic(course.public || false);
-                    const loadedLessons: Lesson[] = course.lessons.map((lesson) => ({
+                    const loadedLessons: CourseLessonForm[] = course.lessons.map((lesson) => ({
                         id: lesson.id,
                         title: lesson.title,
                         description: lesson.description,
@@ -168,12 +168,12 @@ export default function CreateCourse() {
                     title: courseTitle,
                     description: courseDescription,
                     lessons: lessons.map((lesson, index) => ({
-                        id: lesson.id,
+                        id: lesson.id!,
                         courseId: editCourseId,
                         index,
                         title: lesson.title,
                         description: lesson.description,
-                        cardsToUnlock: lesson.cardsToUnlock,
+                        cardsToUnlock: lesson.cardsToUnlock as Card[],
                         quizIds: [],
                     })),
                     public: isPublic,
@@ -191,6 +191,7 @@ export default function CreateCourse() {
                         index,
                         title: lesson.title,
                         description: lesson.description,
+                        content: lesson.text,
                         cardsToUnlock: lesson.cardsToUnlock,
                         quizIds: [],
                     })),
@@ -332,13 +333,20 @@ export default function CreateCourse() {
             </div>
 
             {/* --- Create Course --- */}
-            <div className="flex justify-center">
+            <div className="flex justify-center gap-4">
                 {isLoading ? (
                     <Loading small={true} loadingText={isCreatingCourse ? "Creating Course" : isEdit ? "Loading Course" : "Processing"} />
                 ) : (
-                    <Button color="var(--accent-500)" onClick={handleSubmit}>
-                        {isEdit ? "Update Course" : "Create Course"}
-                    </Button>
+                    <>
+                        {isEdit && (
+                            <Button color="var(--neutral-300)" onClick={() => window.location.href = '/courses'}>
+                                Cancel
+                            </Button>
+                        )}
+                        <Button color="var(--accent-500)" onClick={handleSubmit}>
+                            {isEdit ? "Update Course" : "Create Course"}
+                        </Button>
+                    </>
                 )}
             </div>
 
@@ -405,7 +413,7 @@ export default function CreateCourse() {
                                              setLessons(mappedLessons);
                                              setCollapsedLessons(mappedLessons.map(() => true));
                                              const newCollapsedCards: { [lessonIndex: number]: boolean[] } = {};
-                                             mappedLessons.forEach((lesson: Lesson, index: number) => {
+                                              mappedLessons.forEach((lesson: CourseLessonForm, index: number) => {
                                                  newCollapsedCards[index] = lesson.cardsToUnlock.map(() => true);
                                              });
                                              setCollapsedCards(newCollapsedCards);

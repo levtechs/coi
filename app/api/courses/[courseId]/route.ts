@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { getVerifiedUid } from "../../helpers";
-import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc, setDoc, addDoc } from "firebase/firestore";
-import { Course, CourseLesson } from "@/lib/types";
+import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc, setDoc, addDoc, query, where, or, and } from "firebase/firestore";
+import { Course, CourseLesson, Project } from "@/lib/types";
 
 export async function GET(
     req: NextRequest,
@@ -44,6 +44,36 @@ export async function GET(
             ...p.data(),
                 })) as CourseLesson[];
 
+        // Fetch projects for each lesson
+        const lessonProjects: { [lessonId: string]: Project[] } = {};
+        await Promise.all(
+            lessons.map(async (lesson) => {
+                try {
+                    const projectsRef = collection(db, 'projects');
+                    const q = query(
+                        projectsRef,
+                        and(
+                            where('courseLesson.id', '==', lesson.id),
+                            or(
+                                where('ownerId', '==', uid),
+                                where('sharedWith', 'array-contains', uid),
+                                where('public', '==', true)
+                            )
+                        )
+                    );
+                    const projectsSnap = await getDocs(q);
+                    const projects = projectsSnap.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data(),
+                    })) as Project[];
+                    lessonProjects[lesson.id] = projects;
+                } catch (error) {
+                    console.error(`Failed to fetch projects for lesson ${lesson.id}:`, error);
+                    lessonProjects[lesson.id] = [];
+                }
+            })
+        );
+
         const course: Course = {
             id: courseSnap.id,
             title: courseData.title,
@@ -52,9 +82,10 @@ export async function GET(
             public: courseData.public,
             sharedWith: courseData.sharedWith || [],
             category: courseData.category,
+            ownerId: courseData.ownerId,
         };
 
-        return NextResponse.json(course);
+        return NextResponse.json({ course, lessonProjects });
     } catch (error) {
         console.error("Error fetching course:", error);
         return NextResponse.json({ error: "Failed to fetch course" }, { status: 500 });

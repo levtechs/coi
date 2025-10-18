@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { getVerifiedUid } from "../../helpers";
-import { Course, CourseLesson, Card } from "@/lib/types";
+import { Course, CourseLesson, Card, NewCourse } from "@/lib/types";
 import { collection, addDoc } from "firebase/firestore";
-import { createCourseFromText, createLessonFromText, NewCourse } from "./helpers";
+import { createCourseFromText, createLessonFromText } from "./helpers";
 
 /**
  * POST /api/courses/create
