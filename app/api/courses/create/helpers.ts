@@ -90,6 +90,7 @@ export const createLessonFromText = async (text: string): Promise<NewLesson> => 
             index: 0,
             title: data.title,
             description: data.description,
+            content: data.content,
             cardsToUnlock: cards,
             quizIds: []
         };
@@ -107,6 +108,7 @@ export const createLessonFromText = async (text: string): Promise<NewLesson> => 
             index: 0,
             title: "Lesson from Text",
             description: text.length > 100 ? text.substring(0, 100) + "..." : text,
+            content: text,
             cardsToUnlock: cards,
             quizIds: []
         };
@@ -174,10 +176,13 @@ export const createCourseFromText = async (text: string, enqueue?: (data: string
                 description: desc.description,
                 originalText: text,
                 courseOutline: courseStructure.lessons,
-                previousLesson: previousLesson ? {
-                    content: previousLesson.content || '', // assuming NewLesson has content, but wait, NewLesson doesn't have content yet
-                    cards: previousLesson.cardsToUnlock
-                } : undefined
+                 previousLesson: previousLesson ? {
+                     content: previousLesson.content || '',
+                     cards: previousLesson.cardsToUnlock.map(card => ({
+                         title: card.title,
+                         details: card.details || []
+                     }))
+                 } : undefined
             });
 
             const lessonRequest = {

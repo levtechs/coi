@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -11,7 +12,7 @@ import Button from "../components/button";
 import CoursesDashboard from "../components/courses/dashboard";
 import CreateCourse from "../components/courses/create/create_course";
 
-export default function CoursesPage() {
+function CoursesPageContent() {
     const { user, loading } = useAuth();
     const searchParams = useSearchParams();
     const isCreateMode = searchParams.get('new') === 'true' || searchParams.has('new') || searchParams.has('edit');
@@ -68,5 +69,17 @@ export default function CoursesPage() {
                  {isCreateMode ? <CreateCourse /> : <CoursesDashboard />}
             </div>
         </div>
+    );
+}
+
+export default function CoursesPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center h-screen bg-[var(--background)] text-[var(--foreground)]">
+                <p className="text-xl">Loading...</p>
+            </div>
+        }>
+            <CoursesPageContent />
+        </Suspense>
     );
 }

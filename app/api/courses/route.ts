@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
                     public: data.public,
                     sharedWith: data.sharedWith,
                     category: data.category,
+                    ownerId: data.ownerId,
                 } as Course;
             })
         );

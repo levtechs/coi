@@ -115,6 +115,7 @@ export interface Course {
     public?: boolean;
     sharedWith?: string[]; // ids
     category?: string;
+    ownerId?: string;
 }
 
 export interface CourseLesson {

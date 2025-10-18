@@ -6,10 +6,10 @@ import Button from "../../button";
 import FastCreatePopup from "./fast_create_popup";
 import { CourseLesson, Card, NewCard } from "@/lib/types";
 
-type Lesson = Omit<CourseLesson, "id" | "courseId" | "index"> & { text: string; cardsToUnlock: NewCard[] };
+type LessonForm = Omit<CourseLesson, "id" | "courseId" | "index" | "cardsToUnlock"> & { text: string; cardsToUnlock: NewCard[] };
 
 interface LessonComponentProps {
-    lesson: Lesson;
+    lesson: LessonForm;
     index: number;
     collapsed: boolean;
     collapsedCards: { [lessonIndex: number]: boolean[] };
@@ -47,34 +47,37 @@ export default function LessonComponent({
     const [isGeneratingLesson, setIsGeneratingLesson] = useState(false);
     return (
         <div
-            className={`mb-6 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] ${collapsed ? 'p-3' : 'p-4 min-h-[200px]'}`}
-        >
-                                 <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
+            className={`mb-6 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] p-3`}>
+            <div className="flex justify-between items-center w-full">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                    {/* Collapse button */}
                     <button
                         onClick={() => onToggleCollapse(index)}
-                        className="text-[var(--foreground)] hover:text-[var(--accent-500)] px-2 py-1"
+                        className="text-[var(--foreground)] hover:text-[var(--accent-500)] px-2 py-1 flex-shrink-0"
                     >
-                        {collapsed ? (
-                            <FiChevronRight size={16} />
-                        ) : (
-                            <FiChevronDown size={16} />
-                        )}
+                        {collapsed ? <FiChevronRight size={16} /> : <FiChevronDown size={16} />}
                     </button>
-                    <div className="flex justify-between items-center cursor-pointer" onClick={() => onToggleCollapse(index)}>
-                        <div className="text-lg font-medium text-[var(--foreground)] px-2 py-1 line-clamp-2 flex-shrink-0">
-                            {lesson.title || `Lesson ${index + 1}`}
+
+                    {/* Title + Description */}
+                    <div className="flex items-center gap-2 w-full min-w-0 cursor-pointer" onClick={() => onToggleCollapse(index)}>
+                        {/* Title stays on the left */}
+                        <div className="text-lg font-medium text-[var(--foreground)] flex-shrink-0">
+                            {index + 1}. {lesson.title || 'Untitled Lesson'}
                         </div>
+
+                        {/* Description takes remaining space and truncates if needed */}
                         {lesson.description && (
-                            <div className="text-sm text-[var(--foreground)] opacity-70 flex-1 ml-4 truncate">
+                            <div className="text-sm text-[var(--foreground)] opacity-70 flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
                                 {lesson.description}
                             </div>
                         )}
                     </div>
                 </div>
+
+                {/* Remove button */}
                 <button
                     onClick={() => onRemove(index)}
-                    className="text-red-500 hover:text-red-700 px-2 py-1"
+                    className="text-red-500 hover:text-red-700 px-2 py-1 flex-shrink-0"
                 >
                     Remove
                 </button>
@@ -121,32 +124,45 @@ export default function LessonComponent({
                         </label>
                         {lesson.cardsToUnlock.map((card, cardIndex) => (
                             <div key={`card-${index}-${cardIndex}`} className={`mb-4 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-200)] p-3 ${!(collapsedCards[index] && collapsedCards[index][cardIndex]) ? 'min-h-[100px]' : ''}`}>
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-2">
+                                <div className="flex justify-between items-center w-full">
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                        {/* Collapse button */}
                                         <button
                                             onClick={() => onToggleCardCollapse(index, cardIndex)}
-                                            className="text-[var(--foreground)] hover:text-[var(--accent-500)] px-2 py-1"
+                                            className="text-[var(--foreground)] hover:text-[var(--accent-500)] px-2 py-1 flex-shrink-0"
                                         >
-                                            {(collapsedCards[index] && collapsedCards[index][cardIndex]) ? <FiChevronRight size={14} /> : <FiChevronDown size={14} />}
+                                            {(collapsedCards[index] && collapsedCards[index][cardIndex]) 
+                                                ? <FiChevronRight size={14} /> 
+                                                : <FiChevronDown size={14} />}
                                         </button>
-                                        <div className="flex justify-between items-center cursor-pointer" onClick={() => onToggleCardCollapse(index, cardIndex)}>
-                                            <div className="text-md font-medium text-[var(--foreground)] px-2 py-1 line-clamp-2 flex-shrink-0">
+
+                                        {/* Title + first detail */}
+                                        <div
+                                            className="flex items-center gap-2 w-full min-w-0 cursor-pointer"
+                                            onClick={() => onToggleCardCollapse(index, cardIndex)}
+                                        >
+                                            {/* Title stays on the left */}
+                                            <div className="text-md font-medium text-[var(--foreground)] flex-shrink-0">
                                                 {card.title || `Card ${cardIndex + 1}`}
                                             </div>
+
+                                            {/* First detail takes remaining space and truncates */}
                                             {card.details && card.details[0] && (
-                                                <div className="text-sm text-[var(--foreground)] opacity-70 flex-1 ml-4 truncate">
+                                                <div className="text-sm text-[var(--foreground)] opacity-70 flex-1 overflow-hidden whitespace-nowrap text-ellipsis ml-4">
                                                     {card.details[0]}
                                                 </div>
                                             )}
                                         </div>
                                     </div>
+                                    {/* Remove button */}
                                     <button
                                         onClick={() => onRemoveCard(index, cardIndex)}
-                                        className="text-red-500 hover:text-red-700 px-2 py-1"
+                                        className="text-red-500 hover:text-red-700 px-2 py-1 flex-shrink-0"
                                     >
                                         Remove Card
                                     </button>
                                 </div>
+
                                 {(!collapsedCards[index] || !collapsedCards[index][cardIndex]) && (
                                     <div>
                                         <div className="mb-2">

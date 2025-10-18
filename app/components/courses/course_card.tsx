@@ -4,16 +4,20 @@ import React, { useState, useRef, useEffect } from "react";
 import { FiLock, FiMoreVertical, FiEdit2, FiTrash2 } from "react-icons/fi";
 import { Course } from "@/lib/types";
 import { deleteCourse } from "@/app/views/courses";
+import { useAuth } from "@/lib/AuthContext";
 
 type CourseCardProps = {
     course: Course;
 };
 
 export default function CourseCard({ course }: CourseCardProps) {
+    const { user } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
     const menuRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLDivElement>(null);
+
+    const isOwner = user && course.ownerId === user.uid;
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -47,14 +51,16 @@ export default function CourseCard({ course }: CourseCardProps) {
             className="relative border border-[var(--neutral-300)] rounded-lg p-6 bg-[var(--neutral-200)] shadow hover:shadow-md transition cursor-pointer group min-h-[120px] flex flex-col"
             onClick={() => window.location.assign(`/courses/${course.id}`)}
         >
-            {/* Menu Button */}
-            <div
-                ref={buttonRef}
-                className="absolute top-2 right-2 p-1 rounded-md hover:bg-[var(--neutral-300)]"
-                onClick={handleMenuToggle}
-            >
-                <FiMoreVertical className="text-[var(--foreground)]" size={18} />
-            </div>
+            {/* Menu Button - Only show for course owner */}
+            {isOwner && (
+                <div
+                    ref={buttonRef}
+                    className="absolute top-2 right-2 p-1 rounded-md hover:bg-[var(--neutral-300)]"
+                    onClick={handleMenuToggle}
+                >
+                    <FiMoreVertical className="text-[var(--foreground)]" size={18} />
+                </div>
+            )}
 
             {/* Lock Icon for private courses */}
             {!course.public && (
@@ -73,14 +79,16 @@ export default function CourseCard({ course }: CourseCardProps) {
                 </p>
             )}
 
-            {/* Dropdown Menu */}
-            <MenuDropdown
-                isOpen={isMenuOpen}
-                position={menuPosition}
-                onClose={() => setIsMenuOpen(false)}
-                menuRef={menuRef}
-                course={course}
-            />
+            {/* Dropdown Menu - Only show for course owner */}
+            {isOwner && (
+                <MenuDropdown
+                    isOpen={isMenuOpen}
+                    position={menuPosition}
+                    onClose={() => setIsMenuOpen(false)}
+                    menuRef={menuRef}
+                    course={course}
+                />
+            )}
         </div>
     );
 }
@@ -95,7 +103,7 @@ const MenuDropdown = ({
     isOpen: boolean;
     position: { top: number; left: number };
     onClose: () => void;
-    menuRef: React.RefObject<HTMLDivElement>;
+    menuRef: React.RefObject<HTMLDivElement | null>;
     course: Course;
 }) => {
     if (!isOpen) return null;
