@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CourseLesson, Project } from "@/lib/types";
+import { CourseLesson, Project, Card } from "@/lib/types";
 import { takeLesson } from "@/app/views/lessons";
 import { getProject } from "@/app/views/projects";
 import Button from "../../button";
 import ProjectCard from "../../dashboard/project_card";
 import LoadingComponent from "../../loading";
 import Modal from "../../modal";
+import DetailCard from "../../editor/cards/detail_card";
+import CardPopup from "../../editor/cards/card_popup";
 
 interface LessonPageProps {
     lesson: CourseLesson;
@@ -21,6 +23,7 @@ const LessonPage = ({ lesson, courseId, lessonIdx, projectIds }: LessonPageProps
     const [projects, setProjects] = useState<Project[]>([]);
     const [loadingProjects, setLoadingProjects] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [clickedCard, setClickedCard] = useState<Card | null>(null);
 
     useEffect(() => {
         const fetchProjects = async () => {
@@ -83,6 +86,22 @@ const LessonPage = ({ lesson, courseId, lessonIdx, projectIds }: LessonPageProps
                 <p className="text-[var(--foreground)] mb-6">No description available.</p>
             )}
 
+            {lesson.cardsToUnlock && lesson.cardsToUnlock.length > 0 && (
+                <div className="mb-6">
+                    <h3 className="text-xl font-semibold text-[var(--foreground)] mb-4">Cards to Unlock</h3>
+                    <div className="flex flex-row gap-8 p-4 w-full overflow-x-auto">
+                        {lesson.cardsToUnlock.map((card, index) => (
+                            <div key={index} className="shrink-0">
+                                <DetailCard
+                                    card={{ id: index.toString(), title: card.title, details: card.details }}
+                                    onClick={() => setClickedCard({ id: index.toString(), title: card.title, details: card.details })}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {loadingProjects ? (
                 <div className="mb-6">
                     <LoadingComponent small={true} loadingText="Loading projects" />
@@ -121,6 +140,13 @@ const LessonPage = ({ lesson, courseId, lessonIdx, projectIds }: LessonPageProps
                 onClose={() => setShowConfirmModal(false)}
                 onProceed={createProjectFromLesson}
             />
+
+            {clickedCard && (
+                <CardPopup
+                    card={clickedCard}
+                    onClose={() => setClickedCard(null)}
+                />
+            )}
         </div>
     );
 };

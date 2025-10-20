@@ -136,8 +136,6 @@ export const writeHierarchy = async (
         await updateDoc(projectDocRef, {
             hierarchy: hierarchy
         });
-
-        console.log(`Hierarchy successfully written for project ${projectId}`);
     } catch (err) {
         console.error(`Error writing hierarchy for project ${projectId}:`, err);
         throw err;
@@ -657,8 +655,6 @@ export const writeNewContentToDb = async (
              content: newContent,
              updatedAt: serverTimestamp()
         }, { merge: true });
-
-        console.log("New content written successfully to history and main document.");
     } catch (err) {
         console.error("Error writing new content to DB:", err);
         throw err;
@@ -674,7 +670,6 @@ export const getPreviousContent = async (projectId: string): Promise<string | nu
             const data = docSnap.data();
             return data.content || null;
         } else {
-            console.log("No previous content found for this project.");
             return null;
         }
     } catch (err) {

@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 
 import { User } from "firebase/auth";
-import { Project } from "@/lib/types";
+import { Project, Course } from "@/lib/types";
 import { getProjects, saveProject, createProject } from "@/app/views/projects"
+import { getCourses } from "@/app/views/courses";
 
 import { FiLoader } from "react-icons/fi";
 
@@ -19,37 +20,54 @@ const Dashboard = ({ user }: DashboardProps) => {
 
     const [isLoading, setLoading] = useState(false);
     const [projects, setProjects] = useState<Project[]>([]);
+    const [courses, setCourses] = useState<Course[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
 
     // Separate projects into regular and lesson projects
     const isLessonProject = (project: Project) => {
-        return project.hierarchy &&
-               project.hierarchy.children &&
-               project.hierarchy.children.length === 1 &&
-               project.hierarchy.children[0].type === 'text';
+        return project.courseLesson !== undefined;
     };
 
     const regularProjects = projects.filter(p => !isLessonProject(p));
     const lessonProjects = projects.filter(p => isLessonProject(p));
 
+    // Group lesson projects by course
+    const courseMap = courses.reduce((map, course) => {
+        map[course.id] = course;
+        return map;
+    }, {} as { [courseId: string]: Course });
+
+    const lessonProjectsByCourse = lessonProjects.reduce((groups, project) => {
+        const courseId = project.courseLesson!.courseId;
+        if (!groups[courseId]) {
+            groups[courseId] = [];
+        }
+        groups[courseId].push(project);
+        return groups;
+    }, {} as { [courseId: string]: Project[] });
+
     useEffect(() => {
         if (!user) return;
 
-        const fetchProjects = async () => {
+        const fetchData = async () => {
             setLoading(true);
             try {
-                const projects: Project[] = await getProjects();
-                setProjects(projects);
+                const [projectsData, coursesData] = await Promise.all([
+                    getProjects(),
+                    getCourses()
+                ]);
+                setProjects(projectsData);
+                setCourses(coursesData);
             } catch (err) {
-                console.error("Failed to fetch projects:", err);
+                console.error("Failed to fetch data:", err);
             }
             finally {
                 setLoading(false);
             }
         };
 
-        fetchProjects();
+        fetchData();
     }, [user]);
 
     if (!user) return null;
@@ -119,21 +137,31 @@ const Dashboard = ({ user }: DashboardProps) => {
             )}
 
             {/* Lesson Projects Section */}
-            {lessonProjects.length > 0 && (
+            {Object.keys(lessonProjectsByCourse).length > 0 && (
                 <div>
                     <p className="text-[var(--foreground)] text-lg mb-4">
-                        Your lessons
+                        Your lesson projects
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {lessonProjects.map((project) => (
-                            <ProjectCard
-                                key={project.id}
-                                project={project}
-                                onEdit={openEditModal}
-                                setProjects={setProjects}
-                            />
-                        ))}
-                    </div>
+                    {Object.entries(lessonProjectsByCourse).map(([courseId, courseProjects]) => {
+                        const course = courseMap[courseId];
+                        return (
+                            <div key={courseId} className="mb-8">
+                                <p className="text-[var(--foreground)] text-md mb-2 font-semibold">
+                                    {course.title}
+                                </p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {courseProjects.map((project) => (
+                                        <ProjectCard
+                                            key={project.id}
+                                            project={project}
+                                            onEdit={openEditModal}
+                                            setProjects={setProjects}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 

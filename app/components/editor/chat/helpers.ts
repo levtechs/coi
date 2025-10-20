@@ -7,12 +7,13 @@ export const sendMessage = async (
     messages: Message[],
     attatchments: null | ChatAttachment[],
     project: Project,
-    addMessage: (msg: Message) => void, 
+    addMessage: (msg: Message) => void,
     setStream: Dispatch<SetStateAction<string | null>>,
     setNewCards: (newCards: Card[]) => void,
     updatePhase: Dispatch<SetStateAction<null | StreamPhase>>,
     setInput: Dispatch<SetStateAction<string>>,
-    setLoading: Dispatch<SetStateAction<boolean>>
+    setLoading: Dispatch<SetStateAction<boolean>>,
+    setCards: (cards: Card[]) => void
 ) => {
     if (!input.trim()) return;
 
@@ -37,7 +38,7 @@ export const sendMessage = async (
             updatePhase(phase);
         }
 
-        await streamChat(
+        const result = await streamChat(
             userInput,
             recentMessages,
             attatchments,
@@ -50,6 +51,11 @@ export const sendMessage = async (
                 setStream(streamedContent);
             },
          );
+
+        // Update cards state with the final complete list if provided
+        if (result.allCards) {
+            setCards(result.allCards);
+        }
 
         setPhase(null);
 

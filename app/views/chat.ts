@@ -106,8 +106,8 @@ export async function streamChat(
                         const trailing = buffer.slice(pos);
                         if (trailing.length > 0) onToken(trailing);
                     }
-
-                    return {
+                    
+                     return {
                         responseMessage: obj.responseMessage,
                         groundingChunks: obj.groundingChunks ?? [],
                         newHierarchy: obj.newHierarchy ?? null,

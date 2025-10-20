@@ -16,6 +16,7 @@ type DetailCardProps = {
 };
 
 export default function DetailCard({ card, onClick, projectId }: DetailCardProps) {
+    const showMenu = !!projectId;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
     const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
@@ -66,20 +67,22 @@ export default function DetailCard({ card, onClick, projectId }: DetailCardProps
             </h3>
 
             {/* Three Dots Icon */}
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition" ref={buttonRef}>
-                <FiMoreVertical
-                    className="text-[var(--neutral-700)] cursor-pointer hover:text-[var(--accent-500)]"
-                    size={20}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (!isMenuOpen && buttonRef.current) {
-                            const rect = buttonRef.current.getBoundingClientRect();
-                            setMenuPosition({ top: rect.bottom + window.scrollY, left: rect.right - 128 + window.scrollX });
-                        }
-                        setIsMenuOpen(!isMenuOpen);
-                    }}
-                />
-            </div>
+            {showMenu && (
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition" ref={buttonRef}>
+                    <FiMoreVertical
+                        className="text-[var(--neutral-700)] cursor-pointer hover:text-[var(--accent-500)]"
+                        size={20}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isMenuOpen && buttonRef.current) {
+                                const rect = buttonRef.current.getBoundingClientRect();
+                                setMenuPosition({ top: rect.bottom + window.scrollY, left: rect.right - 128 + window.scrollX });
+                            }
+                            setIsMenuOpen(!isMenuOpen);
+                        }}
+                    />
+                </div>
+            )}
 
         </div>
         {projectId && (

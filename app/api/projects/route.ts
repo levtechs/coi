@@ -64,13 +64,14 @@ export async function POST(req: NextRequest) {
     const title = body.title || "Untitled Project";
     const hierarchy = body.content || { title: "", children: [] };
     const cards = body.cards || [];
+    const quizIds = body.quizIds || [];
 
     try {
         const projectId = await createProject({
             title,
             hierarchy,
             cards,
-            quizIds: body.quizIds,
+            quizIds,
         }, uid);
 
         return NextResponse.json({ id: projectId });

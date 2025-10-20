@@ -387,11 +387,9 @@ export default function CreateCourse() {
                             buffer = lines.pop() || '';
 
                             for (const line of lines) {
-                                console.log("Received line:", line);
                                 if (line.trim()) {
                                     try {
                                         const update = JSON.parse(line.trim());
-                                        console.log("Parsed update:", update);
                                         if (update.type === 'status') {
                                             onUpdate(update.message);
                                         } else if (update.type === 'outline') {
