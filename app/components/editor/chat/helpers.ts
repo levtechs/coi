@@ -12,8 +12,7 @@ export const sendMessage = async (
     setNewCards: (newCards: Card[]) => void,
     updatePhase: Dispatch<SetStateAction<null | StreamPhase>>,
     setInput: Dispatch<SetStateAction<string>>,
-    setLoading: Dispatch<SetStateAction<boolean>>,
-    setCards: (cards: Card[]) => void
+    setLoading: Dispatch<SetStateAction<boolean>>
 ) => {
     if (!input.trim()) return;
 
@@ -52,10 +51,7 @@ export const sendMessage = async (
             },
          );
 
-        // Update cards state with the final complete list if provided
-        if (result.allCards) {
-            setCards(result.allCards);
-        }
+        // Cards are updated via Firestore listener
 
         setPhase(null);
 

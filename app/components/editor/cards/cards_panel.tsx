@@ -51,6 +51,10 @@ export default function CardsPanel({ project, onCardClick, hidden, cardFilters }
                             hover:bg-[var(--neutral-300)]"
                         onClick={() => setNewCardPopupOpen(true)}
                     >
+                        <span className="text-[var(--accent-500)] font-semibold text-lg">+ Create Card</span>
+                    </div>
+                </>
+            ) : (
                 <div className="flex flex-wrap w-full gap-8 p-4">
                     {/* Create Project Card */}
                     <div
