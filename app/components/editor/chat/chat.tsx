@@ -18,10 +18,9 @@ interface ChatPanelProps {
     attachments: null | ChatAttachment[]
     setAttachments: Dispatch<SetStateAction<ChatAttachment[] | null>>;
     setClickedCard: Dispatch<SetStateAction<Card | null>>;
-    setCards: (cards: Card[]) => void;
 }
 
-const ChatPanel = ({ project, setModalContents, attachments, setAttachments, setClickedCard, setCards }: ChatPanelProps) => {
+const ChatPanel = ({ project, setModalContents, attachments, setAttachments, setClickedCard }: ChatPanelProps) => {
     const [chatToggled, setChatToggled] = useState(true);
     
     const [messages, setMessages] = useState<Message[]>([]);
@@ -40,7 +39,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, set
         children: <NewCardsPopup newCards={newCards} setClickedCard={setClickedCard} projectId={project.id}/>
     })
 
-    const onSend = () => sendMessage(input, messages, attachments, project, addMessage, setStream, setNewCards, setStreamPhase, setInput, setLoading, setCards)
+    const onSend = () => sendMessage(input, messages, attachments, project, addMessage, setStream, setNewCards, setStreamPhase, setInput, setLoading)
 
     const addMessage = (msg: Message) => {
         setMessages(prev => [

@@ -1,3 +1,4 @@
+import { CourseLesson, Project } from "@/lib/types";
 
 interface LessonCardProps {
     lesson: CourseLesson;

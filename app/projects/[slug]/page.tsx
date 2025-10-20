@@ -42,7 +42,7 @@ export default function ProjectPage() {
                     const projectData = docSnap.data();
                     // Exclude cards from document data, as cards are managed by subcollection
                     const { cards, ...projectDataWithoutCards } = projectData as Project;
-                    const projectWithId: Project = { ...projectDataWithoutCards, id: docSnap.id };
+                    const projectWithId: Project = { ...projectDataWithoutCards, id: docSnap.id, cards: [] };
 
                     setProject((prev: Project | null) =>
                         prev ? { ...prev, ...projectWithId } : projectWithId
@@ -114,6 +114,7 @@ export default function ProjectPage() {
             user={user}
             addCollaborator={addCollaborator}
             setTitle={setTitle}
+            setProject={setProject}
         />
     );
 }
