@@ -187,11 +187,6 @@ export const extractWriteCards = async (projectId: string, content: JSON): Promi
         // Step 6: Commit the batch to Firestore.
         await batch.commit();
 
-        console.log(
-            `Successfully synchronized cards. Added: ${newExtractedCards.length - updatedCardIds.size}, ` +
-            `Updated: 0 (not directly supported with this keying), Deleted: ${deletedCardIds.length}`
-        );
-        
         // For a final list of cards, fetch again or re-construct.
         const finalCards = await getDocs(cardsCollectionRef);
         const allCards: Card[] = finalCards.docs.map(doc => ({

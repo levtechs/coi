@@ -2,22 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getVerifiedUid } from "@/app/api/helpers";
 import {
     writeChatPairToDb,
-    getPreviousHierarchy,
     generateAndWriteNewCards,
     groundingChunksToCardsAndWrite,
     generateNewHierarchyFromCards,
     writeHierarchy,
 } from "../helpers";
 import { streamChatResponse } from "./helpers";
+import { getProjectById } from "@/app/api/projects/helpers";
 import { fetchCardsFromProject } from "@/app/api/cards/helpers";
 import { Card, ContentHierarchy, ChatAttachment, StreamPhase, GroundingChunk } from "@/lib/types";
-
-interface ChatRequestBody {
-    message: string;
-    messageHistory: { content: string; isResponse: boolean }[];
-    projectId: string;
-    attachments: ChatAttachment[] | null; // added attachments
-}
 
 export async function POST(req: NextRequest) {
     const uid = await getVerifiedUid(req);
@@ -26,11 +19,22 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const body: ChatRequestBody = await req.json();
+        const body: {
+            message: string;
+            messageHistory: { content: string; isResponse: boolean }[];
+            projectId: string;
+            attachments: ChatAttachment[] | null; // added attachments
+        } = await req.json();
         const { message, messageHistory, projectId, attachments } = body;
 
-        //const previousContent = await getPreviousContent(projectId);
-        const previousContentHierarchy = await getPreviousHierarchy(projectId);
+        // Load the project for hierarchy
+        const project = await getProjectById(projectId, uid);
+        if (!project) {
+            console.error(`Project ${projectId} not found or access denied for user ${uid}`);
+            return NextResponse.json({ error: "Project not found or access denied" }, { status: 404 });
+        }
+
+        const previousContentHierarchy = project.hierarchy;
         const previousCards: Card[] = await fetchCardsFromProject(projectId);
         const effectivePreviousCards = previousCards.filter((card: Card) => !card.exclude); // cards that are not excluded
 
@@ -125,13 +129,13 @@ export async function POST(req: NextRequest) {
                         const newHierarchy: ContentHierarchy = await generateNewHierarchyFromCards(previousContentHierarchy, effectivePreviousCards, newCards);
                         await writeHierarchy(projectId, newHierarchy);
 
-                         finalObj = {
-                             type: "final",
-                             responseMessage: finalResponseMessage,
-                             groundingChunks,
-                             newHierarchy,
-                             allCards
-                         };
+                          finalObj = {
+                              type: "final",
+                              responseMessage: finalResponseMessage,
+                              groundingChunks,
+                              newHierarchy,
+                              allCards
+                          };
                     }
 
                     // Send final structured JSON object

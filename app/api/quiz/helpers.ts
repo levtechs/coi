@@ -23,15 +23,12 @@ export const writeQuizToDb = async (quiz: object, projectId: string): Promise<st
             createdAt: new Date().toISOString(),
         });
 
-        console.log("New quiz written successfully with ID:", docRef.id);
-
         // 2. Add quizId to the project document's quizIds array
         const projectRef = doc(db, "projects", projectId);
         await updateDoc(projectRef, {
             quizIds: arrayUnion(docRef.id),
         });
 
-        console.log(`Quiz ID ${docRef.id} added to project ${projectId}`);
         return docRef.id;
     } catch (err) {
         console.error("Error writing quiz to DB or updating project:", err);
