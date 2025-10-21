@@ -70,13 +70,9 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                <hr/>
+                 <hr/>
 
-                <p className="mt-8 text-[var(--foreground)] text-lg mb-4">
-                    Your projects
-                </p>
-
-                <Dashboard user={user} />
+                 <Dashboard user={user} />
             </div>
         </div>
     );

@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 import { User } from "firebase/auth";
 import { Project, Course } from "@/lib/types";
 import { getProjects, saveProject, createProject } from "@/app/views/projects"
 import { getCourses } from "@/app/views/courses";
 
-import { FiLoader } from "react-icons/fi";
+import LoadingComponent from "@/app/components/loading";
 
 import ProjectCard from "./project_card";
 import Modal from "@/app/components/modal";
@@ -72,7 +73,7 @@ const Dashboard = ({ user }: DashboardProps) => {
 
     if (!user) return null;
 
-    if (isLoading) return <FiLoader className="animate-spin w-5 h-5 text-[var(--foreground)]" />;
+    if (isLoading) return <div className="mt-8 flex justify-center"><LoadingComponent small={true} /></div>;
 
     function openCreateModal() {
         setEditingProject(null);
@@ -105,7 +106,7 @@ const Dashboard = ({ user }: DashboardProps) => {
     return (
         <>
             {/* Create Project Card - Always shown */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6 mt-6">
                 <div
                     className="flex items-center justify-center border border-[var(--neutral-300)] rounded-lg p-6 cursor-pointer
                             bg-[var(--neutral-100)]
@@ -120,7 +121,7 @@ const Dashboard = ({ user }: DashboardProps) => {
             {/* Regular Projects Section */}
             {regularProjects.length > 0 && (
                 <div className="mb-8">
-                    <p className="text-[var(--foreground)] text-lg mb-4">
+                    <p className="text-[var(--foreground)] text-lg mb-4 font-bold">
                         Your projects
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -139,16 +140,18 @@ const Dashboard = ({ user }: DashboardProps) => {
             {/* Lesson Projects Section */}
             {Object.keys(lessonProjectsByCourse).length > 0 && (
                 <div>
-                    <p className="text-[var(--foreground)] text-lg mb-4">
+                    <p className="text-[var(--foreground)] text-lg mb-4 font-bold">
                         Your lesson projects
                     </p>
                     {Object.entries(lessonProjectsByCourse).map(([courseId, courseProjects]) => {
                         const course = courseMap[courseId];
                         return (
-                            <div key={courseId} className="mb-8">
-                                <p className="text-[var(--foreground)] text-md mb-2 font-semibold">
-                                    {course.title}
-                                </p>
+                            <div key={courseId} className="mb-4">
+                                <div className="mb-2">
+                                  <Link href={`/courses/${courseId}`} className="text-[var(--foreground)] text-sm">
+                                      {course.title}
+                                  </Link>
+                                </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {courseProjects.map((project) => (
                                         <ProjectCard

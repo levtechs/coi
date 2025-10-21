@@ -58,7 +58,7 @@ export default function ProjectCard({ project, onEdit, setProjects }: ProjectCar
             className="relative border border-[var(--neutral-300)] rounded-lg p-6 bg-[var(--neutral-200)] shadow hover:shadow-md transition cursor-pointer group"
             onClick={() => window.location.assign(`/projects/${project.id}`)}
         >
-            <h3 className="text-[var(--foreground)] font-semibold text-xl">{project.title}</h3>
+            <h3 className="text-[var(--foreground)] font-semibold text-xl line-clamp-2">{project.title}</h3>
 
             {/* Three Dots Icon */}
             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition" ref={buttonRef}>
