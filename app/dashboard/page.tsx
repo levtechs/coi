@@ -5,6 +5,7 @@ import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import Dashboard from "@/app/components/dashboard/dashboard";
 import Button from "@/app/components/button";
+import MaintenencePage from "@/app/components/maintenence";
 import LoginPrompt from "../components/login_prompt";
 import { FiLogOut, FiUser } from "react-icons/fi";
 import { FaPaintbrush } from "react-icons/fa6";
@@ -19,6 +20,10 @@ export default function DashboardPage() {
     useEffect(() => {
         document.title = "Dashboard - coi";
     }, []);
+
+    if (process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true') {
+        return (<MaintenencePage />);
+    }
 
     if (loading) {
         return (
