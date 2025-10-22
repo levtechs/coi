@@ -129,13 +129,13 @@ export async function POST(req: NextRequest) {
                         const newHierarchy: ContentHierarchy = await generateNewHierarchyFromCards(previousContentHierarchy, effectivePreviousCards, newCards);
                         await writeHierarchy(projectId, newHierarchy);
 
-                          finalObj = {
-                              type: "final",
-                              responseMessage: finalResponseMessage,
-                              groundingChunks,
-                              newHierarchy,
-                              allCards
-                          };
+                        finalObj = {
+                            type: "final",
+                            responseMessage: finalResponseMessage,
+                            groundingChunks,
+                            newHierarchy,
+                            allCards
+                        };
                     }
 
                     // Send final structured JSON object
