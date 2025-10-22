@@ -175,14 +175,25 @@ export const generateAndWriteNewCards = async (
         },
     };
 
-    // Call Gemini with streaming
-    const streamingResp = await llmModel.generateContentStream(requestBody);
-    let accumulated = "";
-    for await (const chunk of streamingResp.stream) {
-        const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        accumulated += partText;
+    // Call Gemini, fallback to streaming on 503
+    let jsonString: string;
+    try {
+        const result = await llmModel.generateContent(requestBody);
+        jsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    } catch (err) {
+        const error = err as { status?: number };
+        if (error.status === 503) {
+            const streamingResp = await llmModel.generateContentStream(requestBody);
+            let accumulated = "";
+            for await (const chunk of streamingResp.stream) {
+                const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                accumulated += partText;
+            }
+            jsonString = accumulated;
+        } else {
+            throw err;
+        }
     }
-    const jsonString = accumulated;
 
     let newCardsRaw: Omit<Card, "id">[];
     try {
@@ -452,13 +463,24 @@ export const generateNewHierarchyFromCards = async (
         },
     };
 
-    const streamingResp = await llmModel.generateContentStream(requestBody);
-    let accumulated = "";
-    for await (const chunk of streamingResp.stream) {
-        const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        accumulated += partText;
+    let jsonString: string;
+    try {
+        const result = await llmModel.generateContent(requestBody);
+        jsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    } catch (err) {
+        const error = err as { status?: number };
+        if (error.status === 503) {
+            const streamingResp = await llmModel.generateContentStream(requestBody);
+            let accumulated = "";
+            for await (const chunk of streamingResp.stream) {
+                const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                accumulated += partText;
+            }
+            jsonString = accumulated;
+        } else {
+            throw err;
+        }
     }
-    const jsonString = accumulated;
 
     try {
         let hierarchy: ContentHierarchy | null = null;
