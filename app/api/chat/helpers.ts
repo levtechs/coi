@@ -175,9 +175,14 @@ export const generateAndWriteNewCards = async (
         },
     };
 
-    // Call Gemini
-    const result = await llmModel.generateContent(requestBody);
-    const jsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text;
+    // Call Gemini with streaming
+    const streamingResp = await llmModel.generateContentStream(requestBody);
+    let accumulated = "";
+    for await (const chunk of streamingResp.stream) {
+        const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        accumulated += partText;
+    }
+    const jsonString = accumulated;
 
     let newCardsRaw: Omit<Card, "id">[];
     try {
@@ -447,8 +452,13 @@ export const generateNewHierarchyFromCards = async (
         },
     };
 
-    const result = await llmModel.generateContent(requestBody);
-    const jsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text;
+    const streamingResp = await llmModel.generateContentStream(requestBody);
+    let accumulated = "";
+    for await (const chunk of streamingResp.stream) {
+        const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        accumulated += partText;
+    }
+    const jsonString = accumulated;
 
     try {
         let hierarchy: ContentHierarchy | null = null;
