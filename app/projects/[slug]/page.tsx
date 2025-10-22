@@ -12,6 +12,7 @@ import Button from "@/app/components/button";
 import Editor from "@/app/components/editor/editor";
 import LoadingComponent from "@/app/components/loading";
 import Error from "@/app/components/error";
+import MaintenencePage from "@/app/components/maintenence";
 
 export default function ProjectPage() {
     const { user } = useAuth();
@@ -93,6 +94,10 @@ export default function ProjectPage() {
                 </Button>
             </div>
         );
+    }
+
+    if (process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true') {
+        return (<MaintenencePage />);
     }
 
     if (isLoading === "error") {
