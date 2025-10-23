@@ -5,7 +5,7 @@ import { Card } from "@/lib/types";
 import MarkdownArticle from "../../md";
 
 import { FaYoutube } from "react-icons/fa";
-import { FiEdit2, FiMoreVertical, FiTrash2 } from "react-icons/fi";
+import { FiEdit2, FiMoreVertical, FiTrash2, FiStar } from "react-icons/fi";
 import { deleteCard, updateCard } from "@/app/views/cards";
 import EditCardPopup from "./edit_card_popup";
 
@@ -13,9 +13,10 @@ type DetailCardProps = {
     card: Card;
     onClick: (card: Card) => void;
     projectId?: string;
+    isFromCourse?: boolean;
 };
 
-export default function DetailCard({ card, onClick, projectId }: DetailCardProps) {
+export default function DetailCard({ card, onClick, projectId, isFromCourse }: DetailCardProps) {
     const showMenu = !!projectId;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
@@ -48,6 +49,9 @@ export default function DetailCard({ card, onClick, projectId }: DetailCardProps
             className="flex items-center justify-center text-center relative border border-[var(--neutral-300)] rounded-lg p-6 bg-[var(--neutral-200)] h-24 shadow hover:shadow-md transition cursor-pointer group"
             onClick={() => onClick(card)}
         >
+            {(isFromCourse || card.isUnlocked) && (
+                <FiStar className="absolute top-2 left-2 text-[var(--accent-500)] w-5 h-5" />
+            )}
             {card.url && (card.url.includes("youtube.com") || card.url.includes("youtu.be")) ? (
                 <FaYoutube className="w-6 h-6 mr-2 text-[var(--error)] flex-shrink-0" />
             ) : (

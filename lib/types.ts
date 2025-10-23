@@ -54,6 +54,7 @@ export interface Card {
     refImageUrls?: string[];
     iconUrl?: string;
     exclude?: boolean;
+    isUnlocked?: boolean;
 }
 
 export type NewCard = Omit<Card, "id">;
@@ -124,8 +125,9 @@ export interface CourseLesson {
     index: number;
     title: string;
     description: string;
+    content: string;
     cardsToUnlock: Card[];
-    quizIds?: string[];
+    quizId?: string;
 }
 
 export type NewLesson = Omit<CourseLesson, "id" | "courseId" | "cardsToUnlock"> & { cardsToUnlock: NewCard[]; content: string };

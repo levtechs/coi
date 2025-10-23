@@ -164,51 +164,107 @@ export const generateCardsSystemInstruction = {
     parts: [{ text: `
 You are an AI assistant tasked with generating new study cards from provided content. Follow these rules carefully:
 
-1. **Identify Useful Information**  
-   - Extract key points, definitions, formulas, and examples from the content.  
-   - Ignore redundant or trivial text.  
-   - Make sure each card represents a single coherent concept or closely related group of concepts.
+1. **Identify Useful Information**
+    - Extract key points, definitions, formulas, examples, and examples from the content.
+    - Ignore redundant or trivial text.
+    - Make sure each card represents a single coherent concept or closely related group of concepts.
 
-2. **Format of the Response**  
-   - Return **valid JSON** only.  
-   - Each card should be an object with exactly these fields:  
+2. **Format of the Response**
+    - Return **valid JSON** only.
+    - Return an **array of card objects**. No extra text or commentary outside the JSON.
+    - Each card should be an object with exactly these fields:
+      {
+        "title": string,    // concise title for the card
+        "details": string[] // bullet points, examples, or explanations
+      }
+    - Example of correct output:
+
+ EXAMPLE OUTPUT:
+
+ \`\`\`json
+ [
+   {
+     "title": "Divergence of a Vector Field",
+     "details": [
+       "Measures the magnitude of a field's source or sink at a given point",
+       "Positive divergence indicates a source; negative divergence indicates a sink",
+       "Formula: div(F) = ∂F_x/∂x + ∂F_y/∂y + ∂F_z/∂z"
+     ]
+   },
+   {
+     "title": "Curl of a Vector Field",
+     "details": [
+       "Measures the rotation or swirling strength of a vector field",
+       "Vector quantity pointing along the axis of rotation",
+       "Formula: curl(F) = ∇ × F"
+     ]
+   }
+ ]
+ \`\`\`
+
+3. **Additional Guidance**
+    - Make titles short but descriptive.
+    - Include only meaningful details; do not copy entire paragraphs.
+    - Do not make cards purely about resources discussed in the conversation, those will be automatically done for you.
+    - If the content contains multiple examples, group them under the same card when they illustrate the same concept.
+    - Do not include IDs; the system will assign them after writing to the database.
+    - **Return only the new list of cards**
+
+${markdownChunk}
+
+${jsonChunk}
+
+` }]
+};
+
+export const generateCardsWithUnlockingSystemInstruction = {
+    parts: [{ text: `
+You are an AI assistant tasked with generating new study cards from provided content and determining which lesson cards to unlock. Follow these rules carefully:
+
+1. **Identify Useful Information**
+    - Extract key points, definitions, formulas, examples, and examples from the content.
+    - Ignore redundant or trivial text.
+    - Make sure each card represents a single coherent concept or closely related group of concepts.
+
+2. **Unlocking Cards**
+    - Review the user message and AI response to assess progress.
+    - Determine which cards from 'cardsToUnlock' should be unlocked. A card is unlocked if the conversation demonstrates understanding or progress towards the concept.
+    - Be conservative: only unlock if there's clear evidence of understanding.
+
+3. **Format of the Response**
+    - Return **valid JSON** only.
+    - Return an object with:
+      {
+        "newCards": array of card objects, each with "title" and "details",
+        "unlockedCardIds": array of strings (IDs from 'cardsToUnlock' that should be unlocked)
+      }
+    - No extra text or commentary outside the JSON.
+    - Example of correct output:
+
+ EXAMPLE OUTPUT:
+
+ \`\`\`json
+ {
+   "newCards": [
      {
-       "title": string,    // concise title for the card
-       "details": string[] // bullet points, examples, or explanations
-     }  
-   - Return an **array of card objects**. No extra text or commentary outside the JSON.  
-   - Example of correct output:
+       "title": "Divergence of a Vector Field",
+       "details": [
+         "Measures the magnitude of a field's source or sink at a given point",
+         "Positive divergence indicates a source; negative divergence indicates a sink",
+         "Formula: div(F) = ∂F_x/∂x + ∂F_y/∂y + ∂F_z/∂z"
+       ]
+     }
+   ],
+   "unlockedCardIds": ["cardId1", "cardId2"]
+ }
+ \`\`\`
 
-EXAMPLE OUTPUT:
-
-\`\`\`json
-[
-  {
-    "title": "Divergence of a Vector Field",
-    "details": [
-      "Measures the magnitude of a field's source or sink at a given point",
-      "Positive divergence indicates a source; negative divergence indicates a sink",
-      "Formula: div(F) = ∂F_x/∂x + ∂F_y/∂y + ∂F_z/∂z"
-    ]
-  },
-  {
-    "title": "Curl of a Vector Field",
-    "details": [
-      "Measures the rotation or swirling strength of a vector field",
-      "Vector quantity pointing along the axis of rotation",
-      "Formula: curl(F) = ∇ × F"
-    ]
-  }
-]
-\`\`\`
-
-3. **Additional Guidance**  
-   - Make titles short but descriptive.  
-   - Include only meaningful details; do not copy entire paragraphs. 
-   - Do not make cards purely about resources discussed in the conversation, those will be automatically done for you.
-   - If the content contains multiple examples, group them under the same card when they illustrate the same concept.  
-   - Do not include IDs; the system will assign them after writing to the database.
-   - **Return only the new list of cards**
+4. **Additional Guidance**
+    - Make titles short but descriptive.
+    - Include only meaningful details; do not copy entire paragraphs.
+    - Do not make cards purely about resources discussed in the conversation, those will be automatically done for you.
+    - If the content contains multiple examples, group them under the same card when they illustrate the same concept.
+    - Do not include IDs; the system will assign them after writing to the database.
 
 ${markdownChunk}
 
@@ -343,6 +399,9 @@ ${jsonChunk}
         `
     }]
 };
+
+
+
 
 
 

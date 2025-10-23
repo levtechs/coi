@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { CourseLesson, Project, Card } from "@/lib/types";
 import { takeLesson } from "@/app/views/lessons";
 import { getProject } from "@/app/views/projects";
+import { getCards } from "@/app/views/cards";
 import Button from "../../button";
 import ProjectCard from "../../dashboard/project_card";
 import LoadingComponent from "../../loading";
@@ -24,11 +25,16 @@ const LessonPage = ({ lesson, courseId, lessonIdx, projectIds }: LessonPageProps
     const [loadingProjects, setLoadingProjects] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [clickedCard, setClickedCard] = useState<Card | null>(null);
+    const [lessonProgress, setLessonProgress] = useState<string | null>(null);
 
     useEffect(() => {
+        if (projectIds.length === 0) {
+            setLessonProgress("0%");
+            return;
+        }
         const fetchProjects = async () => {
-            if (projectIds.length === 0) return;
             setLoadingProjects(true);
+            setLessonProgress("Loading lesson progress...");
             try {
                 const fetchedProjects = await Promise.all(
                     projectIds.map(async (projectId) => {
@@ -40,7 +46,33 @@ const LessonPage = ({ lesson, courseId, lessonIdx, projectIds }: LessonPageProps
                         }
                     })
                 );
-                setProjects(fetchedProjects.filter((p): p is Project => p !== null));
+                const validProjects = fetchedProjects.filter((p): p is Project => p !== null);
+                setProjects(validProjects);
+
+                // Calculate lesson progress: highest progress among projects
+                if (lesson.cardsToUnlock && lesson.cardsToUnlock.length > 0) {
+                    if (validProjects.length > 0) {
+                        const totalCards = lesson.cardsToUnlock.length;
+                        const progresses = await Promise.all(
+                            validProjects.map(async (project) => {
+                                try {
+                                    const cards = await getCards(project.id);
+                                    const unlockedCount = cards.filter((card) => card.isUnlocked).length;
+                                    return Math.round((unlockedCount / totalCards) * 100);
+                                } catch (error) {
+                                    console.error(`Failed to fetch cards for project ${project.id}:`, error);
+                                    return 0;
+                                }
+                            })
+                        );
+                        const maxProgress = Math.max(...progresses);
+                        setLessonProgress(`${maxProgress}%`);
+                    } else {
+                        setLessonProgress("0%");
+                    }
+                } else {
+                    setLessonProgress("0%");
+                }
             } catch (error) {
                 console.error("Error fetching projects:", error);
             } finally {
@@ -48,7 +80,7 @@ const LessonPage = ({ lesson, courseId, lessonIdx, projectIds }: LessonPageProps
             }
         };
         fetchProjects();
-    }, [projectIds]);
+    }, [projectIds, lesson.cardsToUnlock]);
 
     const handleTakeLesson = async () => {
         // If there are already projects from this lesson, show confirmation
@@ -80,6 +112,13 @@ const LessonPage = ({ lesson, courseId, lessonIdx, projectIds }: LessonPageProps
 
     return (
         <div>
+            {lessonProgress !== null && (
+                <div className="mb-4">
+                    <span className="text-[var(--foreground)] text-sm font-semibold">
+                        Lesson Progress: {typeof lessonProgress === 'string' ? lessonProgress : `${lessonProgress}%`}
+                    </span>
+                </div>
+            )}
             {lesson.description ? (
                 <p className="text-[var(--foreground)] mb-6">{lesson.description}</p>
             ) : (
@@ -95,6 +134,7 @@ const LessonPage = ({ lesson, courseId, lessonIdx, projectIds }: LessonPageProps
                                 <DetailCard
                                     card={{ id: index.toString(), title: card.title, details: card.details }}
                                     onClick={() => setClickedCard({ id: index.toString(), title: card.title, details: card.details })}
+                                    isFromCourse={true}
                                 />
                             </div>
                         ))}

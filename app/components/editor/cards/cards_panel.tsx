@@ -66,9 +66,10 @@ export default function CardsPanel({ project, onCardClick, hidden, cardFilters }
                     >
                         <span className="text-[var(--accent-500)] font-semibold text-lg">+ Create Card</span>
                     </div>
-                    {filteredCards.map((card) => (
-                        <DetailCard key={card.id} card={card} onClick={onCardClick} projectId={project.id} />
-                    ))}
+                    {filteredCards.map((card) => {
+                        const isFromCourse = project.courseLesson ? project.courseLesson.cardsToUnlock.some(c => c.id === card.id) : false;
+                        return <DetailCard key={card.id} card={card} onClick={onCardClick} projectId={project.id} isFromCourse={isFromCourse} />;
+                    })}
                 </div>
             )}
             {isNewCardPopupOpen && <EditCardPopup onSubmit={onAddCard} onCancel={() => setNewCardPopupOpen(false)}/>}

@@ -11,12 +11,12 @@ import { createCourse, getCourse, updateCourse } from "@/app/views/courses";
 import { auth } from "@/lib/firebase";
 import { getIdToken } from "firebase/auth";
 
-type CourseLessonForm = Omit<CourseLesson, "id" | "courseId" | "index" | "cardsToUnlock"> & { text: string; cardsToUnlock: NewCard[]; id?: string };
+type CourseLessonForm = Omit<CourseLesson, "id" | "courseId" | "index" | "cardsToUnlock"> & { cardsToUnlock: NewCard[]; id?: string };
 
 export default function CreateCourse() {
     const [courseTitle, setCourseTitle] = useState("");
     const [courseDescription, setCourseDescription] = useState("");
-    const [lessons, setLessons] = useState<CourseLessonForm[]>([{ title: "", description: "", text: "", cardsToUnlock: [] }]);
+    const [lessons, setLessons] = useState<CourseLessonForm[]>([{ title: "", description: "", content: "", cardsToUnlock: [] }]);
     const [collapsedLessons, setCollapsedLessons] = useState<boolean[]>([true]);
     const [collapsedCards, setCollapsedCards] = useState<{ [lessonIndex: number]: boolean[] }>({});
     const [isGeneratingCourse, setIsGeneratingCourse] = useState(false);
@@ -46,7 +46,7 @@ export default function CreateCourse() {
                         id: lesson.id,
                         title: lesson.title,
                         description: lesson.description,
-                        text: "",
+                        content: "",
                         cardsToUnlock: lesson.cardsToUnlock.map((card) => ({
                             title: card.title,
                             details: card.details || [],
@@ -66,7 +66,7 @@ export default function CreateCourse() {
     }, [searchParams]);
 
     const addLesson = () => {
-        setLessons([...lessons, { title: "", description: "", text: "", cardsToUnlock: [] }]);
+        setLessons([...lessons, { title: "", description: "", content: "", cardsToUnlock: [] }]);
         setCollapsedLessons([...collapsedLessons, true]);
     };
 
@@ -89,7 +89,7 @@ export default function CreateCourse() {
         setCollapsedCards(shifted);
     };
 
-    const updateLesson = (index: number, field: "title" | "description" | "text", value: string) => {
+    const updateLesson = (index: number, field: "title" | "description" | "content", value: string) => {
         const newLessons = [...lessons];
         newLessons[index][field] = value;
         setLessons(newLessons);
@@ -167,15 +167,16 @@ export default function CreateCourse() {
                 const courseData = {
                     title: courseTitle,
                     description: courseDescription,
-                    lessons: lessons.map((lesson, index) => ({
-                        id: lesson.id!,
-                        courseId: editCourseId,
-                        index,
-                        title: lesson.title,
-                        description: lesson.description,
-                        cardsToUnlock: lesson.cardsToUnlock as Card[],
-                        quizIds: [],
-                    })),
+                        lessons: lessons.map((lesson, index) => ({
+                            id: lesson.id!,
+                            courseId: editCourseId,
+                            index,
+                            title: lesson.title,
+                            description: lesson.description,
+                            content: lesson.content,
+                            cardsToUnlock: lesson.cardsToUnlock as Card[],
+                            quizIds: [],
+                        })),
                     public: isPublic,
                     sharedWith: [],
                 };
@@ -191,7 +192,7 @@ export default function CreateCourse() {
                         index,
                         title: lesson.title,
                         description: lesson.description,
-                        content: lesson.text,
+                        content: lesson.content,
                         cardsToUnlock: lesson.cardsToUnlock,
                         quizIds: [],
                     })),
@@ -405,7 +406,7 @@ export default function CreateCourse() {
                                              const mappedLessons = data.lessons.map((lesson: { title: string; description: string; cardsToUnlock: NewCard[] }) => ({
                                                  title: lesson.title,
                                                  description: lesson.description,
-                                                 text: '',
+                                                  content: '',
                                                  cardsToUnlock: lesson.cardsToUnlock,
                                              }));
                                              setLessons(mappedLessons);

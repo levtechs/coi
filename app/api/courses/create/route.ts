@@ -40,13 +40,25 @@ export async function POST(req: NextRequest) {
         for (const lesson of courseData.lessons) {
             const lessonRef = await addDoc(collection(db, 'courses', courseId, 'lessons'), {
                 ...lesson,
-                courseId: courseId
+                courseId: courseId,
+                cardsToUnlock: [] // Will populate below
             });
+
+            // Create cardsToUnlock subcollection
+            const cardsToUnlock: Card[] = [];
+            for (const card of lesson.cardsToUnlock) {
+                const cardRef = await addDoc(collection(db, 'courses', courseId, 'lessons', lessonRef.id, 'cardsToUnlock'), card);
+                cardsToUnlock.push({
+                    ...card,
+                    id: cardRef.id
+                });
+            }
+
             lessons.push({
                 ...lesson,
                 id: lessonRef.id,
                 courseId: courseId,
-                cardsToUnlock: lesson.cardsToUnlock as Card[]
+                cardsToUnlock
             });
         }
 

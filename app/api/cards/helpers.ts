@@ -5,6 +5,7 @@ import {
     addDoc,
     writeBatch,
     getDoc,
+    setDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Card, NewCard } from "@/lib/types";
@@ -68,6 +69,32 @@ export const writeCardsToDb = async (
         return addedCards;
     } catch (err) {
         console.error("Error writing cards to Firestore:", err);
+        throw err;
+    }
+};
+
+/**
+ * Copies a list of cards (with IDs) into Firestore, preserving their IDs.
+ *
+ * @param projectId - The ID of the project where cards will be stored.
+ * @param cards - Array of cards with IDs to copy to Firestore.
+ * @returns A promise resolving to the list of copied cards (same as input).
+ */
+export const copyCardsToDb = async (
+    projectId: string,
+    cards: Card[]
+): Promise<Card[]> => {
+    try {
+        const cardsCollectionRef = collection(db, "projects", projectId, "cards");
+
+        for (const card of cards) {
+            const docRef = doc(cardsCollectionRef, card.id);
+            await setDoc(docRef, card);
+        }
+
+        return cards;
+    } catch (err) {
+        console.error("copyCardsToDb: Error copying cards to Firestore:", err);
         throw err;
     }
 };
