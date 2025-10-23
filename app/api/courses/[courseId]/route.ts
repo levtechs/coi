@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { getVerifiedUid } from "../../helpers";
 import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc, setDoc, addDoc, query, where, or, and } from "firebase/firestore";
-import { Course, CourseLesson, Project } from "@/lib/types";
+import { Course, CourseLesson, Project, Card } from "@/lib/types";
 
 export async function GET(
     req: NextRequest,
@@ -38,11 +38,26 @@ export async function GET(
         // Fetch lessons subcollection
         const lessonsRef = collection(db, 'courses', courseId, 'lessons');
         const lessonsSnap = await getDocs(lessonsRef);
-        const lessons = lessonsSnap.docs.map((p) => ({
-            id: p.id,
-            courseId: courseId,
-            ...p.data(),
-                })) as CourseLesson[];
+        const lessons = await Promise.all(lessonsSnap.docs.map(async (p) => {
+            const lessonData = p.data();
+            // Fetch cardsToUnlock subcollection
+            const cardsRef = collection(db, 'courses', courseId, 'lessons', p.id, 'cardsToUnlock');
+            const cardsSnap = await getDocs(cardsRef);
+            let cardsToUnlock = cardsSnap.docs.map(cardDoc => ({
+                id: cardDoc.id,
+                ...cardDoc.data()
+            })) as Card[];
+            // Backward compatibility: if subcollection is empty, use array from document
+            if (cardsToUnlock.length === 0 && lessonData.cardsToUnlock) {
+                cardsToUnlock = lessonData.cardsToUnlock;
+            }
+            return {
+                id: p.id,
+                courseId: courseId,
+                ...lessonData,
+                cardsToUnlock
+            } as CourseLesson;
+        }));
 
         // Fetch projects for each lesson
         const lessonProjects: { [lessonId: string]: Project[] } = {};
@@ -145,18 +160,43 @@ export async function PUT(
                 index: index,
                 title: lesson.title,
                 description: lesson.description,
-                cardsToUnlock: lesson.cardsToUnlock,
+                content: lesson.content,
                 quizIds: lesson.quizIds || []
             };
 
+            let lessonDocId: string;
             if (lesson.id && existingIds.has(lesson.id)) {
                 // Update existing
+                lessonDocId = lesson.id;
                 await updateDoc(doc(lessonsRef, lesson.id), lessonData);
             } else {
                 // Create new
-                const newRef = lesson.id ? doc(lessonsRef, lesson.id) : doc(lessonsRef);
-                await setDoc(newRef, lessonData);
+                const newRef = await addDoc(lessonsRef, lessonData);
+                lessonDocId = newRef.id;
             }
+
+            // Handle cardsToUnlock subcollection
+            const cardsRef = collection(db, 'courses', courseId, 'lessons', lessonDocId, 'cardsToUnlock');
+            const existingCardsSnap = await getDocs(cardsRef);
+            const existingCardIds = new Set(existingCardsSnap.docs.map(d => d.id));
+
+            // Update or create cards
+            const cardPromises = lesson.cardsToUnlock.map(async (card) => {
+                if (card.id && existingCardIds.has(card.id)) {
+                    // Update existing
+                    await updateDoc(doc(cardsRef, card.id), { title: card.title, details: card.details });
+                } else {
+                    // Create new
+                    await addDoc(cardsRef, { title: card.title, details: card.details });
+                }
+            });
+            await Promise.all(cardPromises);
+
+            // Delete cards not in the new list
+            const newCardIds = new Set(lesson.cardsToUnlock.map(c => c.id).filter(Boolean));
+            const toDeleteCards = existingCardsSnap.docs.filter(d => !newCardIds.has(d.id));
+            const deleteCardPromises = toDeleteCards.map(d => deleteDoc(d.ref));
+            await Promise.all(deleteCardPromises);
         });
         await Promise.all(lessonPromises);
 

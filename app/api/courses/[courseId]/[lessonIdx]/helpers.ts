@@ -1,6 +1,6 @@
 import { db } from "@/lib/firebase";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
-import { CourseLesson } from "@/lib/types";
+import { CourseLesson, Card } from "@/lib/types";
 
 /**
  * Fetches a specific lesson from a course and checks user access permissions.
@@ -46,6 +46,16 @@ export async function getLessonFromCourse(courseId: string, lessonIdx: number, u
         if (!lesson) {
             return { lesson: null, hasAccess: false };
         }
+
+        // Fetch cardsToUnlock subcollection
+        const cardsRef = collection(db, 'courses', courseId, 'lessons', lesson.id, 'cardsToUnlock');
+        const cardsSnap = await getDocs(cardsRef);
+        const cardsToUnlock = cardsSnap.docs.map((c) => ({
+            id: c.id,
+            ...c.data(),
+        })) as Card[];
+
+        lesson.cardsToUnlock = cardsToUnlock;
 
         return { lesson, hasAccess: true };
     } catch (error) {

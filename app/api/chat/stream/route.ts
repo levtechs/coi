@@ -9,7 +9,7 @@ import {
 } from "../helpers";
 import { streamChatResponse } from "./helpers";
 import { getProjectById } from "@/app/api/projects/helpers";
-import { fetchCardsFromProject } from "@/app/api/cards/helpers";
+import { fetchCardsFromProject, copyCardsToDb } from "@/app/api/cards/helpers";
 import { Card, ContentHierarchy, ChatAttachment, StreamPhase, GroundingChunk } from "@/lib/types";
 
 export async function POST(req: NextRequest) {
@@ -108,26 +108,34 @@ export async function POST(req: NextRequest) {
                         updatePhase("generating cards"); // phase 3
 
                         let newCards: Card[] = []
+                        let unlockedCards: Card[] = []
                         if (hasNewInfo) {
-                            const [cardsFromChat, cardsFromGrounding] = await Promise.all([
-                                generateAndWriteNewCards(projectId, effectivePreviousCards, message, responseMessage),
+                            const cardsToUnlock = project.courseLesson?.cardsToUnlock || [];
+                            const [resultFromChat, cardsFromGrounding] = await Promise.all([
+                                generateAndWriteNewCards(projectId, effectivePreviousCards, message, responseMessage, cardsToUnlock),
                                 groundingChunksToCardsAndWrite(projectId, previousCards, groundingChunks),
                             ]);
 
-                            newCards = [...cardsFromChat, ...cardsFromGrounding];
+                            newCards = [...resultFromChat.newCards, ...cardsFromGrounding];
+                            unlockedCards = resultFromChat.unlockedCards;
                         }
                         else { // There are groundingChunks but hasNewInfo is false
                             newCards = await groundingChunksToCardsAndWrite(projectId, previousCards, groundingChunks)
                         }
 
-                        const allCards = (previousCards ? [...previousCards, ...newCards] : newCards);
+                        if (unlockedCards.length > 0) {
+                            unlockedCards = unlockedCards.map(c => ({ ...c, isUnlocked: true }));
+                            await copyCardsToDb(projectId, unlockedCards);
+                        }
 
-                        sendUpdate("newCards", JSON.stringify(newCards));
+                        sendUpdate("newCards", JSON.stringify([...newCards, ...unlockedCards]));
 
                         updatePhase("generating content"); // phase 4
 
-                        const newHierarchy: ContentHierarchy = await generateNewHierarchyFromCards(previousContentHierarchy, effectivePreviousCards, newCards);
+                        const newHierarchy = await generateNewHierarchyFromCards(previousContentHierarchy, effectivePreviousCards, [...newCards, ...unlockedCards]);
                         await writeHierarchy(projectId, newHierarchy);
+
+                        const allCards = previousCards ? [...previousCards, ...newCards] : [...newCards];
 
                         finalObj = {
                             type: "final",

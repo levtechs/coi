@@ -43,10 +43,10 @@ export default function ProjectPage() {
                     const projectData = docSnap.data();
                     // Exclude cards from document data, as cards are managed by subcollection
                     const { cards: _, ...projectDataWithoutCards } = projectData as Project;
-                    const projectWithId: Project = { ...projectDataWithoutCards, id: docSnap.id };
+                    const projectWithId = { ...projectDataWithoutCards, id: docSnap.id };
 
                     setProject((prev: Project | null) =>
-                        prev ? { ...prev, ...projectWithId } : { ...projectWithId, cards: [] }
+                        prev ? { ...prev, ...projectWithId } : { ...projectWithId, cards: [] } as Project
                     );
                     setLoading(false);
                 } else {

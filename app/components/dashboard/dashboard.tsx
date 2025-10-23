@@ -145,6 +145,7 @@ const Dashboard = ({ user }: DashboardProps) => {
                     </p>
                     {Object.entries(lessonProjectsByCourse).map(([courseId, courseProjects]) => {
                         const course = courseMap[courseId];
+                        if (!course) return null;
                         return (
                             <div key={courseId} className="mb-4">
                                 <div className="mb-2">

@@ -6,7 +6,7 @@ import Button from "../../button";
 import FastCreatePopup from "./fast_create_popup";
 import { CourseLesson, Card, NewCard } from "@/lib/types";
 
-type LessonForm = Omit<CourseLesson, "id" | "courseId" | "index" | "cardsToUnlock"> & { text: string; cardsToUnlock: NewCard[] };
+type LessonForm = Omit<CourseLesson, "id" | "courseId" | "index" | "cardsToUnlock"> & { cardsToUnlock: NewCard[] };
 
 interface LessonComponentProps {
     lesson: LessonForm;
@@ -15,7 +15,7 @@ interface LessonComponentProps {
     collapsedCards: { [lessonIndex: number]: boolean[] };
     onToggleCollapse: (index: number) => void;
     onRemove: (index: number) => void;
-    onUpdate: (index: number, field: "title" | "description" | "text", value: string) => void;
+    onUpdate: (index: number, field: "title" | "description" | "content", value: string) => void;
     onAddCard: (lessonIndex: number) => void;
     onToggleCardCollapse: (lessonIndex: number, cardIndex: number) => void;
     onRemoveCard: (lessonIndex: number, cardIndex: number) => void;
