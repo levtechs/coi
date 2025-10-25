@@ -1,7 +1,7 @@
 # Agent Guidelines for COI Project
 
 ## Commands
-- **Build**: `npm run build` (Next.js with Turbopack)
+- **Build**: `npm run build:isolated` (Next.js with Turbopack)
 - **Dev**: `npm run dev` (Next.js dev server with Turbopack)
 - **Lint**: `npm run lint` (ESLint with Next.js rules)
 - **Start**: `npm run start` (Production server)

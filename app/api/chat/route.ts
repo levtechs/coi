@@ -60,11 +60,9 @@ export async function POST(req: NextRequest) {
             writeNewContentToDb(newContent, projectId);
             const allCards: Card[] = await extractWriteCards(projectId, newContent) || [];
 
-            console.log("New content generated and stored.");
-            return NextResponse.json({ response: responseMessage , newContent, allCards}); 
+            return NextResponse.json({ response: responseMessage , newContent, allCards});
         }
         else {
-            console.log("No new content generated.");
             return NextResponse.json({ response: responseMessage });
         }
 

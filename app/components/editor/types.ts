@@ -4,7 +4,7 @@ export const noModal = {isOpen: false} as ModalContents;
 
 export interface ModalContents {
     isOpen: boolean;
-    type: "input" | "confirm" | "info" | "error";
+    type: "input" | "confirm" | "info" | "error" | "empty";
     width?: string;
     message?: string;
     onSubmit?: (input: string) => void;

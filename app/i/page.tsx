@@ -5,7 +5,9 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { initializeApp, getApps, getApp } from "firebase/app";
 
-import { getProjectTitleByToken, acceptInvitation } from "@/app/views/invite";
+import { getTitleByToken, acceptInvitation } from "@/app/views/invite";
+import { getProject } from "@/app/views/projects";
+import { getCourse } from "@/app/views/courses";
 import Button from "@/app/components/button";
 import Error from "../components/error";
 
@@ -24,6 +26,9 @@ function InvitePageContent() {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [projectTitle, setProjectTitle] = useState<string | null>(null);
+    const [createdByName, setCreatedByName] = useState<string | null>(null);
+    const [itemId, setItemId] = useState<string | null>(null);
+    const [itemType, setItemType] = useState<'project' | 'course' | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [inputToken, setInputToken] = useState<string>("");
@@ -60,8 +65,36 @@ function InvitePageContent() {
         setIsLoading(true);
         setError(null);
         try {
-            const data = await getProjectTitleByToken(tkn);
+            const data = await getTitleByToken(tkn);
             setProjectTitle(data.title);
+            setCreatedByName(data.createdByName);
+            setItemId(data.id);
+            setItemType(data.type);
+
+            // Check if user is already in the project/course
+            if (user && data.id) {
+                let isAlreadyIn: boolean = false;
+                if (data.type === 'project') {
+                    const project = await getProject(data.id);
+                    if (project) {
+                        isAlreadyIn = project.ownerId === user.uid ||
+                                      Boolean(project.sharedWith && project.sharedWith.includes(user.uid)) ||
+                                      Boolean(user.email && project.collaborators && project.collaborators.includes(user.email));
+                    }
+                } else if (data.type === 'course') {
+                    const result = await getCourse(data.id);
+                    if (result) {
+                        const course = result.course;
+                        isAlreadyIn = course.ownerId === user.uid ||
+                                      Boolean(course.sharedWith && course.sharedWith.includes(user.uid));
+                    }
+                }
+
+                if (isAlreadyIn) {
+                    router.push(data.type === 'project' ? `/projects/${data.id}` : `/courses/${data.id}`);
+                    return;
+                }
+            }
         } catch (err) {
             setError((err as Error).message);
         } finally {
@@ -113,7 +146,7 @@ function InvitePageContent() {
                     <div className="flex flex-col items-center justify-center h-screen p-6 bg-[var(--neutral-100)] rounded-lg shadow-lg">
                         <div className="text-center">
 
-                            <p className="text-[var(--foreground)] text-xl mb-4">You were invited to the project</p>
+                            <p className="text-[var(--foreground)] text-xl mb-4">{createdByName} invited you to join</p>
                             <h1 className="text-4xl font-bold text-[var(--accent-500)] mb-8">{projectTitle}</h1>
                             <Button
                                 color="var(--accent-500)"
