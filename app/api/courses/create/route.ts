@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { getVerifiedUid } from "../../helpers";
 import { getUserById } from "../../users/helpers";
-import { Course, CourseLesson, Card, NewCourse } from "@/lib/types";
-import { collection, addDoc, writeBatch, doc } from "firebase/firestore";
+import { Course, CourseLesson, Card, NewCourse, QuizSettings } from "@/lib/types";
+import { collection, addDoc, writeBatch, doc, getDoc } from "firebase/firestore";
 import { createCourseFromText, createLessonFromText } from "./helpers";
+import { createQuizFromCards, writeQuizToDb } from "../../quiz/helpers";
 
 /**
  * POST /api/courses/create
@@ -111,7 +112,7 @@ export async function PUT(req: NextRequest) {
     }
 
     try {
-        const { text }: { text: string } = await req.json();
+        const { text, finalQuizSettings, lessonQuizSettings }: { text: string; finalQuizSettings?: QuizSettings; lessonQuizSettings?: QuizSettings } = await req.json();
         console.log("PUT /api/courses/create: Received text, length:", text.length);
 
         if (!text || typeof text !== 'string') {
@@ -131,9 +132,31 @@ export async function PUT(req: NextRequest) {
                 try {
                     console.log("PUT /api/courses/create: Calling createCourseFromText");
                     // Generate course structure from text with streaming updates
-                    const courseData = await createCourseFromText(text, enqueue);
-                    console.log("PUT /api/courses/create: createCourseFromText completed, enqueuing final");
-                    enqueue(JSON.stringify({ type: "final", course: courseData }));
+                    const courseData = await createCourseFromText(text, enqueue, lessonQuizSettings);
+                    console.log("PUT /api/courses/create: createCourseFromText completed");
+
+                    const courseQuizzes: object[] = [];
+                    // Generate course quiz if finalQuizSettings provided
+                    if (finalQuizSettings) {
+                        enqueue(JSON.stringify({ type: "status", message: "Generating course quiz..." }));
+                        console.log("PUT /api/courses/create: Generating course quiz");
+                        const allCards = courseData.lessons.flatMap(lesson => lesson.cardsToUnlock);
+                        const quizJson = await createQuizFromCards(allCards, finalQuizSettings);
+                        if (quizJson) {
+                            const quizId = await writeQuizToDb(quizJson);
+                            courseData.quizIds = [quizId];
+                            // Fetch the quiz to include in response
+                            const quizDoc = await getDoc(doc(db, "quizzes", quizId));
+                            if (quizDoc.exists()) {
+                                courseQuizzes.push({ id: quizId, ...quizDoc.data() });
+                            }
+                            console.log("PUT /api/courses/create: Course quiz generated with ID:", quizId);
+                        } else {
+                            console.warn("PUT /api/courses/create: Failed to generate course quiz");
+                        }
+                    }
+
+                    enqueue(JSON.stringify({ type: "final", course: courseData, quizzes: courseQuizzes }));
                 } catch (error) {
                     console.error("PUT /api/courses/create: Error generating course from text:", error);
                     enqueue(JSON.stringify({ type: "error", message: "Failed to generate course from text" }));
@@ -175,7 +198,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     try {
-        const { text }: { text: string } = await req.json();
+        const { text, quizSettings }: { text: string; quizSettings?: QuizSettings } = await req.json();
         console.log("PATCH /api/courses/create: Received text, length:", text.length);
 
         if (!text || typeof text !== 'string') {
@@ -187,6 +210,19 @@ export async function PATCH(req: NextRequest) {
         // Generate lesson structure from text
         const lessonData = await createLessonFromText(text);
         console.log("PATCH /api/courses/create: createLessonFromText completed, returning data");
+
+        // Generate quiz if quizSettings provided
+        if (quizSettings) {
+            console.log("PATCH /api/courses/create: Generating quiz for lesson");
+            const quizJson = await createQuizFromCards(lessonData.cardsToUnlock, quizSettings);
+            if (quizJson) {
+                const quizId = await writeQuizToDb(quizJson);
+                lessonData.quizIds = [quizId];
+                console.log("PATCH /api/courses/create: Quiz generated with ID:", quizId);
+            } else {
+                console.warn("PATCH /api/courses/create: Failed to generate quiz");
+            }
+        }
 
         return NextResponse.json(lessonData);
     } catch (error) {
