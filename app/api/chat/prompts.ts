@@ -245,7 +245,7 @@ const unlockingAdditionalChunk = `
     - Do not make cards purely about resources discussed in the conversation, those will be automatically done for you.
     - If the content contains multiple examples, group them under the same card when they illustrate the same concept.
     - Do not include IDs; the system will assign them after writing to the database.
-    - Do not unlock cards unless all of the information in the card has been discussed in the conersation.
+    - Do not unlock cards unless all of the information in the card has been discussed in the conversation.
     - Do not create cards with the exact same information as the cards you are unlocking. 
 `
 

@@ -160,8 +160,6 @@ export const generateAndWriteNewCards = async (
 ): Promise<{ newCards: Card[]; unlockedCards: Card[] }> => {
 
     const attachments = { oldCards, userMessage, responseMessage, ...(cardsToUnlock && { cardsToUnlock }) };
-    if (cardsToUnlock) {
-    }
     const parts = [{ text: JSON.stringify(attachments) }]
 
     const systemInstruction = cardsToUnlock ? generateCardsWithUnlockingSystemInstruction : generateCardsSystemInstruction;
