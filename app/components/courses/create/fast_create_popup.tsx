@@ -9,8 +9,9 @@ interface FastCreatePopupProps {
     onClose: () => void;
     title: string;
     placeholder: string;
-    onGenerate: (text: string, onUpdate: (message: string) => void) => Promise<void>;
+    onGenerate: (text: string, options: { generateFinalQuiz: boolean; generateLessonQuizzes: boolean; finalQuizSettings: { includeMCQ: boolean; includeFRQ: boolean }; lessonQuizSettings: { includeMCQ: boolean; includeFRQ: boolean } }, onUpdate: (message: string) => void) => Promise<void>;
     isGenerating: boolean;
+    mode: 'course' | 'lesson';
 }
 
 export default function FastCreatePopup({
@@ -20,11 +21,16 @@ export default function FastCreatePopup({
     placeholder,
     onGenerate,
     isGenerating,
+    mode,
 }: FastCreatePopupProps) {
     const [text, setText] = useState("");
     const [streamMessages, setStreamMessages] = useState<string[]>([]);
     const [isCompleted, setIsCompleted] = useState(false);
     const [hasError, setHasError] = useState(false);
+    const [generateFinalQuiz, setGenerateFinalQuiz] = useState(false);
+    const [generateLessonQuizzes, setGenerateLessonQuizzes] = useState(false);
+    const [finalQuizSettings, setFinalQuizSettings] = useState({ includeMCQ: true, includeFRQ: false });
+    const [lessonQuizSettings, setLessonQuizSettings] = useState({ includeMCQ: true, includeFRQ: false });
     const messagesRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -42,7 +48,7 @@ export default function FastCreatePopup({
         setIsCompleted(false);
         setHasError(false);
         try {
-            await onGenerate(text, (message) => {
+            await onGenerate(text, { generateFinalQuiz, generateLessonQuizzes, finalQuizSettings, lessonQuizSettings }, (message: string) => {
                 setStreamMessages(prev => [...prev, message]);
                 if (message.includes('Error') || message.includes('error')) {
                     setHasError(true);
@@ -127,15 +133,81 @@ export default function FastCreatePopup({
                             </Button>
                         </div>
                     </div>
-                ) : (
-                    <>
-                        <textarea
-                            value={text}
-                            onChange={(e) => setText(e.target.value)}
-                            className="w-full p-3 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] h-48 resize-y"
-                            placeholder={placeholder}
-                        />
-                        <div className="mt-4 flex justify-end gap-2">
+                 ) : (
+                     <>
+                         <textarea
+                             value={text}
+                             onChange={(e) => setText(e.target.value)}
+                             className="w-full p-3 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] h-48 resize-y"
+                             placeholder={placeholder}
+                         />
+                         <div className="mt-4">
+                             <div className="flex flex-col gap-2">
+                                 {mode === 'course' && (
+                                     <div className="flex items-center gap-2">
+                                         <button
+                                             className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${generateFinalQuiz ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                             onClick={() => setGenerateFinalQuiz(!generateFinalQuiz)}
+                                         >
+                                             Generate final quiz
+                                         </button>
+                                         {generateFinalQuiz && (
+                                             <>
+                                                 <button
+                                                     className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${finalQuizSettings.includeMCQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                     onClick={() => {
+                                                         if (!finalQuizSettings.includeFRQ && finalQuizSettings.includeMCQ) return;
+                                                         setFinalQuizSettings(prev => ({ ...prev, includeMCQ: !prev.includeMCQ }));
+                                                     }}
+                                                 >
+                                                     Multiple Choice
+                                                 </button>
+                                                 <button
+                                                     className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${finalQuizSettings.includeFRQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                     onClick={() => {
+                                                         if (!finalQuizSettings.includeMCQ && finalQuizSettings.includeFRQ) return;
+                                                         setFinalQuizSettings(prev => ({ ...prev, includeFRQ: !prev.includeFRQ }));
+                                                     }}
+                                                 >
+                                                     Free Response
+                                                 </button>
+                                             </>
+                                         )}
+                                     </div>
+                                 )}
+                                 <div className="flex items-center gap-2">
+                                     <button
+                                         className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${generateLessonQuizzes ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                         onClick={() => setGenerateLessonQuizzes(!generateLessonQuizzes)}
+                                     >
+                                         {mode === 'course' ? 'Generate quiz for each lesson' : 'Generate quiz for lesson'}
+                                     </button>
+                                     {generateLessonQuizzes && (
+                                         <>
+                                             <button
+                                                 className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${lessonQuizSettings.includeMCQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                 onClick={() => {
+                                                     if (!lessonQuizSettings.includeFRQ && lessonQuizSettings.includeMCQ) return;
+                                                     setLessonQuizSettings(prev => ({ ...prev, includeMCQ: !prev.includeMCQ }));
+                                                 }}
+                                             >
+                                                 Multiple Choice
+                                             </button>
+                                             <button
+                                                 className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${lessonQuizSettings.includeFRQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                 onClick={() => {
+                                                     if (!lessonQuizSettings.includeMCQ && lessonQuizSettings.includeFRQ) return;
+                                                     setLessonQuizSettings(prev => ({ ...prev, includeFRQ: !prev.includeFRQ }));
+                                                 }}
+                                             >
+                                                 Free Response
+                                             </button>
+                                         </>
+                                     )}
+                                 </div>
+                             </div>
+                         </div>
+                         <div className="mt-4 flex justify-end gap-2">
                             <Button color="var(--neutral-400)" onClick={handleClose}>
                                 Cancel
                             </Button>
