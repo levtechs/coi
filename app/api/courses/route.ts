@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
                     title: data.title,
                     description: data.description,
                     lessons,
+                    quizIds: data.quizIds || [],
                     public: data.public,
                     sharedWith: data.sharedWith,
                     category: data.category,

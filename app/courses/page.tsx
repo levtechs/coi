@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import LoginPrompt from "../components/login_prompt";
-import { FiHome, FiLogOut, FiUser } from "react-icons/fi";
+import { FiHome, FiLogOut, FiUser, FiEdit } from "react-icons/fi";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Button from "../components/button";
@@ -59,17 +59,23 @@ function CoursesPageContent() {
                           </h1>
                      </div>
                       <div className="flex flex-row gap-4 items-center">
-                           {!isCreateMode && userData?.starUser && (
-                               <Button color="var(--accent-500)" onClick={() => window.location.href = '/courses?new'}>
-                                   Create Course
-                               </Button>
-                           )}
-                          <Button color="var(--error)" onClick={() => signOut(auth)}>
-                              <FiLogOut className="h-[25px] w-[25px]" />
-                          </Button>
-                          <Button color="var(--accent-400)" onClick={() => window.location.href = "/profile"}>
-                              <FiUser className="h-[25px] w-[25px]" />
-                          </Button>
+                            {!isCreateMode && userData?.starUser && (
+                                <FiEdit
+                                    title="Create Course"
+                                    className="h-[25px] w-[25px] text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
+                                    onClick={() => window.location.href = '/courses?new'}
+                                />
+                            )}
+                            <FiUser
+                                title="Profile"
+                                className="h-[25px] w-[25px] text-[var(--accent-400)] hover:text-[var(--accent-500)] cursor-pointer"
+                                onClick={() => window.location.href = "/profile"}
+                            />
+                            <FiLogOut
+                                title="Logout"
+                                className="h-[25px] w-[25px] text-[var(--error)] hover:text-[var(--error)] cursor-pointer"
+                                onClick={() => signOut(auth)}
+                            />
                       </div>
                 </div>
 

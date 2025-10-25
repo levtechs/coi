@@ -78,6 +78,9 @@ export default function CourseCard({ course }: CourseCardProps) {
                     {course.description}
                 </p>
             )}
+            <p className="text-[var(--foreground)] text-xs italic opacity-60 mt-2">
+                {course.lessons.length} lesson{course.lessons.length !== 1 ? 's' : ''}{course.quizIds && course.quizIds.length > 0 ? ', 1 final quiz included' : ''}
+            </p>
 
             {/* Dropdown Menu - Only show for course owner */}
             {isOwner && (
