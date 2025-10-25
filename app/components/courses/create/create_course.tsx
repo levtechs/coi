@@ -538,11 +538,11 @@ export default function CreateCourse() {
                                         if (update.type === 'status') {
                                             onUpdate(update.message);
                                         } else if (update.type === 'outline') {
-                                            onUpdate(`Course outline created: ${update.courseStructure.courseTitle}`);
+                                            onUpdate(`Course outline created: ${update.courseStructure.courseTitle} (${update.courseStructure.lessons.length} lessons)`);
                                         } else if (update.type === 'lesson_start') {
-                                            onUpdate(`Creating lesson ${update.lessonNumber}: ${update.lessonTitle}`);
+                                            onUpdate(`Generating content for lesson ${update.lessonNumber}: ${update.lessonTitle}`);
                                         } else if (update.type === 'lesson_complete') {
-                                            onUpdate(`Completed lesson ${update.lessonNumber}`);
+                                            onUpdate(`Completed lesson ${update.lessonNumber}: ${update.lesson.title} (${update.cardCount} cards)`);
                                         } else if (update.type === 'complete') {
                                             const data = update.course;
                                             setCourseTitle(data.title);
