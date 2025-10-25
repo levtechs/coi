@@ -121,6 +121,8 @@ export interface QuizSettings {
 
 // Course
 
+export type CourseCategory = "math" | "science" | "history" | "health" | "business" | "life skills" | "social studies" | "computer science" | "other";
+
 export interface Course {
     id: string;
     title: string;
@@ -129,7 +131,7 @@ export interface Course {
     quizIds?: string[];
     public?: boolean;
     sharedWith?: string[]; // ids
-    category?: string;
+    category?: CourseCategory;
     ownerId?: string;
 }
 

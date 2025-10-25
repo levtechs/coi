@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
             public: courseData.public || false,
             sharedWith: courseData.sharedWith || [],
             quizIds: courseData.quizIds || [],
+            category: courseData.category || "",
             ownerId: uid
         });
 
@@ -79,7 +80,8 @@ export async function POST(req: NextRequest) {
             lessons,
             quizIds: courseData.quizIds || [],
             public: courseData.public,
-            sharedWith: courseData.sharedWith
+            sharedWith: courseData.sharedWith,
+            category: courseData.category
         };
 
         return NextResponse.json(fullCourse);

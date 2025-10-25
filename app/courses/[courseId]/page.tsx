@@ -172,19 +172,23 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
                      )}
                  </div>
 
-                 <div className="mt-8">
-                     <h2 className="text-2xl font-semibold text-[var(--foreground)] mb-4">Lessons</h2>
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                         {course.lessons.sort((a, b) => a.index - b.index).map((lesson) => (
-                             <LessonCard
-                                 key={lesson.id}
-                                 lesson={lesson}
-                                 courseId={courseId}
-                                 projects={lessonProjects[lesson.id] || []}
-                             />
-                         ))}
-                     </div>
-                  </div>
+                  <div className="mt-8">
+                      <h2 className="text-2xl font-semibold text-[var(--foreground)] mb-4">Lessons</h2>
+                      {course.lessons.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {course.lessons.sort((a, b) => a.index - b.index).map((lesson) => (
+                                  <LessonCard
+                                      key={lesson.id}
+                                      lesson={lesson}
+                                      courseId={courseId}
+                                      projects={lessonProjects[lesson.id] || []}
+                                  />
+                              ))}
+                          </div>
+                      ) : (
+                          <p className="text-sm text-[var(--neutral-600)]">No lessons available for this course.</p>
+                      )}
+                   </div>
 
                   <div className="mt-8">
                       <h2 className="text-2xl font-semibold text-[var(--foreground)] mb-4">Course Quizzes</h2>

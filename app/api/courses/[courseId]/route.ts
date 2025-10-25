@@ -148,6 +148,7 @@ export async function PUT(
             public: courseData.public || false,
             sharedWith: courseData.sharedWith || [],
             quizIds: courseData.quizIds || [],
+            category: courseData.category || "",
         });
 
         // Handle lessons: update existing, create new, delete removed

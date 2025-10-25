@@ -12,9 +12,16 @@ const CoursesDashboard = () => {
     const { user } = useAuth();
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
-    const [mathExpanded, setMathExpanded] = useState(true);
-    const [scienceExpanded, setScienceExpanded] = useState(true);
-    const [historyExpanded, setHistoryExpanded] = useState(true);
+    const [expanded, setExpanded] = useState<Record<string, boolean>>({
+        math: true,
+        science: true,
+        history: true,
+        health: true,
+        business: true,
+        life_skills: true,
+        social_studies: true,
+        computer_science: true,
+    });
 
     useEffect(() => {
         const fetchCourses = async () => {
@@ -41,6 +48,11 @@ const CoursesDashboard = () => {
         math: [],
         science: [],
         history: [],
+        health: [],
+        business: [],
+        life_skills: [],
+        social_studies: [],
+        computer_science: [],
         other: [],
     };
 
@@ -49,25 +61,35 @@ const CoursesDashboard = () => {
         if (cat === "math") grouped.math.push(course);
         else if (cat === "science") grouped.science.push(course);
         else if (cat === "history") grouped.history.push(course);
+        else if (cat === "health") grouped.health.push(course);
+        else if (cat === "business") grouped.business.push(course);
+        else if (cat === "life skills") grouped.life_skills.push(course);
+        else if (cat === "social studies") grouped.social_studies.push(course);
+        else if (cat === "computer science") grouped.computer_science.push(course);
         else grouped.other.push(course);
     });
 
     const categories = [
-        { name: "Math", key: "math", expanded: mathExpanded, setExpanded: setMathExpanded },
-        { name: "Science", key: "science", expanded: scienceExpanded, setExpanded: setScienceExpanded },
-        { name: "History", key: "history", expanded: historyExpanded, setExpanded: setHistoryExpanded },
+        { name: "Math", key: "math" },
+        { name: "Science", key: "science" },
+        { name: "History", key: "history" },
+        { name: "Health", key: "health" },
+        { name: "Business", key: "business" },
+        { name: "Life Skills", key: "life_skills" },
+        { name: "Social Studies", key: "social_studies" },
+        { name: "Computer Science", key: "computer_science" },
     ];
 
     return (
         <div className="mt-8 space-y-4">
-            {categories.map(({ name, key, expanded, setExpanded }) => (
+            {categories.map(({ name, key }) => (
                 grouped[key].length > 0 && (
                     <div key={key} className="flex flex-col">
                         <div
-                            onClick={() => setExpanded(!expanded)}
+                            onClick={() => setExpanded(prev => ({ ...prev, [key]: !prev[key] }))}
                             className="group flex items-center gap-2 cursor-pointer mb-2"
                         >
-                            {expanded ? (
+                            {expanded[key] ? (
                                 <FiChevronDown className="text-[var(--neutral-500)]" size={24} />
                             ) : (
                                 <FiChevronRight className="text-[var(--neutral-500)]" size={24} />
@@ -76,7 +98,7 @@ const CoursesDashboard = () => {
                                 {name}
                             </h2>
                         </div>
-                        {expanded && (
+                        {expanded[key] && (
                             <div className="ml-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {grouped[key].map((course) => (
                                     <CourseCard key={course.id} course={course} />
