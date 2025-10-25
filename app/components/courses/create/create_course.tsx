@@ -8,7 +8,7 @@ import Loading from "../../loading";
 import FastCreatePopup from "./fast_create_popup";
 import QuizSettingsComponent from "./quiz_settings";
 import LessonComponent from "./edit_lesson";
-import { CourseLesson, Card, NewCard, Course, NewCourse, QuizSettings } from "@/lib/types";
+import { CourseLesson, Card, NewCard, Course, NewCourse, QuizSettings, CourseCategory } from "@/lib/types";
 import { createCourse, getCourse, updateCourse } from "@/app/views/courses";
 import { createQuiz, getQuiz } from "@/app/views/quiz";
 import { auth } from "@/lib/firebase";
@@ -36,6 +36,7 @@ export default function CreateCourse() {
     const [courseQuizSettings, setCourseQuizSettings] = useState<QuizSettings>({includeMCQ: true, includeFRQ: false});
     const [selectedCards, setSelectedCards] = useState<boolean[]>([]);
     const [courseQuizError, setCourseQuizError] = useState<string | null>(null);
+    const [courseCategory, setCourseCategory] = useState<CourseCategory | "">("");
 
     const searchParams = useSearchParams();
 
@@ -56,6 +57,7 @@ export default function CreateCourse() {
                     setCourseTitle(course.title);
                     setCourseDescription(course.description || "");
                     setIsPublic(course.public || false);
+                    setCourseCategory(course.category || "");
                     const loadedLessons: CourseLessonForm[] = course.lessons.map((lesson) => ({
                         id: lesson.id,
                         title: lesson.title,
@@ -221,6 +223,7 @@ export default function CreateCourse() {
                         })),
                     quizIds: courseQuizIds,
                     public: isPublic,
+                    category: courseCategory === "" ? undefined : courseCategory,
                     sharedWith: [],
                 };
                 const success = await updateCourse(editCourseId, courseData);
@@ -241,6 +244,7 @@ export default function CreateCourse() {
                     })),
                     quizIds: courseQuizIds,
                     public: isPublic,
+                    category: courseCategory === "" ? undefined : courseCategory,
                     sharedWith: [],
                 };
                 const data = await createCourse(courseData);
@@ -467,13 +471,36 @@ export default function CreateCourse() {
             {/* --- Course Settings --- */}
             <div className="mb-8">
                 <h3 className="text-lg font-semibold text-[var(--foreground)] mb-4">Course Settings</h3>
-                <div className="flex gap-2">
-                    <button
-                        className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${isPublic ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
-                        onClick={() => setIsPublic(!isPublic)}
-                    >
-                        Make course public
-                    </button>
+                <div className="flex flex-col gap-4">
+                    <div className="flex gap-2">
+                        <button
+                            className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${isPublic ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
+                            onClick={() => setIsPublic(!isPublic)}
+                        >
+                            Make course public
+                        </button>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
+                            Category
+                        </label>
+                        <select
+                            value={courseCategory}
+                            onChange={(e) => setCourseCategory(e.target.value as CourseCategory)}
+                            className="w-full p-3 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-200)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)]"
+                        >
+                            <option value="">Select a category</option>
+                            <option value="math">Math</option>
+                            <option value="science">Science</option>
+                            <option value="history">History</option>
+                            <option value="health">Health</option>
+                            <option value="business">Business</option>
+                            <option value="life skills">Life Skills</option>
+                            <option value="social studies">Social Studies</option>
+                            <option value="computer science">Computer Science</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
