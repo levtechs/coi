@@ -133,17 +133,8 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                         Filters
                     </button>
                 </div>
-            </div>
-
-            {/* Right side: Share + Collaborators */}
-            <div className="flex items-center gap-4">
-                {isLessonProject && lessonProgress !== null && (
-                    <span className="text-[var(--foreground)] text-sm">
-                        (lesson {lessonProgress}% complete)
-                    </span>
-                )}
-                <h2
-                    className="text-[var(--foreground)] text-l font-bold hover:underline cursor-pointer"
+                <button
+                    className="px-3 py-1 text-sm bg-[var(--neutral-200)] text-[var(--foreground)] hover:bg-[var(--neutral-300)] rounded-md transition-colors duration-200 ml-4 whitespace-nowrap"
                     onClick={() => {setModalContents({
                         isOpen: true,
                         type: "confirm",
@@ -153,15 +144,24 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                     })}}
                 >
                     Quiz me!
-                </h2>
-                {isLessonProject && project.courseId && (
-                    <Button
-                        color="var(--neutral-300)"
-                        onClick={() => window.location.href = `/courses/${project.courseId}/${project.courseLesson!.index}`}
-                    >
-                        View Lesson
-                    </Button>
+                </button>
+            </div>
+
+            {/* Right side: Share + Collaborators */}
+            <div className="flex items-center gap-4">
+                {isLessonProject && lessonProgress !== null && (
+                    <span className="text-[var(--foreground)] text-sm">
+                        (lesson {lessonProgress}% complete)
+                    </span>
                 )}
+                 {isLessonProject && project.courseId && (
+                     <Button
+                         color="var(--neutral-300)"
+                         onClick={() => window.open(`/courses/${project.courseId}/${project.courseLesson!.index}`, '_blank')}
+                     >
+                         View Lesson
+                     </Button>
+                 )}
                 <Button
                     color="var(--neutral-300)"
                     onClick={()=>{

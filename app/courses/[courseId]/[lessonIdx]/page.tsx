@@ -2,14 +2,15 @@
 
 import { useAuth } from "@/lib/AuthContext";
 import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import LoginPrompt from "../../../components/login_prompt";
 import { useParams } from "next/navigation";
 import { FiHome, FiLogOut, FiUser } from "react-icons/fi";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { getLesson } from "../../../views/lessons";
-import { CourseLesson } from "@/lib/types";
+import { CourseLesson, Project } from "@/lib/types";
 import LoadingComponent from "../../../components/loading";
 import LessonPage from "../../../components/courses/lessons/lesson_page";
 import Button from "../../../components/button";
@@ -20,7 +21,7 @@ export default function LessonDetailPage() {
     const courseId = params.courseId as string;
     const lessonIdx = parseInt(params.lessonIdx as string);
     const [lesson, setLesson] = useState<CourseLesson | null>(null);
-    const [projectIds, setProjectIds] = useState<string[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -31,7 +32,6 @@ export default function LessonDetailPage() {
                 const result = await getLesson(courseId, lessonIdx);
                 if (result) {
                     setLesson(result.lesson);
-                    setProjectIds(result.projectIds);
                 }
             } catch (error) {
                 console.error("Failed to fetch lesson:", error);
@@ -41,6 +41,32 @@ export default function LessonDetailPage() {
         };
         fetchLesson();
     }, [user, courseId, lessonIdx]);
+
+    useEffect(() => {
+        if (!user || !lesson) return;
+
+        const projectsQuery = query(
+            collection(db, "projects"),
+            where("ownerId", "==", user.uid),
+            where("courseLesson.id", "==", lesson.id)
+        );
+
+        const unsubscribe = onSnapshot(
+            projectsQuery,
+            (querySnapshot) => {
+                const projectsData: Project[] = querySnapshot.docs.map((doc) => ({
+                    ...doc.data(),
+                    id: doc.id,
+                })) as Project[];
+                setProjects(projectsData);
+            },
+            (error) => {
+                console.error("Error listening to projects:", error);
+            }
+        );
+
+        return () => unsubscribe();
+    }, [user, lesson]);
 
     useEffect(() => {
         if (lesson) {
@@ -95,7 +121,7 @@ export default function LessonDetailPage() {
                      <h1 className="text-3xl font-extrabold text-[var(--foreground)] mb-4">
                          {lesson.title}
                      </h1>
-                     <LessonPage lesson={lesson} courseId={courseId} lessonIdx={lessonIdx} projectIds={projectIds} />
+                      <LessonPage lesson={lesson} courseId={courseId} lessonIdx={lessonIdx} projects={projects} />
                  </div>
             </div>
         </div>

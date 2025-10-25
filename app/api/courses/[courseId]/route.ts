@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { getVerifiedUid } from "../../helpers";
-import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc, setDoc, addDoc, query, where, or, and } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc, setDoc, addDoc, query, where, or, and, orderBy } from "firebase/firestore";
 import { Course, CourseLesson, Project, Card } from "@/lib/types";
 
 export async function GET(
@@ -37,7 +37,7 @@ export async function GET(
 
         // Fetch lessons subcollection
         const lessonsRef = collection(db, 'courses', courseId, 'lessons');
-        const lessonsSnap = await getDocs(lessonsRef);
+        const lessonsSnap = await getDocs(query(lessonsRef, orderBy('index')));
         const lessons = await Promise.all(lessonsSnap.docs.map(async (p) => {
             const lessonData = p.data();
             // Fetch cardsToUnlock subcollection
@@ -94,6 +94,7 @@ export async function GET(
             title: courseData.title,
             description: courseData.description,
             lessons,
+            quizIds: courseData.quizIds || [],
             public: courseData.public,
             sharedWith: courseData.sharedWith || [],
             category: courseData.category,
@@ -146,6 +147,7 @@ export async function PUT(
             description: courseData.description || "",
             public: courseData.public || false,
             sharedWith: courseData.sharedWith || [],
+            quizIds: courseData.quizIds || [],
         });
 
         // Handle lessons: update existing, create new, delete removed

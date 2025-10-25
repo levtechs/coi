@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { FiChevronDown, FiChevronRight, FiLoader } from "react-icons/fi";
 import Button from "../../button";
 import Loading from "../../loading";
 import FastCreatePopup from "./fast_create_popup";
+import QuizSettingsComponent from "./quiz_settings";
 import LessonComponent from "./edit_lesson";
-import { CourseLesson, Card, NewCard, Course, NewCourse } from "@/lib/types";
+import { CourseLesson, Card, NewCard, Course, NewCourse, QuizSettings } from "@/lib/types";
 import { createCourse, getCourse, updateCourse } from "@/app/views/courses";
+import { createQuiz, getQuiz } from "@/app/views/quiz";
 import { auth } from "@/lib/firebase";
 import { getIdToken } from "firebase/auth";
 
@@ -16,7 +19,7 @@ type CourseLessonForm = Omit<CourseLesson, "id" | "courseId" | "index" | "cardsT
 export default function CreateCourse() {
     const [courseTitle, setCourseTitle] = useState("");
     const [courseDescription, setCourseDescription] = useState("");
-    const [lessons, setLessons] = useState<CourseLessonForm[]>([{ title: "", description: "", content: "", cardsToUnlock: [] }]);
+    const [lessons, setLessons] = useState<CourseLessonForm[]>([{ title: "", description: "", content: "", cardsToUnlock: [], quizIds: [] }]);
     const [collapsedLessons, setCollapsedLessons] = useState<boolean[]>([true]);
     const [collapsedCards, setCollapsedCards] = useState<{ [lessonIndex: number]: boolean[] }>({});
     const [isGeneratingCourse, setIsGeneratingCourse] = useState(false);
@@ -27,8 +30,19 @@ export default function CreateCourse() {
     const [isEdit, setIsEdit] = useState(false);
     const [editCourseId, setEditCourseId] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [courseQuizIds, setCourseQuizIds] = useState<string[]>([]);
+    const [courseQuizzes, setCourseQuizzes] = useState<{id?: string, status: 'creating' | 'created', title?: string}[]>([]);
+    const [showCourseQuizSettings, setShowCourseQuizSettings] = useState(false);
+    const [courseQuizSettings, setCourseQuizSettings] = useState<QuizSettings>({includeMCQ: true, includeFRQ: false});
+    const [selectedCards, setSelectedCards] = useState<boolean[]>([]);
+    const [courseQuizError, setCourseQuizError] = useState<string | null>(null);
 
     const searchParams = useSearchParams();
+
+    useEffect(() => {
+        const totalCards = lessons.reduce((sum, l) => sum + l.cardsToUnlock.length, 0);
+        setSelectedCards(new Array(totalCards).fill(true));
+    }, [lessons]);
 
     useEffect(() => {
         const editId = searchParams.get('edit');
@@ -51,6 +65,7 @@ export default function CreateCourse() {
                             title: card.title,
                             details: card.details || [],
                         })),
+                        quizIds: lesson.quizIds || [],
                     }));
                     setLessons(loadedLessons);
                     setCollapsedLessons(new Array(loadedLessons.length).fill(true));
@@ -59,6 +74,27 @@ export default function CreateCourse() {
                         newCollapsedCards[i] = new Array(lesson.cardsToUnlock.length).fill(true);
                     });
                     setCollapsedCards(newCollapsedCards);
+                     setCourseQuizIds(course.quizIds || []);
+                     // Fetch titles for existing quizzes
+                     if (course.quizIds && course.quizIds.length > 0) {
+                         Promise.all(course.quizIds.map(id => getQuiz(id))).then(quizzes => {
+                             setCourseQuizzes(quizzes.map((quiz, index) => ({
+                                 id: course.quizIds![index],
+                                 status: 'created' as const,
+                                 title: quiz?.title
+                             })));
+                         }).catch(error => {
+                             console.error('Error fetching quiz titles:', error);
+                             // Fallback to default titles
+                             setCourseQuizzes(course.quizIds!.map((id, index) => ({
+                                 id,
+                                 status: 'created' as const,
+                                 title: `Course Quiz ${index + 1}`
+                             })));
+                         });
+                     } else {
+                         setCourseQuizzes([]);
+                     }
                 }
                 setLoading(false);
             });
@@ -66,8 +102,14 @@ export default function CreateCourse() {
     }, [searchParams]);
 
     const addLesson = () => {
-        setLessons([...lessons, { title: "", description: "", content: "", cardsToUnlock: [] }]);
+        setLessons([...lessons, { title: "", description: "", content: "", cardsToUnlock: [], quizIds: [] }]);
         setCollapsedLessons([...collapsedLessons, true]);
+    };
+
+    const addQuizIdToLesson = (lessonIndex: number, quizId: string) => {
+        const newLessons = [...lessons];
+        newLessons[lessonIndex].quizIds!.push(quizId);
+        setLessons(newLessons);
     };
 
     const removeLesson = (index: number) => {
@@ -175,8 +217,9 @@ export default function CreateCourse() {
                             description: lesson.description,
                             content: lesson.content,
                             cardsToUnlock: lesson.cardsToUnlock as Card[],
-                            quizIds: [],
+                            quizIds: lesson.quizIds || [],
                         })),
+                    quizIds: courseQuizIds,
                     public: isPublic,
                     sharedWith: [],
                 };
@@ -185,7 +228,7 @@ export default function CreateCourse() {
                     window.location.href = `/courses/${editCourseId}`;
                 }
             } else {
-                const courseData: NewCourse = {
+                const courseData: NewCourse & { quizIds?: string[] } = {
                     title: courseTitle,
                     description: courseDescription,
                     lessons: lessons.map((lesson, index) => ({
@@ -194,8 +237,9 @@ export default function CreateCourse() {
                         description: lesson.description,
                         content: lesson.content,
                         cardsToUnlock: lesson.cardsToUnlock,
-                        quizIds: [],
+                        quizIds: lesson.quizIds || [],
                     })),
+                    quizIds: courseQuizIds,
                     public: isPublic,
                     sharedWith: [],
                 };
@@ -214,21 +258,27 @@ export default function CreateCourse() {
 
     const isLoading = isGeneratingCourse || isCreatingCourse || isGeneratingLesson || loading;
 
+    if (loading) {
+        return <Loading small={true} loadingText="Loading Course" />;
+    }
+
     return (
         <div className="mt-8">
 
             {/* --- Fast Create Course Button --- */}
-            <div className="mb-8">
-                <div
-                    className="flex items-center justify-center border border-[var(--neutral-300)] rounded-lg p-4 cursor-pointer
-                            bg-[var(--neutral-100)]
-                            hover:bg-[var(--neutral-300)]
-                            transition-colors duration-200"
-                    onClick={() => setIsFastCreatePopupOpen(true)}
-                >
-                    <span className="text-[var(--accent-500)] font-semibold text-lg">+ Fast Create Course</span>
+            {!isEdit && (
+                <div className="mb-8">
+                    <div
+                        className="flex items-center justify-center border border-[var(--neutral-300)] rounded-lg p-4 cursor-pointer
+                                bg-[var(--neutral-100)]
+                                hover:bg-[var(--neutral-300)]
+                                transition-colors duration-200"
+                        onClick={() => setIsFastCreatePopupOpen(true)}
+                    >
+                        <span className="text-[var(--accent-500)] font-semibold text-lg">+ Fast Create Course</span>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* --- Course Title --- */}
             <div className="mb-6">
@@ -277,37 +327,38 @@ export default function CreateCourse() {
                         onAddDetail={addDetailToCard}
                         onRemoveDetail={removeDetailFromCard}
                         onUpdateDetail={updateCardDetail}
-                         onGenerateLesson={async (text) => {
-                             setIsGeneratingLesson(true);
-                             try {
-                                 const response = await fetch('/api/courses/create', {
-                                     method: 'PATCH',
-                                     headers: {
-                                         'Content-Type': 'application/json',
-                                         'Authorization': `Bearer ${await getIdToken(auth.currentUser!)}`,
-                                     },
-                                     body: JSON.stringify({ text }),
-                                 });
-                                 if (!response.ok) {
-                                     throw new Error('Failed to generate lesson');
-                                 }
-                                 const data = await response.json();
-                                 if (data) {
-                                     updateLesson(index, 'title', data.title);
-                                     updateLesson(index, 'description', data.description);
-                                     // Update cards if available
-                                     if (data.cardsToUnlock) {
-                                         const newLessons = [...lessons];
-                                         newLessons[index].cardsToUnlock = data.cardsToUnlock;
-                                         setLessons(newLessons);
-                                     }
-                                 }
-                             } catch (error) {
-                                 console.error('Error generating lesson:', error);
-                             } finally {
-                                 setIsGeneratingLesson(false);
-                             }
-                         }}
+                        onAddQuizId={(quizId) => addQuizIdToLesson(index, quizId)}
+                        onGenerateLesson={async (text) => {
+                              setIsGeneratingLesson(true);
+                              try {
+                                  const response = await fetch('/api/courses/create', {
+                                      method: 'PATCH',
+                                      headers: {
+                                          'Content-Type': 'application/json',
+                                          'Authorization': `Bearer ${await getIdToken(auth.currentUser!)}`,
+                                      },
+                                      body: JSON.stringify({ text }),
+                                  });
+                                  if (!response.ok) {
+                                      throw new Error('Failed to generate lesson');
+                                  }
+                                  const data = await response.json();
+                                  if (data) {
+                                      updateLesson(index, 'title', data.title);
+                                      updateLesson(index, 'description', data.description);
+                                      // Update cards if available
+                                      if (data.cardsToUnlock) {
+                                          const newLessons = [...lessons];
+                                          newLessons[index].cardsToUnlock = data.cardsToUnlock;
+                                          setLessons(newLessons);
+                                      }
+                                  }
+                              } catch (error) {
+                                  console.error('Error generating lesson:', error);
+                              } finally {
+                                  setIsGeneratingLesson(false);
+                              }
+                          }}
                     />
                 ))}
                 <div className="flex gap-4 mb-8">
@@ -317,6 +368,99 @@ export default function CreateCourse() {
                     >
                         + Add Lesson
                     </button>
+                </div>
+
+                {/* Course Quiz Creation */}
+                <div className="mb-8 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] p-3">
+                    <div className="flex justify-between items-center w-full">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <button
+                                onClick={() => setShowCourseQuizSettings(!showCourseQuizSettings)}
+                                className="text-[var(--foreground)] hover:text-[var(--accent-500)] px-2 py-1 flex-shrink-0"
+                            >
+                                {showCourseQuizSettings ? <FiChevronDown size={16} /> : <FiChevronRight size={16} />}
+                            </button>
+                            <div className="text-lg font-medium text-[var(--foreground)] flex-shrink-0">
+                                Create Course Quiz
+                            </div>
+                        </div>
+                    </div>
+                    {showCourseQuizSettings && (
+                        <div className="mt-4 p-4 bg-[var(--neutral-100)]">
+                            <QuizSettingsComponent
+                                cards={lessons.flatMap(l => l.cardsToUnlock)}
+                                selectedCards={selectedCards}
+                                setSelectedCards={setSelectedCards}
+                                quizSettings={courseQuizSettings}
+                                setQuizSettings={setCourseQuizSettings}
+                                quizError={courseQuizError}
+                                setQuizError={setCourseQuizError}
+                                onCreate={async () => {
+                                    if (courseQuizzes.some(q => q.status === 'creating')) {
+                                        setCourseQuizError("A quiz is already being created for this course.");
+                                        return;
+                                    }
+                                    if (!courseQuizSettings.includeMCQ && !courseQuizSettings.includeFRQ) {
+                                        setCourseQuizError("Please select at least one type of question to include in your quiz.");
+                                        return;
+                                    }
+                                    const cardsToUse = lessons.flatMap((lesson, lessonIndex) =>
+                                        lesson.cardsToUnlock.map((card, cardIndex) => {
+                                            const globalIndex = lessons.slice(0, lessonIndex).reduce((sum, l) => sum + l.cardsToUnlock.length, 0) + cardIndex;
+                                            return selectedCards[globalIndex] ? card : null;
+                                        }).filter((c): c is NewCard => c !== null)
+                                    );
+                                    if (cardsToUse.length < 3) {
+                                        const proceed = window.confirm("It is recommended to have at least 3 cards for a quiz. Do you want to proceed?");
+                                        if (!proceed) return;
+                                    }
+                                    // Add placeholder quiz
+                                    const newQuiz = { status: 'creating' as const };
+                                    setCourseQuizzes([...courseQuizzes, newQuiz]);
+                                    setShowCourseQuizSettings(false);
+                                    try {
+                                        const quizId = await createQuiz(cardsToUse, courseQuizSettings);
+                                        const quiz = await getQuiz(quizId);
+                                        // Update the last quiz
+                                        setCourseQuizzes(prev => {
+                                            const updated = [...prev];
+                                            updated[updated.length - 1] = { id: quizId, status: 'created' as const, title: quiz?.title };
+                                            return updated;
+                                        });
+                                        setCourseQuizIds([...courseQuizIds, quizId]);
+                                    } catch (error) {
+                                        console.error("Error creating course quiz:", error);
+                                        setCourseQuizError("Failed to create quiz");
+                                        // Remove the failed quiz
+                                        setCourseQuizzes(prev => prev.slice(0, -1));
+                                        setShowCourseQuizSettings(true);
+                                    }
+                                }}
+                                isCreating={false}
+                            />
+                        </div>
+                    )}
+                </div>
+
+                {/* Course Quizzes List */}
+                <div className="mb-8">
+                    <h3 className="text-xl font-semibold text-[var(--foreground)] mb-4">Course Quizzes</h3>
+                    {courseQuizzes.map((quiz, index) => (
+                        <div key={index} className="mb-6 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] p-3">
+                            <div className="flex justify-between items-center w-full">
+                                <div className="text-lg font-medium text-[var(--foreground)] flex-shrink-0">
+                                    {quiz.title || `Course Quiz ${index + 1}`}
+                                </div>
+                                {quiz.status === 'created' && quiz.id && (
+                                    <Button color="var(--accent-400)" onClick={() => window.open(`/quiz/${quiz.id}`, '_blank')}>
+                                        View Quiz
+                                    </Button>
+                                )}
+                                {quiz.status === 'creating' && <FiLoader className="animate-spin w-5 h-5 text-[var(--foreground)]" />}
+                            </div>
+                        </div>
+                    ))}
+                    {courseQuizzes.length === 0 && <p className="text-sm text-[var(--neutral-600)]">No course quizzes created yet.</p>}
                 </div>
             </div>
 
@@ -336,7 +480,7 @@ export default function CreateCourse() {
             {/* --- Create Course --- */}
             <div className="flex justify-center gap-4">
                 {isLoading ? (
-                    <Loading small={true} loadingText={isCreatingCourse ? "Creating Course" : isEdit ? "Loading Course" : "Processing"} />
+                    <Loading small={true} loadingText={isCreatingCourse ? (isEdit ? "Updating Course" : "Creating Course") : isEdit ? "Loading Course" : "Processing"} />
                 ) : (
                     <>
                         {isEdit && (
@@ -399,24 +543,25 @@ export default function CreateCourse() {
                                             onUpdate(`Creating lesson ${update.lessonNumber}: ${update.lessonTitle}`);
                                         } else if (update.type === 'lesson_complete') {
                                             onUpdate(`Completed lesson ${update.lessonNumber}`);
-                                         } else if (update.type === 'complete') {
-                                             const data = update.course;
-                                             setCourseTitle(data.title);
-                                             setCourseDescription(data.description);
+                                        } else if (update.type === 'complete') {
+                                            const data = update.course;
+                                            setCourseTitle(data.title);
+                                            setCourseDescription(data.description);
                                              const mappedLessons = data.lessons.map((lesson: { title: string; description: string; cardsToUnlock: NewCard[] }) => ({
-                                                 title: lesson.title,
-                                                 description: lesson.description,
-                                                  content: '',
-                                                 cardsToUnlock: lesson.cardsToUnlock,
-                                             }));
-                                             setLessons(mappedLessons);
-                                             setCollapsedLessons(mappedLessons.map(() => true));
-                                             const newCollapsedCards: { [lessonIndex: number]: boolean[] } = {};
-                                              mappedLessons.forEach((lesson: CourseLessonForm, index: number) => {
-                                                 newCollapsedCards[index] = lesson.cardsToUnlock.map(() => true);
-                                             });
-                                             setCollapsedCards(newCollapsedCards);
-                                             onUpdate('Course generation complete!');
+                                                title: lesson.title,
+                                                description: lesson.description,
+                                                 content: '',
+                                                cardsToUnlock: lesson.cardsToUnlock,
+                                                quizIds: [],
+                                            }));
+                                            setLessons(mappedLessons);
+                                            setCollapsedLessons(mappedLessons.map(() => true));
+                                            const newCollapsedCards: { [lessonIndex: number]: boolean[] } = {};
+                                             mappedLessons.forEach((lesson: CourseLessonForm, index: number) => {
+                                                newCollapsedCards[index] = lesson.cardsToUnlock.map(() => true);
+                                            });
+                                            setCollapsedCards(newCollapsedCards);
+                                            onUpdate('Course generation complete!');
                                         } else if (update.type === 'error') {
                                             onUpdate(`Error: ${update.message}`);
                                         }

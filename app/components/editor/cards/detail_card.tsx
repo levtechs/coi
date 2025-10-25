@@ -13,11 +13,10 @@ type DetailCardProps = {
     card: Card;
     onClick: (card: Card) => void;
     projectId?: string;
-    isFromCourse?: boolean;
 };
 
-export default function DetailCard({ card, onClick, projectId, isFromCourse }: DetailCardProps) {
-    const showMenu = !!projectId;
+export default function DetailCard({ card, onClick, projectId }: DetailCardProps) {
+    const showMenu = !!projectId && !card.isUnlocked;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
     const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
@@ -49,7 +48,7 @@ export default function DetailCard({ card, onClick, projectId, isFromCourse }: D
             className="flex items-center justify-center text-center relative border border-[var(--neutral-300)] rounded-lg p-6 bg-[var(--neutral-200)] h-24 shadow hover:shadow-md transition cursor-pointer group"
             onClick={() => onClick(card)}
         >
-            {(isFromCourse || card.isUnlocked) && (
+            {card.isUnlocked && (
                 <FiStar className="absolute top-2 left-2 text-[var(--accent-500)] w-5 h-5" />
             )}
             {card.url && (card.url.includes("youtube.com") || card.url.includes("youtu.be")) ? (

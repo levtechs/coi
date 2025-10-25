@@ -93,3 +93,15 @@ export async function deleteCourse(courseId: string): Promise<boolean> {
         return false;
     }
 }
+
+export async function fetchAnalytics(courseId: string): Promise<{ totalUsers: number; invitations: { token: string; createdAt: string; createdBy?: string; acceptedBy: { id: string; email: string; displayName: string; actions?: number; dailyActions?: number; weeklyActions?: number; projectIds?: string[]; }[]; }[]; } | null> {
+    try {
+        const data = await apiFetch<{ totalUsers: number; invitations: { token: string; createdAt: string; acceptedBy: { id: string; email: string; displayName: string; actions?: number; dailyActions?: number; weeklyActions?: number; projectIds?: string[]; }[]; }[]; }>(`/api/courses/${courseId}/analytics`, {
+            method: "GET",
+        });
+        return data;
+    } catch (err) {
+        console.error("Error fetching analytics:", err);
+        return null;
+    }
+}

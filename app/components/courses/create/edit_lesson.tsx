@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { FiChevronDown, FiChevronRight } from "react-icons/fi";
+import { FiChevronDown, FiChevronRight, FiLoader } from "react-icons/fi";
 import Button from "../../button";
+
 import FastCreatePopup from "./fast_create_popup";
-import { CourseLesson, Card, NewCard } from "@/lib/types";
+import QuizSettingsComponent from "./quiz_settings";
+import { CourseLesson, Card, NewCard, QuizSettings } from "@/lib/types";
+import { createQuiz, getQuiz } from "@/app/views/quiz";
 
 type LessonForm = Omit<CourseLesson, "id" | "courseId" | "index" | "cardsToUnlock"> & { cardsToUnlock: NewCard[] };
 
@@ -24,6 +27,7 @@ interface LessonComponentProps {
     onRemoveDetail: (lessonIndex: number, cardIndex: number, detailIndex: number) => void;
     onUpdateDetail: (lessonIndex: number, cardIndex: number, detailIndex: number, value: string) => void;
     onGenerateLesson: (text: string) => Promise<void>;
+    onAddQuizId: (quizId: string) => void;
 }
 
 export default function LessonComponent({
@@ -42,9 +46,16 @@ export default function LessonComponent({
     onRemoveDetail,
     onUpdateDetail,
     onGenerateLesson,
+    onAddQuizId,
 }: LessonComponentProps) {
     const [isFastCreatePopupOpen, setIsFastCreatePopupOpen] = useState(false);
     const [isGeneratingLesson, setIsGeneratingLesson] = useState(false);
+    const [showQuizSettings, setShowQuizSettings] = useState(false);
+    const [quizSettings, setQuizSettings] = useState<QuizSettings>({includeMCQ: true, includeFRQ: false});
+    const [selectedCards, setSelectedCards] = useState<boolean[]>(lesson.cardsToUnlock.map(() => true));
+    const [lessonQuizzes, setLessonQuizzes] = useState<{id?: string, status: 'creating' | 'created', title?: string}[]>(lesson.quizIds?.map(id => ({id, status: 'created'})) || []);
+    const [isCreatingQuiz, setIsCreatingQuiz] = useState<boolean | string>(false);
+    const [quizError, setQuizError] = useState<string | null>(null);
     return (
         <div
             className={`mb-6 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] p-3`}>
@@ -217,10 +228,96 @@ export default function LessonComponent({
                             className="text-[var(--accent-500)] hover:text-[var(--accent-600)] text-sm"
                         >
                             + Add Card
-                        </button>
-                    </div>
-                </div>
-            )}
+                         </button>
+                     </div>
+
+                     {/* Lesson Quizzes */}
+                     <div className="mb-3">
+                         <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
+                             Lesson Quizzes
+                         </label>
+                         {lessonQuizzes.map((quiz, quizIndex) => (
+                             <div key={quizIndex} className="mb-4 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-200)] p-3">
+                                 <div className="flex justify-between items-center w-full">
+                                     <div className="text-md font-medium text-[var(--foreground)] flex-shrink-0">
+                                         {quiz.title || `Lesson Quiz ${quizIndex + 1}`}
+                                     </div>
+                                     {quiz.status === 'created' && quiz.id && (
+                                         <Button color="var(--accent-400)" onClick={() => window.open(`/quiz/${quiz.id}`, '_blank')}>
+                                             View Quiz
+                                         </Button>
+                                     )}
+                                     {quiz.status === 'creating' && <FiLoader className="animate-spin w-5 h-5 text-[var(--foreground)]" />}
+                                 </div>
+                             </div>
+                         ))}
+                         {lessonQuizzes.length === 0 && <p className="text-sm text-[var(--neutral-600)]">No quizzes created yet.</p>}
+                     </div>
+
+                     {/* Create Lesson Quiz */}
+                     <div className="mb-4 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] p-3">
+                         <div className="flex justify-between items-center w-full">
+                             <div className="flex items-center gap-2 flex-1 min-w-0">
+                                 <button
+                                     onClick={() => setShowQuizSettings(!showQuizSettings)}
+                                     className="text-[var(--foreground)] hover:text-[var(--accent-500)] px-2 py-1 flex-shrink-0"
+                                 >
+                                     {showQuizSettings ? <FiChevronDown size={16} /> : <FiChevronRight size={16} />}
+                                 </button>
+                                 <div className="text-lg font-medium text-[var(--foreground)] flex-shrink-0">
+                                     Create Lesson Quiz
+                                 </div>
+                             </div>
+                         </div>
+                         {showQuizSettings && (
+                             <div className="mt-4 p-4 bg-[var(--neutral-100)]">
+                                 <QuizSettingsComponent
+                                     cards={lesson.cardsToUnlock}
+                                     selectedCards={selectedCards}
+                                     setSelectedCards={setSelectedCards}
+                                     quizSettings={quizSettings}
+                                     setQuizSettings={setQuizSettings}
+                                     quizError={quizError}
+                                     setQuizError={setQuizError}
+                                     onCreate={async () => {
+                                         if (lessonQuizzes.some(q => q.status === 'creating')) {
+                                             setQuizError("A quiz is already being created for this lesson.");
+                                             return;
+                                         }
+                                         if (!quizSettings.includeMCQ && !quizSettings.includeFRQ) {
+                                             setQuizError("Please select at least one type of question to include in your quiz.");
+                                             return;
+                                         }
+                                         const cardsToUse = lesson.cardsToUnlock.filter((_, i) => selectedCards[i]);
+                                         if (cardsToUse.length < 3) {
+                                             const proceed = window.confirm("It is recommended to have at least 3 cards for a quiz. Do you want to proceed?");
+                                             if (!proceed) return;
+                                         }
+                                         setLessonQuizzes([...lessonQuizzes, {status: 'creating'}]);
+                                         setShowQuizSettings(false);
+                                         try {
+                                             const quizId = await createQuiz(cardsToUse, quizSettings);
+                                             const quiz = await getQuiz(quizId);
+                                             setLessonQuizzes(prev => {
+                                                 const updated = [...prev];
+                                                 updated[updated.length - 1] = {id: quizId, status: 'created', title: quiz?.title};
+                                                 return updated;
+                                             });
+                                             onAddQuizId(quizId);
+                                         } catch (error) {
+                                             console.error("Error creating quiz:", error);
+                                             setQuizError("Failed to create quiz");
+                                             setLessonQuizzes(prev => prev.slice(0, -1));
+                                             setShowQuizSettings(true);
+                                         }
+                                     }}
+                                     isCreating={isCreatingQuiz}
+                                 />
+                             </div>
+                         )}
+                     </div>
+                 </div>
+             )}
 
             {/* --- Fast Create Popup --- */}
             <FastCreatePopup

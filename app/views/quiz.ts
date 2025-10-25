@@ -1,9 +1,9 @@
 import { apiFetch } from "./helpers";
 
-import { Card, QuizSettings, Quiz } from "@/lib/types";
+import { NewCard, QuizSettings, Quiz } from "@/lib/types";
 
 // Creates a quiz with cards
-export async function createQuiz(cards: Card[], quizSettings: QuizSettings, projectId: string): Promise<string> {
+export async function createQuiz(cards: NewCard[], quizSettings: QuizSettings, projectId?: string): Promise<string> {
     try {
         const data = await apiFetch<{ quizId: string }>(`/api/quiz`, {
             method: "POST",

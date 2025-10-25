@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, addDoc } from "firebase/firestore";
 
-import { getVerifiedUid } from "@/app/api/helpers"
+import { getVerifiedUid } from "@/app/api/helpers";
+import { getUserById } from "@/app/api/users/helpers";
 
 /**
  * Generates a random 6-digit string for the invitation token.
@@ -13,24 +14,72 @@ function generateToken(): string {
 }
 
 /**
- * Creates a new invitation for a project.
- * The requester must be the project owner.
+ * Creates a new invitation for a project or course.
+ * The requester must be the owner.
  */
 export async function POST(req: NextRequest) {
     const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
     const body = await req.json();
-    const { projectId } = body as { projectId: string };
+    const { projectId, courseId } = body as { projectId?: string; courseId?: string };
 
-    if (!projectId) return NextResponse.json({ error: "No projectId provided" }, { status: 400 });
+    if (!projectId && !courseId) return NextResponse.json({ error: "No projectId or courseId provided" }, { status: 400 });
 
     try {
-        // Verify that the requester is the project owner
-        const projectRef = doc(db, "projects", projectId);
-        const projectSnap = await getDoc(projectRef);
-        if (!projectSnap.exists() || projectSnap.data()?.ownerId !== uid) {
-            return NextResponse.json({ error: "Only the owner can create an invitation" }, { status: 403 });
+        let ownerId: string | undefined;
+
+        let existingToken: string | null = null;
+
+        let hasAccess = false;
+
+        if (projectId) {
+            const projectRef = doc(db, "projects", projectId);
+            const projectSnap = await getDoc(projectRef);
+            if (!projectSnap.exists()) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+            const projectData = projectSnap.data();
+            ownerId = projectData?.ownerId;
+
+            // Get user email
+            const userRef = doc(db, "users", uid);
+            const userSnap = await getDoc(userRef);
+            const userEmail = userSnap.exists() ? userSnap.data()?.email : null;
+
+            // Check access: owner, sharedWith, or collaborators
+            if (ownerId === uid || projectData?.sharedWith?.includes(uid) || (userEmail && projectData?.collaborators?.includes(userEmail))) {
+                hasAccess = true;
+            }
+
+            // Check if user has existing invite for this project
+            const userInviteId = projectData?.inviteIds?.[uid];
+            if (userInviteId) {
+                const inviteRef = doc(db, "invitations", userInviteId);
+                const inviteSnap = await getDoc(inviteRef);
+                if (inviteSnap.exists()) {
+                    existingToken = inviteSnap.data()?.token;
+                }
+            }
+        } else if (courseId) {
+            const courseRef = doc(db, "courses", courseId);
+            const courseSnap = await getDoc(courseRef);
+            if (!courseSnap.exists()) return NextResponse.json({ error: "Course not found" }, { status: 404 });
+            const courseData = courseSnap.data();
+            ownerId = courseData?.ownerId;
+
+            // Check access: owner or sharedWith
+            if (ownerId === uid || courseData?.sharedWith?.includes(uid)) {
+                hasAccess = true;
+            }
+        } else {
+            return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+        }
+
+        if (!hasAccess) {
+            return NextResponse.json({ error: "Access denied" }, { status: 403 });
+        }
+
+        if (existingToken) {
+            return NextResponse.json({ token: existingToken });
         }
 
         // Create a new invitation in the top-level 'invitations' collection
@@ -38,11 +87,22 @@ export async function POST(req: NextRequest) {
         const token = generateToken();
         const createdAt = new Date().toISOString();
 
-        await addDoc(invitationsRef, {
+        const inviteDocRef = await addDoc(invitationsRef, {
             token,
-            projectId,
+            projectId: projectId || null,
+            courseId: courseId || null,
+            createdBy: uid,
             createdAt,
+            acceptedBy: [],
         });
+
+        // If it's a project, update the project with inviteIds map
+        if (projectId) {
+            const projectRef = doc(db, "projects", projectId);
+            await updateDoc(projectRef, {
+                [`inviteIds.${uid}`]: inviteDocRef.id,
+            });
+        }
 
         return NextResponse.json({ token });
     } catch (err) {
@@ -75,34 +135,59 @@ export async function PUT(req: NextRequest) {
         const invitationSnap = invitationSnaps.docs[0];
         const invitationData = invitationSnap.data();
         const projectId = invitationData.projectId;
-        const projectRef = doc(db, "projects", projectId);
+        const courseId = invitationData.courseId;
 
-        const projectSnap = await getDoc(projectRef);
-        const projectData = projectSnap.data();
+        if (!projectId && !courseId) return NextResponse.json({ error: "Invalid invitation" }, { status: 400 });
 
-        // Check if user is already a collaborator
+        // Check if user is already shared with
         const userRef = doc(db, "users", uid);
         const userSnap = await getDoc(userRef);
         if (!userSnap.exists()) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
         const userEmail = userSnap.data()?.email;
 
-        if (projectData?.sharedWith?.includes(uid)) {
-            // Already a collaborator, return success
-            return NextResponse.json({ success: true, message: "Already a collaborator" });
+        if (projectId) {
+            const projectRef = doc(db, "projects", projectId);
+            const projectSnap = await getDoc(projectRef);
+            const projectData = projectSnap.data();
+
+            if (projectData?.sharedWith?.includes(uid)) {
+                // Already a collaborator, return success
+                return NextResponse.json({ success: true, message: "Already a collaborator" });
+            }
+
+            // Add user to project's collaborator lists
+            await updateDoc(projectRef, {
+                collaborators: arrayUnion(userEmail),
+                sharedWith: arrayUnion(uid),
+            });
+
+            // Add projectId to user’s projectIds
+            await updateDoc(userRef, {
+                projectIds: arrayUnion(projectId),
+            });
+        } else if (courseId) {
+            const courseRef = doc(db, "courses", courseId);
+            const courseSnap = await getDoc(courseRef);
+            const courseData = courseSnap.data();
+
+            if (courseData?.sharedWith?.includes(uid)) {
+                // Already shared with, return success
+                return NextResponse.json({ success: true, message: "Already shared with" });
+            }
+
+            // Add user to course's sharedWith
+            await updateDoc(courseRef, {
+                sharedWith: arrayUnion(uid),
+            });
+
+            // Note: courses don't have collaborators list like projects, so no email addition
         }
 
-        // Add user to project's collaborator lists
-        await updateDoc(projectRef, {
-            collaborators: arrayUnion(userEmail),
-            sharedWith: arrayUnion(uid),
+        // Add user to invitation's acceptedBy list
+        await updateDoc(doc(db, "invitations", invitationSnap.id), {
+            acceptedBy: arrayUnion(uid),
         });
-
-        // Add projectId to user’s projectIds
-        await updateDoc(userRef, {
-            projectIds: arrayUnion(projectId),
-        });
-
 
         return NextResponse.json({ success: true });
     } catch (err) {
@@ -128,13 +213,32 @@ export async function GET(req: NextRequest) {
 
         const invitationData = invitationSnaps.docs[0].data();
         const projectId = invitationData.projectId;
-        
-        const projectRef = doc(db, "projects", projectId);
-        const projectSnap = await getDoc(projectRef);
+        const courseId = invitationData.courseId;
+        const createdBy = invitationData.createdBy;
 
-        if (!projectSnap.exists()) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+        let title: string;
+        let type: 'project' | 'course';
+        if (projectId) {
+            type = 'project';
+            const projectRef = doc(db, "projects", projectId);
+            const projectSnap = await getDoc(projectRef);
+            if (!projectSnap.exists()) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+            title = projectSnap.data()?.title;
+        } else if (courseId) {
+            type = 'course';
+            const courseRef = doc(db, "courses", courseId);
+            const courseSnap = await getDoc(courseRef);
+            if (!courseSnap.exists()) return NextResponse.json({ error: "Course not found" }, { status: 404 });
+            title = courseSnap.data()?.title;
+        } else {
+            return NextResponse.json({ error: "Invalid invitation" }, { status: 400 });
+        }
 
-        return NextResponse.json({ title: projectSnap.data()?.title });
+        // Fetch the creator's name
+        const creator = await getUserById(createdBy);
+        const createdByName = creator ? creator.displayName : 'Unknown';
+
+        return NextResponse.json({ title, type, createdByName, id: projectId || courseId });
     } catch (err) {
         return NextResponse.json({ error: (err as Error).message }, { status: 500 });
     }

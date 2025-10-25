@@ -56,6 +56,7 @@ Guidelines for content:
 - Structure information logically and progressively
 - Make cards focused on single concepts or skills specific to this lesson
 - Ensure cards build understanding progressively within this lesson
+- Keep the content field very concise, under 1500 characters, to ensure complete and valid JSON responses
 
 Each card should have:
 - A clear title
@@ -64,6 +65,8 @@ Each card should have:
 Return ONLY a valid JSON object with:
 - "content": string (the main lesson text)
 - "cards": array of objects with "title" and "details" (array of strings)
+
+IMPORTANT: Ensure all strings in the JSON are properly escaped according to JSON standards. For the "content" field, which may contain quotes, backslashes, newlines, and special characters, escape them properly (e.g., use \\ for backslash, \\\" for quote, \\n for newline).
 
 Do not wrap the JSON in markdown code blocks or any other formatting. No additional text.
 
@@ -99,13 +102,15 @@ Guidelines:
 - Create engaging, educational content
 - Focus on key concepts and practical insights
 - Make cards focused and actionable
-- Ensure content is comprehensive but concise
+- Ensure content is comprehensive but concise, under 1500 characters
 
 Return ONLY a valid JSON object with:
 - "title": string
 - "description": string
 - "content": string
 - "cards": array of objects with "title" and "details" (array of strings)
+
+IMPORTANT: Ensure all strings in the JSON are properly escaped according to JSON standards. For the "content", "title", "description", and "details" fields, which may contain quotes, backslashes, newlines, and special characters, escape them properly (e.g., use \\ for backslash, \\\" for quote, \\n for newline).
 
 Do not wrap the JSON in markdown code blocks or any other formatting. No additional text.
 ` }]};

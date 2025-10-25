@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
                         const newHierarchy = await generateNewHierarchyFromCards(previousContentHierarchy, effectivePreviousCards, [...newCards, ...unlockedCards]);
                         await writeHierarchy(projectId, newHierarchy);
 
-                        const allCards = previousCards ? [...previousCards, ...newCards] : [...newCards];
+                        const allCards = previousCards ? [...previousCards, ...newCards, ...unlockedCards] : [...newCards, ...unlockedCards];
 
                         finalObj = {
                             type: "final",
