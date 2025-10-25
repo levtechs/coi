@@ -3,7 +3,7 @@ import { db } from "@/lib/firebase";
 import { getVerifiedUid } from "../../helpers";
 import { getUserById } from "../../users/helpers";
 import { Course, CourseLesson, Card, NewCourse } from "@/lib/types";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, writeBatch, doc } from "firebase/firestore";
 import { createCourseFromText, createLessonFromText } from "./helpers";
 
 /**
@@ -43,23 +43,24 @@ export async function POST(req: NextRequest) {
         const courseId = courseRef.id;
 
         // Create lessons subcollection
+        const batch = writeBatch(db);
         const lessons: CourseLesson[] = [];
         for (const lesson of courseData.lessons) {
-            const lessonRef = await addDoc(collection(db, 'courses', courseId, 'lessons'), {
+            const lessonRef = doc(collection(db, 'courses', courseId, 'lessons'));
+
+            const cardsToUnlock: Card[] = [];
+            const cardsColRef = collection(lessonRef, 'cardsToUnlock');
+            for (const card of lesson.cardsToUnlock) {
+                const cardRef = doc(cardsColRef);
+                batch.set(cardRef, card);
+                cardsToUnlock.push({ ...card, id: cardRef.id });
+            }
+
+            batch.set(lessonRef, {
                 ...lesson,
                 courseId: courseId,
-                cardsToUnlock: [] // Will populate below
+                cardsToUnlock: [] // Stored in subcollection
             });
-
-            // Create cardsToUnlock subcollection
-            const cardsToUnlock: Card[] = [];
-            for (const card of lesson.cardsToUnlock) {
-                const cardRef = await addDoc(collection(db, 'courses', courseId, 'lessons', lessonRef.id, 'cardsToUnlock'), card);
-                cardsToUnlock.push({
-                    ...card,
-                    id: cardRef.id
-                });
-            }
 
             lessons.push({
                 ...lesson,
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
                 cardsToUnlock
             });
         }
+        await batch.commit();
 
         // Return the full course object
         const fullCourse: Course = {

@@ -59,7 +59,7 @@ export const createQuizFromCards = async (cards: NewCard[], quizSettings: QuizSe
     const generationConfig = {
         ...defaultGeneralConfig,
         responseMimeType: "application/json",
-        responseSchema: buildQuizSchema(quizSettings) as ObjectSchema,
+        responseSchema: buildQuizSchema(quizSettings),
     };
 
     const body = {
@@ -103,7 +103,7 @@ export const createQuizFromCards = async (cards: NewCard[], quizSettings: QuizSe
     }
 };
 
-export const buildQuizSchema = (settings: QuizSettings = { includeMCQ: true, includeFRQ: true }) => {
+export const buildQuizSchema = (settings: QuizSettings = { includeMCQ: true, includeFRQ: true }): ObjectSchema => {
     const { minNumQuestions, maxNumQuestions, includeMCQ, includeFRQ } = settings;
 
     const allowedTypes: string[] = [];
@@ -176,5 +176,5 @@ export const buildQuizSchema = (settings: QuizSettings = { includeMCQ: true, inc
         required: ["description", "title", "questions"],
     };
 
-    return quizSchema;
+    return quizSchema as ObjectSchema;
 };
