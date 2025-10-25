@@ -1,5 +1,10 @@
+"use client";
+
 import { Timestamp } from "firebase/firestore";
 import { Project, Quiz } from "@/lib/types";
+import { getQuiz } from "@/app/views/quiz";
+import { fetchCardsFromProject } from "@/app/api/cards/helpers";
+import { useState, useEffect } from "react";
 
 interface ProjectDetailsPanelProps {
     project: Project;
@@ -7,6 +12,36 @@ interface ProjectDetailsPanelProps {
 }
 
 const ProjectDetailsPanel = ({ project, quizzes }: ProjectDetailsPanelProps) => {
+    const [lessonQuizzes, setLessonQuizzes] = useState<Quiz[]>([]);
+    const [unlockedCards, setUnlockedCards] = useState<number>(0);
+
+    useEffect(() => {
+        const fetchLessonQuizzes = async () => {
+            if (project.courseLesson?.quizIds && project.courseLesson.quizIds.length > 0) {
+                const fetched = await Promise.all(
+                    project.courseLesson.quizIds.map(id => getQuiz(id))
+                );
+                setLessonQuizzes(fetched.filter(q => q !== null) as Quiz[]);
+            }
+        };
+        fetchLessonQuizzes();
+    }, [project.courseLesson]);
+
+    useEffect(() => {
+        const fetchUnlockedCards = async () => {
+            if (project.courseLesson?.cardsToUnlock) {
+                try {
+                    const cards = await fetchCardsFromProject(project.id);
+                    const unlocked = cards.filter(card => card.isUnlocked).length;
+                    setUnlockedCards(unlocked);
+                } catch (error) {
+                    console.error("Error fetching unlocked cards:", error);
+                }
+            }
+        };
+        fetchUnlockedCards();
+    }, [project]);
+
     const timeAgo = (date: Date): string => {
         const now = new Date();
         const diff = now.getTime() - date.getTime();
@@ -30,6 +65,31 @@ const ProjectDetailsPanel = ({ project, quizzes }: ProjectDetailsPanelProps) => 
             <h1 className="text-3xl mb-8 font-bold underline">
                 Project details
             </h1>
+            {project.courseLesson && (
+                <div className="mb-6">
+                    <h2 className="text-xl mb-2 font-bold">
+                        Associated Lesson:
+                    </h2>
+                    <a
+                        href={`/courses/${project.courseId}/${project.courseLesson.index}`}
+                        className="block text-md mb-4 p-3 bg-[var(--neutral-100)] rounded-md hover:bg-[var(--neutral-200)] transition-colors cursor-pointer"
+                    >
+                        <p className="font-semibold">{project.courseLesson.title}</p>
+                        <p className="text-[var(--neutral-600)] mb-2">{project.courseLesson.description}</p>
+                        <p className="text-sm">Cards unlocked: {unlockedCards}/{project.courseLesson.cardsToUnlock?.length || 0}</p>
+                    </a>
+                    {lessonQuizzes.length > 0 && (
+                        <div className="mt-2">
+                            <p className="text-sm font-semibold">Lesson Quiz:</p>
+                            {lessonQuizzes.map((quiz) => (
+                                <a key={quiz.id} className="underline text-sm font-bold mr-2" href={`/quiz/${quiz.id}`} target="_blank" rel="noopener noreferrer">
+                                    {quiz.title}
+                                </a>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
             <h2 className="text-xl mb-2 font-bold">
                 Available quizzes:
             </h2>

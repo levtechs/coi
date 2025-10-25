@@ -4,7 +4,7 @@ import { collection, addDoc, doc, updateDoc, arrayUnion } from "firebase/firesto
 import { defaultGeneralConfig, llmModel } from "../gemini/config";
 import { createQuizFromCardsSystemInstruction } from "./prompts";
 
-import { Card, QuizSettings } from "@/lib/types";
+import { NewCard, QuizSettings } from "@/lib/types";
 import { SchemaType, ObjectSchema } from "@google/generative-ai";
 
 /**
@@ -12,7 +12,7 @@ import { SchemaType, ObjectSchema } from "@google/generative-ai";
  * @param quiz The quiz JSON object to store.
  * @returns The ID of the newly created quiz document.
  */
-export const writeQuizToDb = async (quiz: object, projectId: string): Promise<string> => {
+export const writeQuizToDb = async (quiz: object, projectId?: string): Promise<string> => {
     if (!quiz) throw new Error("Missing quiz");
 
     try {
@@ -23,11 +23,13 @@ export const writeQuizToDb = async (quiz: object, projectId: string): Promise<st
             createdAt: new Date().toISOString(),
         });
 
-        // 2. Add quizId to the project document's quizIds array
-        const projectRef = doc(db, "projects", projectId);
-        await updateDoc(projectRef, {
-            quizIds: arrayUnion(docRef.id),
-        });
+        // 2. Add quizId to the project document's quizIds array if projectId provided
+        if (projectId) {
+            const projectRef = doc(db, "projects", projectId);
+            await updateDoc(projectRef, {
+                quizIds: arrayUnion(docRef.id),
+            });
+        }
 
         return docRef.id;
     } catch (err) {
@@ -41,7 +43,7 @@ export const writeQuizToDb = async (quiz: object, projectId: string): Promise<st
  * @param cards The cards to base the quiz on.
  * @returns A promise that resolves to a JSON with the quiz content.
  */
-export const createQuizFromCards = async (cards: Card[], quizSettings: QuizSettings): Promise<JSON | null> => {
+export const createQuizFromCards = async (cards: NewCard[], quizSettings: QuizSettings): Promise<JSON | null> => {
     if (!cards || cards.length === 0) {
         throw new Error("Must have at least one card to create a quiz.");
     }

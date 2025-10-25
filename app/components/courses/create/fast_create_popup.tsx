@@ -23,21 +23,35 @@ export default function FastCreatePopup({
 }: FastCreatePopupProps) {
     const [text, setText] = useState("");
     const [streamMessages, setStreamMessages] = useState<string[]>([]);
+    const [isCompleted, setIsCompleted] = useState(false);
+    const [hasError, setHasError] = useState(false);
 
     const handleGenerate = async () => {
         if (!text.trim()) return;
         setStreamMessages(['Initializing...']);
-        await onGenerate(text, (message) => {
-            setStreamMessages(prev => [...prev, message]);
-        });
-        // Don't close automatically, let parent handle
+        setIsCompleted(false);
+        setHasError(false);
+        try {
+            await onGenerate(text, (message) => {
+                setStreamMessages(prev => [...prev, message]);
+                if (message.includes('Error') || message.includes('error')) {
+                    setHasError(true);
+                }
+            });
+            setIsCompleted(true);
+        } catch (error) {
+            console.error('Generation error:', error);
+            setHasError(true);
+            setStreamMessages(prev => [...prev, 'An error occurred during generation.']);
+        }
     };
 
     const handleClose = () => {
-        if (!isGenerating) {
-            setText("");
-            onClose();
-        }
+        setText("");
+        setStreamMessages([]);
+        setIsCompleted(false);
+        setHasError(false);
+        onClose();
     };
 
     if (!isOpen) return null;
@@ -65,11 +79,43 @@ export default function FastCreatePopup({
                                 <h3 className="font-semibold mb-2">Progress:</h3>
                                 <ul className="space-y-1 text-sm">
                                     {streamMessages.map((msg, index) => (
-                                        <li key={index} className="text-[var(--foreground)]">{msg}</li>
+                                        <li key={index} className={`${
+                                            msg.includes('Error') || msg.includes('error') ? 'text-red-500' : 'text-[var(--foreground)]'
+                                        }`}>{msg}</li>
                                     ))}
                                 </ul>
                             </div>
                         )}
+                    </div>
+                ) : isCompleted || hasError ? (
+                    <div>
+                        <div className={`p-3 rounded-md mb-4 ${
+                            hasError ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                        }`}>
+                            <h3 className="font-semibold">
+                                {hasError ? 'Generation Failed' : 'Generation Completed'}
+                            </h3>
+                            <p className="text-sm mt-1">
+                                {hasError ? 'An error occurred during course generation.' : 'Your course has been generated successfully.'}
+                            </p>
+                        </div>
+                        {streamMessages.length > 0 && (
+                            <div className="p-3 bg-[var(--neutral-100)] rounded-md max-h-48 overflow-y-auto">
+                                <h3 className="font-semibold mb-2">Details:</h3>
+                                <ul className="space-y-1 text-sm">
+                                    {streamMessages.map((msg, index) => (
+                                        <li key={index} className={`${
+                                            msg.includes('Error') || msg.includes('error') ? 'text-red-500' : 'text-[var(--foreground)]'
+                                        }`}>{msg}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                        <div className="mt-4 flex justify-end">
+                            <Button color="var(--accent-500)" onClick={handleClose}>
+                                Close
+                            </Button>
+                        </div>
                     </div>
                 ) : (
                     <>

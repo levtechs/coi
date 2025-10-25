@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
 import { getVerifiedUid } from "../../helpers";
-
-import { User } from "@/lib/types";
+import { getUserById } from "../helpers";
 
 // return user data from user id
 export async function GET(req: NextRequest, context: { params: Promise<{ userId: string }> }) {
@@ -14,21 +11,19 @@ export async function GET(req: NextRequest, context: { params: Promise<{ userId:
     const { userId } = await context.params;
 
     try {
-        const userRef = doc(db, "users", userId);
-        const snap = await getDoc(userRef);
-
-        if (!snap.exists()) {
+        const user = await getUserById(userId);
+        if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        const data = snap.data();
-        const user: User = {
-            id: userId,
-            email: data.email,
-            displayName: data.displayName
+        // Return only basic user info
+        const basicUser = {
+            id: user.id,
+            email: user.email,
+            displayName: user.displayName
         };
 
-        return NextResponse.json(user);
+        return NextResponse.json(basicUser);
     } catch (err) {
         return NextResponse.json({ error: (err as Error).message }, { status: 500 });
     }

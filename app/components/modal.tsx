@@ -6,7 +6,7 @@ import LoadingComponent from "./loading";
 
 type ProjectModalProps = {
     isOpen: boolean;
-    type: "input" | "confirm" | "info" | "error";
+    type: "input" | "confirm" | "info" | "error" | "empty";
     width?: string,
     message?: string;
     initialValue?: string;
@@ -98,7 +98,7 @@ export default function Modal({
                     </form>
                 ) : (
                     <>
-                        {message && (<p className={`text-[var(${(type === "error") ? "--error" : "--foreground"})]`}>{message}</p>)}
+                        {message && (<p className={type === "error" ? "text-[var(--error)]" : "text-[var(--foreground)]"}>{message}</p>)}
                         {type === "info" ? (
                             <div className="flex flex-col">
                                 {children}
@@ -110,6 +110,20 @@ export default function Modal({
                                         onClick={onClose}
                                     >
                                         close
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : type === "empty" ? (
+                            <div className="flex flex-col">
+                                {children}
+                                <div className="flex flex-row w-[100%] gap-4 mt-4">
+                                    <Button
+                                        className="flex-1"
+                                        color="var(--neutral-300)"
+                                        type="button"
+                                        onClick={onClose}
+                                    >
+                                        Close
                                     </Button>
                                 </div>
                             </div>

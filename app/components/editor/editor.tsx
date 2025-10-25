@@ -80,6 +80,7 @@ const Editor = ({
                                 cards={project.cards}
                                 hidden={tab !== "content"}
                                 cardFilters={cardFilters}
+                                project={project}
                                 addAttachment={(attachment: ChatAttachment) =>
                                     setChatAttachments((prev) => {
                                         // Start with empty array if null

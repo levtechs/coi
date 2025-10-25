@@ -73,6 +73,18 @@ export type ContentNode =
     | { type: "card"; cardId: string }
     | { type: "subcontent"; content: ContentHierarchy };
 
+// Invites
+
+export interface Invite {
+    id?: string;
+    token: string;
+    projectId?: string;
+    courseId?: string;
+    createdBy: string;
+    createdAt: string;
+    acceptedBy: string[];
+}
+
 // Quiz 
 
 export type QuizQuestion = {
@@ -113,6 +125,7 @@ export interface Course {
     title: string;
     description?: string;
     lessons: CourseLesson[];
+    quizIds?: string[];
     public?: boolean;
     sharedWith?: string[]; // ids
     category?: string;
@@ -127,7 +140,7 @@ export interface CourseLesson {
     description: string;
     content: string;
     cardsToUnlock: Card[];
-    quizId?: string;
+    quizIds?: string[];
 }
 
 export type NewLesson = Omit<CourseLesson, "id" | "courseId" | "cardsToUnlock"> & { cardsToUnlock: NewCard[]; content: string };
