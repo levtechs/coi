@@ -179,6 +179,15 @@ export async function streamGenerateCourse(
                         onUpdate(update.message);
                     } else if (update.type === 'outline') {
                         onUpdate(`Course outline created: ${update.courseStructure.courseTitle} (${update.courseStructure.lessons.length} lessons)`);
+                        const numLessons = update.courseStructure.lessons.length;
+                        // Pre-populate lessons array to avoid sparse arrays later
+                        setLessons(Array(numLessons).fill(null).map(() => ({
+                            title: '',
+                            description: '',
+                            content: '',
+                            cardsToUnlock: [],
+                            quizIds: []
+                        })));
                     } else if (update.type === 'lesson_start') {
                         onUpdate(`Generating content for lesson ${update.lessonNumber}: ${update.lessonTitle}`);
                     } else if (update.type === 'lesson_complete') {

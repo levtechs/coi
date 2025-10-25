@@ -554,7 +554,6 @@ export default function CreateCourse() {
                          onUpdate('Error generating course');
                      } finally {
                          setIsGeneratingCourse(false);
-                         setIsFastCreatePopupOpen(false);
                      }
                  }}
                 isGenerating={isGeneratingCourse}
