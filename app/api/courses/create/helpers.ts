@@ -77,6 +77,8 @@ const lessonContentSchema: ObjectSchema = {
 };
 
 export const createCourseFromText = async (text: string, enqueue?: (data: string) => void): Promise<NewCourse> => {
+    enqueue?.(JSON.stringify({ type: "status", message: "Analyzing input text and creating course structure..." }));
+
     const prompt = createCourseStructurePrompt(text);
 
     try {
@@ -128,8 +130,11 @@ export const createCourseFromText = async (text: string, enqueue?: (data: string
         }
 
         const lessons: NewLesson[] = [];
+        enqueue?.(JSON.stringify({ type: "status", message: `Course outline created with ${courseStructure.lessons.length} lessons. Generating detailed content for each lesson...` }));
+
         for (let i = 0; i < courseStructure.lessons.length; i++) {
             const desc = courseStructure.lessons[i];
+            enqueue?.(JSON.stringify({ type: "lesson_start", lessonNumber: i + 1, lessonTitle: desc.title }));
             const lessonPrompt = createLessonContentPrompt({
                 title: desc.title,
                 description: desc.description,
@@ -199,7 +204,7 @@ export const createCourseFromText = async (text: string, enqueue?: (data: string
             };
 
             lessons.push(lesson);
-            enqueue?.(JSON.stringify({ type: "lesson_complete", lessonNumber: i + 1, lesson }));
+            enqueue?.(JSON.stringify({ type: "lesson_complete", lessonNumber: i + 1, lesson, cardCount: lesson.cardsToUnlock.length }));
         }
 
         const result = {

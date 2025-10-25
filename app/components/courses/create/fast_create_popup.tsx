@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Button from "@/app/components/button";
 import Loading from "@/app/components/loading";
 
@@ -25,6 +25,16 @@ export default function FastCreatePopup({
     const [streamMessages, setStreamMessages] = useState<string[]>([]);
     const [isCompleted, setIsCompleted] = useState(false);
     const [hasError, setHasError] = useState(false);
+    const messagesRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (messagesRef.current) {
+            messagesRef.current.scrollTo({
+                top: messagesRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }, [streamMessages]);
 
     const handleGenerate = async () => {
         if (!text.trim()) return;
@@ -75,7 +85,7 @@ export default function FastCreatePopup({
                     <div>
                         <Loading small={true} loadingText="Generating..." />
                         {streamMessages.length > 0 && (
-                            <div className="mt-4 p-3 bg-[var(--neutral-100)] rounded-md max-h-48 overflow-y-auto">
+                            <div ref={messagesRef} className="mt-4 p-3 bg-[var(--neutral-100)] rounded-md max-h-48 overflow-y-auto">
                                 <h3 className="font-semibold mb-2">Progress:</h3>
                                 <ul className="space-y-1 text-sm">
                                     {streamMessages.map((msg, index) => (
@@ -100,7 +110,7 @@ export default function FastCreatePopup({
                             </p>
                         </div>
                         {streamMessages.length > 0 && (
-                            <div className="p-3 bg-[var(--neutral-100)] rounded-md max-h-48 overflow-y-auto">
+                            <div ref={messagesRef} className="p-3 bg-[var(--neutral-100)] rounded-md max-h-48 overflow-y-auto">
                                 <h3 className="font-semibold mb-2">Details:</h3>
                                 <ul className="space-y-1 text-sm">
                                     {streamMessages.map((msg, index) => (
