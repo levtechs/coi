@@ -1,4 +1,4 @@
-import { Course, CourseLesson, NewCard, NewCourse, NewLesson } from "@/lib/types";
+import { Course, CourseLesson, NewCard, NewCourse, NewLesson, QuizSettings } from "@/lib/types";
 import { llmModel, limitedGeneralConfig } from "@/app/api/gemini/config";
 import { SchemaType, ObjectSchema } from "@google/generative-ai";
 import {
@@ -9,6 +9,7 @@ import {
     createCourseStructurePrompt,
     createLessonContentPrompt
 } from "./prompts";
+import { createQuizFromCards, writeQuizToDb } from "../../quiz/helpers";
 
 const fullLessonSchema: ObjectSchema = {
     type: SchemaType.OBJECT,
@@ -76,7 +77,7 @@ const lessonContentSchema: ObjectSchema = {
     required: ["content", "cards"]
 };
 
-export const createCourseFromText = async (text: string, enqueue?: (data: string) => void): Promise<NewCourse> => {
+export const createCourseFromText = async (text: string, enqueue?: (data: string) => void, lessonQuizSettings?: QuizSettings): Promise<NewCourse> => {
     enqueue?.(JSON.stringify({ type: "status", message: "Analyzing input text and creating course structure..." }));
 
     const prompt = createCourseStructurePrompt(text);
@@ -135,73 +136,105 @@ export const createCourseFromText = async (text: string, enqueue?: (data: string
         for (let i = 0; i < courseStructure.lessons.length; i++) {
             const desc = courseStructure.lessons[i];
             enqueue?.(JSON.stringify({ type: "lesson_start", lessonNumber: i + 1, lessonTitle: desc.title }));
-            const lessonPrompt = createLessonContentPrompt({
-                title: desc.title,
-                description: desc.description,
-                originalText: text,
-                courseOutline: courseStructure.lessons,
-                previousLesson: i > 0 ? { content: lessons[i-1].content, cards: lessons[i-1].cardsToUnlock.map(c => ({ title: c.title, details: c.details || [] })) } : undefined
-            });
 
-            const lessonRequestBody = {
-                contents: [{ role: "user", parts: [{ text: lessonPrompt }] }],
-                systemInstruction: { role: "system", parts: createLessonFromDescriptionSystemInstruction.parts },
-                generationConfig: {
-                    ...limitedGeneralConfig,
-                    responseMimeType: "application/json",
-                    responseSchema: lessonContentSchema,
-                },
-            };
+            let lesson: NewLesson | null = null;
+            let retryCount = 0;
+            const maxRetries = 3;
 
-            let lessonJsonString: string;
-            try {
-                const result = await llmModel.generateContent(lessonRequestBody);
-                lessonJsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            } catch (err) {
-                const error = err as { status?: number };
-                if (error.status === 503) {
-                    const streamingResp = await llmModel.generateContentStream(lessonRequestBody);
-                    let accumulated = "";
-                    for await (const chunk of streamingResp.stream) {
-                        const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                        accumulated += partText;
+            while (!lesson && retryCount < maxRetries) {
+                try {
+                    const lessonPrompt = createLessonContentPrompt({
+                        title: desc.title,
+                        description: desc.description,
+                        originalText: text,
+                        courseOutline: courseStructure.lessons,
+                        previousLesson: i > 0 ? { content: lessons[i-1].content, cards: lessons[i-1].cardsToUnlock.map(c => ({ title: c.title, details: c.details || [] })) } : undefined
+                    });
+
+                    const lessonRequestBody = {
+                        contents: [{ role: "user", parts: [{ text: lessonPrompt }] }],
+                        systemInstruction: { role: "system", parts: createLessonFromDescriptionSystemInstruction.parts },
+                        generationConfig: {
+                            ...limitedGeneralConfig,
+                            responseMimeType: "application/json",
+                            responseSchema: lessonContentSchema,
+                        },
+                    };
+
+                    let lessonJsonString: string;
+                    try {
+                        const result = await llmModel.generateContent(lessonRequestBody);
+                        lessonJsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                    } catch (err) {
+                        const error = err as { status?: number };
+                        if (error.status === 503) {
+                            const streamingResp = await llmModel.generateContentStream(lessonRequestBody);
+                            let accumulated = "";
+                            for await (const chunk of streamingResp.stream) {
+                                const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                                accumulated += partText;
+                            }
+                            lessonJsonString = accumulated;
+                        } else {
+                            throw err;
+                        }
                     }
-                    lessonJsonString = accumulated;
-                } else {
-                    throw err;
+                    if (!lessonJsonString || lessonJsonString.trim() === "") {
+                        throw new Error("Empty response from Gemini API for lesson content");
+                    }
+                    let lessonData;
+                    try {
+                        lessonData = JSON.parse(lessonJsonString) as {
+                            content: string;
+                            cards: {
+                                title: string;
+                                details: string[];
+                            }[];
+                        };
+                    } catch (parseErr) {
+                        console.error("createCourseFromText: Failed to parse lesson content JSON:", parseErr);
+                        console.error("createCourseFromText: Raw lesson JSON string:", lessonJsonString);
+                        throw new Error("Invalid JSON response from Gemini for lesson content");
+                    }
+
+                    const cards: NewCard[] = lessonData.cards.map((card) => ({
+                        title: card.title,
+                        details: card.details,
+                    }));
+
+                    lesson = {
+                        index: i,
+                        title: desc.title,
+                        description: desc.description,
+                        content: lessonData.content,
+                        cardsToUnlock: cards,
+                        quizIds: []
+                    };
+
+                    // Generate quiz for lesson if lessonQuizSettings provided
+                    if (lessonQuizSettings) {
+                        enqueue?.(JSON.stringify({ type: "status", message: `Generating quiz for lesson ${i + 1}...` }));
+                        const quizJson = await createQuizFromCards(cards, lessonQuizSettings);
+                        if (quizJson) {
+                            const quizId = await writeQuizToDb(quizJson);
+                            lesson.quizIds = [quizId];
+                        }
+                    }
+                } catch (error) {
+                    retryCount++;
+                    console.error(`Lesson ${i + 1} generation failed (attempt ${retryCount}/${maxRetries}):`, error);
+                    if (retryCount >= maxRetries) {
+                        const errorMessage = error instanceof Error ? error.message : String(error);
+                        throw new Error(`Failed to generate lesson ${i + 1} after ${maxRetries} attempts: ${errorMessage}`);
+                    }
+                    // Wait a bit before retrying
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             }
-            if (!lessonJsonString || lessonJsonString.trim() === "") {
-                throw new Error("Empty response from Gemini API for lesson content");
-            }
-            let lessonData;
-            try {
-                lessonData = JSON.parse(lessonJsonString) as {
-                    content: string;
-                    cards: {
-                        title: string;
-                        details: string[];
-                    }[];
-                };
-            } catch (parseErr) {
-                console.error("createCourseFromText: Failed to parse lesson content JSON:", parseErr);
-                console.error("createCourseFromText: Raw lesson JSON string:", lessonJsonString);
-                throw new Error("Invalid JSON response from Gemini for lesson content");
-            }
 
-            const cards: NewCard[] = lessonData.cards.map((card) => ({
-                title: card.title,
-                details: card.details,
-            }));
-
-            const lesson: NewLesson = {
-                index: i,
-                title: desc.title,
-                description: desc.description,
-                content: lessonData.content,
-                cardsToUnlock: cards,
-                quizIds: []
-            };
+            if (!lesson) {
+                throw new Error(`Failed to generate lesson ${i + 1}`);
+            }
 
             lessons.push(lesson);
             enqueue?.(JSON.stringify({ type: "lesson_complete", lessonNumber: i + 1, lesson, cardCount: lesson.cardsToUnlock.length }));
