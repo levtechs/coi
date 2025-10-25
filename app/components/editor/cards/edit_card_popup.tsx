@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 
-import { FiX, FiPlus, FiTrash2, FiCheck} from "react-icons/fi";
+import { FiX, FiPlus, FiTrash2 } from "react-icons/fi";
 import Button from "../../button";
 import { Card } from "@/lib/types";
 

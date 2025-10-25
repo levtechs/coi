@@ -3,7 +3,7 @@
 import React from "react";
 import { Card } from "@/lib/types";
 
-import { FiX } from "react-icons/fi";
+import { FiX, FiStar } from "react-icons/fi";
 
 import MarkdownArticle from "../../md";
 
@@ -108,9 +108,17 @@ export default function CardPopup({ card, onClose }: CardPopupProps) {
                                 <MarkdownArticle markdown={detail} />
                             </li>
                         ))}
-                    </ul>
-                </div>
-            </div>
-        </div>
-    );
-}
+                     </ul>
+                 </div>
+
+                 {/* Unlocking notice */}
+                 {card.isUnlocked === false && (
+                     <div className="flex items-center justify-center mt-4 text-sm text-[var(--neutral-600)]">
+                         <FiStar className="w-4 h-4 mr-2 text-[var(--accent-500)]" />
+                         Unlocking the card is necessary for completing the course
+                     </div>
+                 )}
+             </div>
+         </div>
+     );
+ }

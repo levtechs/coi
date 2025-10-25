@@ -19,8 +19,6 @@ const ShareMenu = ({ project, user, setModalContents, addCollaborator }: ShareMe
 
     const isOwner = user?.uid === project.ownerId;
 
-    const [isInviteOpen, setIsInviteOpen] = useState(false);
-
     // Handles closing the menu when a click occurs outside of it.
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -50,19 +48,19 @@ const ShareMenu = ({ project, user, setModalContents, addCollaborator }: ShareMe
         });
     };
 
+    const handleInviteClick = () => {
+        setIsMenuOpen(false);
+        setModalContents({
+            isOpen: true,
+            type: "empty",
+            width: "md",
+            title: "Share Project",
+            children: <InvitePanel project={project} />
+        });
+    };
+
     const handleShareClick = () => {
-        if (!isOwner) {
-            setModalContents({
-                isOpen: true,
-                type: "error",
-                title: "Permission Denied",
-                message: "Only the project owner can share this project.",
-                placeholder: "",
-                onSubmit: () => {},
-            });
-        } else {
-            setIsMenuOpen(!isMenuOpen);
-        }
+        setIsMenuOpen(!isMenuOpen);
     };
 
     return (
@@ -81,7 +79,7 @@ const ShareMenu = ({ project, user, setModalContents, addCollaborator }: ShareMe
                         className="absolute right-0 mt-2 w-48 bg-[var(--neutral-400)] rounded-md shadow-lg py-1 z-10"
                     >
                         <div
-                            onClick={setIsInviteOpen.bind(this, true)}
+                            onClick={handleInviteClick}
                             className="flex items-center gap-2 px-4 py-2 text-[var(--accent-500)] hover:bg-[var(--neutral-200)] cursor-pointer font-bold"
                         >
                             Invite
@@ -95,12 +93,6 @@ const ShareMenu = ({ project, user, setModalContents, addCollaborator }: ShareMe
                     </div>
                 )}
             </div>
-            {isInviteOpen && (
-                <InvitePanel
-                    project={project}
-                    onClose={() => setIsInviteOpen(false)}
-                />
-            )}
         </>
     );
 }

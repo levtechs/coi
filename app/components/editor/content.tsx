@@ -2,7 +2,7 @@
 
 import React, { useState, Dispatch, SetStateAction } from "react";
 import { FiChevronRight, FiChevronDown, FiPlus } from "react-icons/fi";
-import { Card, ContentHierarchy, ContentNode, ChatAttachment, CardFilter } from "@/lib/types";
+import { Card, ContentHierarchy, ContentNode, ChatAttachment, CardFilter, Project } from "@/lib/types";
 import MarkdownArticle from "../md";
 import DetailCard from "./cards/detail_card";
 
@@ -43,6 +43,7 @@ interface ContentHierarchyRendererProps {
     collapsedState: CollapseStateMap;
     toggleCollapse: (path: string) => void;
     projectId: string;
+    project: Project;
 }
 
 /**
@@ -58,7 +59,8 @@ const HierarchicalNode = ({
     path, // Use path for unique identification
     collapsedState,
     toggleCollapse,
-    projectId
+    projectId,
+    project
 }: ContentHierarchyRendererProps) => {
     
     const isCollapsed = !!collapsedState[path];
@@ -149,6 +151,7 @@ const HierarchicalNode = ({
                                 collapsedState={collapsedState}
                                 toggleCollapse={toggleCollapse}
                                 projectId={projectId}
+                                project={project}
                             />
                         </div>
                     );
@@ -210,9 +213,10 @@ interface ContentPanelProps {
     addAttachment: (attachment: ChatAttachment) => void;
     setClickedCard: Dispatch<SetStateAction<Card | null>>;
     projectId: string;
+    project: Project;
 }
 
-const ContentPanel = ({ hierarchy, cards, hidden = false, cardFilters, addAttachment, setClickedCard, projectId }: ContentPanelProps) => {
+const ContentPanel = ({ hierarchy, cards, hidden = false, cardFilters, addAttachment, setClickedCard, projectId, project }: ContentPanelProps) => {
     // NEW: State to store the collapsed status of all nodes by their path
     const [collapsedState, setCollapsedState] = useState<CollapseStateMap>({});
 
@@ -246,6 +250,7 @@ const ContentPanel = ({ hierarchy, cards, hidden = false, cardFilters, addAttach
                         collapsedState={collapsedState}
                         toggleCollapse={toggleCollapse}
                         projectId={projectId}
+                        project={project}
                     />
                 ) : (
                     <p className="text-[var(--neutral-500)]">(No content)</p>

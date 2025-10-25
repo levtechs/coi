@@ -11,6 +11,7 @@ import ProjectDetailsPanel from "./project_details";
 import { ModalContents } from "../types";
 import { Project, Quiz, CardFilter } from "@/lib/types";
 import { getQuiz } from "@/app/views/quiz";
+import { fetchCardsFromProject } from "@/app/api/cards/helpers";
 import TabSelector from "../tab_selector";
 
 interface MenuBarProps {
@@ -30,8 +31,12 @@ interface MenuBarProps {
 
 const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, tab, setTab, cardFilters, filtersExpanded, setFiltersExpanded, toggleKnowledge, toggleResource} : MenuBarProps) => {
     const [quizzes, setQuizzes] = useState<Quiz[] | null>(null);
+    const [lessonProgress, setLessonProgress] = useState<number | null>(null);
 
     const truncatedTitle = project.title.length > 15 ? project.title.slice(0, 15) + '...' : project.title;
+
+    // Check if this project is from a lesson
+    const isLessonProject = !!project.courseLesson;
 
     useEffect(() => {
         const fetchQuizzes = async () => {
@@ -50,6 +55,24 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
 
         fetchQuizzes();
     }, [project]);
+
+    useEffect(() => {
+        const fetchLessonProgress = async () => {
+            if (!isLessonProject || !project.courseLesson?.cardsToUnlock) return;
+
+            try {
+                const cards = await fetchCardsFromProject(project.id);
+                const unlockedCount = cards.filter(card => card.isUnlocked).length;
+                const totalCount = project.courseLesson.cardsToUnlock.length;
+                const progress = totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 100;
+                setLessonProgress(progress);
+            } catch (error) {
+                console.error("Error fetching lesson progress:", error);
+            }
+        };
+
+        fetchLessonProgress();
+    }, [project, isLessonProject]);
 
     return (
         <div className="flex items-center justify-between mb-4 border-b border-[var(--neutral-300)] pb-4">
@@ -110,12 +133,8 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                         Filters
                     </button>
                 </div>
-            </div>
-
-            {/* Right side: Share + Collaborators */}
-            <div className="flex items-center gap-4">
-                <h2 
-                    className="text-[var(--foreground)] text-l font-bold hover:underline cursor-pointer"
+                <button
+                    className="px-3 py-1 text-sm bg-[var(--neutral-200)] text-[var(--foreground)] hover:bg-[var(--neutral-300)] rounded-md transition-colors duration-200 ml-4 whitespace-nowrap"
                     onClick={() => {setModalContents({
                         isOpen: true,
                         type: "confirm",
@@ -125,9 +144,26 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                     })}}
                 >
                     Quiz me!
-                </h2>
-                <Button 
-                    color="var(--neutral-300)" 
+                </button>
+            </div>
+
+            {/* Right side: Share + Collaborators */}
+            <div className="flex items-center gap-4">
+                {isLessonProject && lessonProgress !== null && (
+                    <span className="text-[var(--foreground)] text-sm">
+                        (lesson {lessonProgress}% complete)
+                    </span>
+                )}
+                 {isLessonProject && project.courseId && (
+                     <Button
+                         color="var(--neutral-300)"
+                         onClick={() => window.open(`/courses/${project.courseId}/${project.courseLesson!.index}`, '_blank')}
+                     >
+                         View Lesson
+                     </Button>
+                 )}
+                <Button
+                    color="var(--neutral-300)"
                     onClick={()=>{
                         setModalContents({
                             isOpen: true,
@@ -136,7 +172,7 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                             children: <ProjectDetailsPanel project={project} quizzes={quizzes} />
                         })
                     }}
-                > 
+                >
                     Details
                 </Button>
                 <CollaboratorsDropdown 

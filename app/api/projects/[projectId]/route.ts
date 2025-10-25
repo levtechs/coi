@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { getVerifiedUid } from "../../helpers";
+import { getProjectById } from "../helpers";
 
 
 export async function GET(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
@@ -12,17 +13,10 @@ export async function GET(req: NextRequest, context: { params: Promise<{ project
     const { projectId } = await context.params;  // <- await here
 
     try {
-        const projectRef = doc(db, "projects", projectId);
-        const snap = await getDoc(projectRef);
+        const project = await getProjectById(projectId, uid);
+        if (!project) return NextResponse.json({ error: "Project not found or access denied" }, { status: 404 });
 
-        if (!snap.exists()) return NextResponse.json({ error: "Project not found" }, { status: 404 });
-
-        const data = snap.data();
-        if (data.ownerId !== uid && !(data.sharedWith ?? []).includes(uid)) {
-            return NextResponse.json({ error: "Access denied" }, { status: 403 });
-        }
-
-        return NextResponse.json({ id: projectId, ...data });
+        return NextResponse.json(project);
     } catch (err) {
         return NextResponse.json({ error: (err as Error).message }, { status: 500 });
     }
@@ -77,7 +71,18 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ proj
             return NextResponse.json({ error: "Only the owner can delete a project" }, { status: 403 });
         }
 
+        // Delete the project document
         await deleteDoc(projectRef);
+
+        // Remove the projectId from the user's projectIds array
+        const userRef = doc(db, "users", uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+            const userData = userSnap.data();
+            const currentProjectIds = userData.projectIds || [];
+            const updatedProjectIds = currentProjectIds.filter((id: string) => id !== projectId);
+            await updateDoc(userRef, { projectIds: updatedProjectIds });
+        }
 
         return NextResponse.json({ success: true });
     } catch (err) {

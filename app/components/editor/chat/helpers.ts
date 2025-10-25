@@ -7,7 +7,7 @@ export const sendMessage = async (
     messages: Message[],
     attatchments: null | ChatAttachment[],
     project: Project,
-    addMessage: (msg: Message) => void, 
+    addMessage: (msg: Message) => void,
     setStream: Dispatch<SetStateAction<string | null>>,
     setNewCards: (newCards: Card[]) => void,
     updatePhase: Dispatch<SetStateAction<null | StreamPhase>>,
@@ -37,7 +37,7 @@ export const sendMessage = async (
             updatePhase(phase);
         }
 
-        await streamChat(
+        const result = await streamChat(
             userInput,
             recentMessages,
             attatchments,
@@ -50,6 +50,8 @@ export const sendMessage = async (
                 setStream(streamedContent);
             },
          );
+
+        // Cards are updated via Firestore listener
 
         setPhase(null);
 

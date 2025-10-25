@@ -1,7 +1,7 @@
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, setDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
 
-import { Message, Card, ContentNode, ContentHierarchy, ChatAttachment, GroundingChunk} from "@/lib/types"; // { content: string; isResponse: boolean }
+import { Message, Card, NewCard, ContentNode, ContentHierarchy, ChatAttachment, GroundingChunk} from "@/lib/types"; // { content: string; isResponse: boolean }
 import { Contents } from "./types";
 
 import { 
@@ -10,13 +10,14 @@ import {
     limitedGeneralConfig,
 } from "../gemini/config";
 import {
-    chatResponseSystemInstruction, 
+    chatResponseSystemInstruction,
     generateCardsSystemInstruction,
+    generateCardsWithUnlockingSystemInstruction,
     generateHierarchySystemInstruction,
-    //  === \/ below is depricated \/ 
+    //  === \/ below is depricated \/
     firstChatResponseSystemInstruction,
-    genContentSystemInstruction, 
-    updateContentSystemInstruction, 
+    genContentSystemInstruction,
+    updateContentSystemInstruction,
 } from "./prompts"
 import { callGeminiApi } from "../gemini/helpers";
 import { GenerateContentRequest } from "@google/generative-ai";
@@ -136,8 +137,6 @@ export const writeHierarchy = async (
         await updateDoc(projectDocRef, {
             hierarchy: hierarchy
         });
-
-        console.log(`Hierarchy successfully written for project ${projectId}`);
     } catch (err) {
         console.error(`Error writing hierarchy for project ${projectId}:`, err);
         throw err;
@@ -145,21 +144,25 @@ export const writeHierarchy = async (
 };
 
 /**
- * Generates new cards using Gemini, writes them to Firestore, and returns the full list of cards.
+ * Generates new cards using Gemini, writes them to Firestore, and returns the full list of cards and unlocked cards.
  *
  * @param projectId - The ID of the project.
  * @param oldCards - Existing cards, if any (can be null).
- * @returns Full list of Card objects including new ones.
+ * @param cardsToUnlock - Cards that can be unlocked, if applicable.
+ * @returns Object with newCards and unlockedCards.
  */
 export const generateAndWriteNewCards = async (
     projectId: string,
     oldCards: Card[] | null,
     userMessage: string,
-    responseMessage: string
-): Promise<Card[]> => {
+    responseMessage: string,
+    cardsToUnlock?: Card[]
+): Promise<{ newCards: Card[]; unlockedCards: Card[] }> => {
 
-    const attatchments = {oldCards, userMessage, responseMessage}
-    const parts = [{ text: JSON.stringify(attatchments)}]
+    const attachments = { oldCards, userMessage, responseMessage, ...(cardsToUnlock && { cardsToUnlock }) };
+    const parts = [{ text: JSON.stringify(attachments) }]
+
+    const systemInstruction = cardsToUnlock ? generateCardsWithUnlockingSystemInstruction : generateCardsSystemInstruction;
 
     const requestBody: GenerateContentRequest = {
         contents: [{
@@ -168,7 +171,7 @@ export const generateAndWriteNewCards = async (
         }],
         systemInstruction: {
             role: "system",
-            parts: generateCardsSystemInstruction.parts,
+            parts: systemInstruction.parts,
         },
         generationConfig: {
             responseMimeType: "application/json",
@@ -195,19 +198,32 @@ export const generateAndWriteNewCards = async (
         }
     }
 
-    let newCardsRaw: Omit<Card, "id">[];
+    let newCardsRaw: NewCard[] = [];
+    let unlockedCardIds: string[] = [];
+
     try {
-        newCardsRaw = JSON.parse(jsonString!);
+        const parsed = JSON.parse(jsonString!);
+        if (cardsToUnlock) {
+            // Expect { newCards, unlockedCardIds }
+            newCardsRaw = parsed.newCards || [];
+            unlockedCardIds = parsed.unlockedCardIds || [];
+        } else {
+            // Expect array of cards
+            newCardsRaw = Array.isArray(parsed) ? parsed : [];
+        }
     } catch (err) {
-        console.error("Failed to parse new cards from Gemini:", err, jsonString);
-        return oldCards || [];
+        console.error("generateAndWriteNewCards: Failed to parse response from Gemini:", err, "jsonString:", jsonString);
+        return { newCards: oldCards || [], unlockedCards: [] };
     }
 
     // Write new cards to DB
     const newCards = await writeCardsToDb(projectId, newCardsRaw);
 
-    // Return newCards
-    return newCards;
+    // Determine unlocked cards
+    const existingCardIds = new Set((oldCards || []).map(c => c.id));
+    const unlockedCards = (cardsToUnlock || []).filter(card => unlockedCardIds.includes(card.id) && !existingCardIds.has(card.id));
+
+    return { newCards, unlockedCards };
 };
 
 /**
@@ -235,7 +251,7 @@ export const groundingChunksToCardsAndWrite = async (
     // Sort chunks by priority desc
     const sortedChunks = groundingChunks.sort((a, b) => getPriority(b.web.uri) - getPriority(a.web.uri));
 
-    const newCardsRaw: Omit<Card, "id">[] = [];
+    const newCardsRaw: NewCard[] = [];
 
     // We will limit the number of websites scraped with this cost. 
     // Some may be cheaper to scrape or are more usefull so they will contribute to cost less
@@ -436,56 +452,19 @@ const deduplicateHierarchy = (hierarchy: ContentHierarchy): ContentHierarchy => 
     };
 };
 
+
+
 /**
- * Generates a new content hierarchy from cards using Gemini.
- *
- * @param oldHierarchy - Existing content hierarchy, if any (can be null).
- * @param previousCards - Previously processed cards.
- * @param newCards - Newly added or changed cards.
- * @returns The new ContentHierarchy object.
+ * Parses the JSON response from Gemini for hierarchy generation and applies actions if modified.
+ * @param jsonString The JSON string from Gemini.
+ * @param oldHierarchy The existing hierarchy to modify if type is "modified".
+ * @returns The new ContentHierarchy.
  */
-export const generateNewHierarchyFromCards = async (
-    oldHierarchy: ContentHierarchy | null,
-    previousCards: Card[],
-    newCards: Card[],
-): Promise<ContentHierarchy> => {
-    const attachments = { oldHierarchy, previousCards, newCards };
-    const parts = [{ text: JSON.stringify(attachments) }];
-
-    const requestBody: GenerateContentRequest = {
-        contents: [{ role: "user", parts }],
-        systemInstruction: {
-            role: "system",
-            parts: generateHierarchySystemInstruction.parts,
-        },
-        generationConfig: {
-            responseMimeType: "application/json",
-        },
-    };
-
-    let jsonString: string;
-    try {
-        const result = await llmModel.generateContent(requestBody);
-        jsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    } catch (err) {
-        const error = err as { status?: number };
-        if (error.status === 503) {
-            const streamingResp = await llmModel.generateContentStream(requestBody);
-            let accumulated = "";
-            for await (const chunk of streamingResp.stream) {
-                const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                accumulated += partText;
-            }
-            jsonString = accumulated;
-        } else {
-            throw err;
-        }
-    }
-
+const parseHierarchyResponse = (jsonString: string, oldHierarchy: ContentHierarchy | null): ContentHierarchy => {
     try {
         let hierarchy: ContentHierarchy | null = null;
 
-        const responseJSON = JSON.parse(jsonString!);
+        const responseJSON = JSON.parse(jsonString);
 
         if (responseJSON.type === "new") {
             hierarchy = deduplicateHierarchy(responseJSON.fullHierarchy);
@@ -599,7 +578,7 @@ export const generateNewHierarchyFromCards = async (
                 applyActions(hierarchy);
                 hierarchy = deduplicateHierarchy(hierarchy);
             } else {
-                console.warn("[generateNewHierarchyFromCards] No oldHierarchy to modify.");
+                console.warn("[parseHierarchyResponse] No oldHierarchy to modify.");
             }
         }
 
@@ -611,6 +590,57 @@ export const generateNewHierarchyFromCards = async (
         throw err;
     }
 };
+
+/**
+ * Generates a new content hierarchy from cards using Gemini.
+ *
+ * @param oldHierarchy - Existing content hierarchy, if any (can be null).
+ * @param previousCards - Previously processed cards.
+ * @param newCards - Newly added or changed cards.
+ * @returns The new ContentHierarchy object.
+ */
+export const generateNewHierarchyFromCards = async (
+    oldHierarchy: ContentHierarchy | null,
+    previousCards: Card[],
+    newCards: Card[],
+): Promise<ContentHierarchy> => {
+    const attachments = { oldHierarchy, previousCards, newCards };
+    const parts = [{ text: JSON.stringify(attachments) }];
+
+    const requestBody: GenerateContentRequest = {
+        contents: [{ role: "user", parts }],
+        systemInstruction: {
+            role: "system",
+            parts: generateHierarchySystemInstruction.parts,
+        },
+        generationConfig: {
+            responseMimeType: "application/json",
+        },
+    };
+
+    let jsonString: string;
+    try {
+        const result = await llmModel.generateContent(requestBody);
+        jsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    } catch (err) {
+        const error = err as { status?: number };
+        if (error.status === 503) {
+            const streamingResp = await llmModel.generateContentStream(requestBody);
+            let accumulated = "";
+            for await (const chunk of streamingResp.stream) {
+                const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                accumulated += partText;
+            }
+            jsonString = accumulated;
+        } else {
+            throw err;
+        }
+    }
+
+    return parseHierarchyResponse(jsonString!, oldHierarchy);
+};
+
+
 
 
 export const writeChatPairToDb = async (
@@ -689,8 +719,6 @@ export const writeNewContentToDb = async (
              content: newContent,
              updatedAt: serverTimestamp()
         }, { merge: true });
-
-        console.log("New content written successfully to history and main document.");
     } catch (err) {
         console.error("Error writing new content to DB:", err);
         throw err;
@@ -706,7 +734,6 @@ export const getPreviousContent = async (projectId: string): Promise<string | nu
             const data = docSnap.data();
             return data.content || null;
         } else {
-            console.log("No previous content found for this project.");
             return null;
         }
     } catch (err) {

@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
+    "build:isolated": "ISOLATED_BUILD=true next build",
     "start": "next start",
     "lint": "eslint"
   },

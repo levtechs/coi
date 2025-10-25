@@ -6,7 +6,7 @@ import LoadingComponent from "./loading";
 
 type ProjectModalProps = {
     isOpen: boolean;
-    type: "input" | "confirm" | "info" | "error";
+    type: "input" | "confirm" | "info" | "error" | "empty";
     width?: string,
     message?: string;
     initialValue?: string;
@@ -15,6 +15,7 @@ type ProjectModalProps = {
     onProceed?: () => void;
     title?: string;
     placeholder?: string;
+    error?: string;
     children?: ReactNode;
 };
 
@@ -29,6 +30,7 @@ export default function Modal({
     onProceed,
     title,
     placeholder = "Enter project title",
+    error = "",
     children
 }: ProjectModalProps) {
     const [value, setValue] = useState(initialValue);
@@ -68,17 +70,18 @@ export default function Modal({
                         {isLoading ? (
                             <LoadingComponent loadingText="Submitting" small={true}/>
                         ) : (
-                            <>
-                                <input
-                                    type="text"
-                                    value={value}
-                                    onChange={(e) => setValue(e.target.value)}
-                                    className="border border-[var(--neutral-300)] rounded-md p-2 bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] transition"
-                                    placeholder={placeholder}
-                                    autoFocus
-                                />
+                             <>
+                                 <input
+                                     type="text"
+                                     value={value}
+                                     onChange={(e) => setValue(e.target.value)}
+                                     className="border border-[var(--neutral-300)] rounded-md p-2 bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] transition"
+                                     placeholder={placeholder}
+                                     autoFocus
+                                 />
+                                 {error && <p className="text-red-500 text-sm">{error}</p>}
 
-                                <div className="flex justify-end gap-2">
+                                 <div className="flex justify-end gap-2">
                                     <Button
                                         color="var(--neutral-300)"
                                         type="button"
@@ -89,16 +92,16 @@ export default function Modal({
                                     >
                                         Cancel
                                     </Button>
-                                    <Button color="var(--accent-500)" type="submit">
-                                        Save
-                                    </Button>
+                                     <Button color="var(--accent-500)" type="submit">
+                                         Submit
+                                     </Button>
                                 </div>
                             </>
                         )}
                     </form>
                 ) : (
                     <>
-                        {message && (<p className={`text-[var(${(type === "error") ? "--error" : "--foreground"})]`}>{message}</p>)}
+                        {message && (<p className={type === "error" ? "text-[var(--error)]" : "text-[var(--foreground)]"}>{message}</p>)}
                         {type === "info" ? (
                             <div className="flex flex-col">
                                 {children}
@@ -110,6 +113,20 @@ export default function Modal({
                                         onClick={onClose}
                                     >
                                         close
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : type === "empty" ? (
+                            <div className="flex flex-col">
+                                {children}
+                                <div className="flex flex-row w-[100%] gap-4 mt-4">
+                                    <Button
+                                        className="flex-1"
+                                        color="var(--neutral-300)"
+                                        type="button"
+                                        onClick={onClose}
+                                    >
+                                        Close
                                     </Button>
                                 </div>
                             </div>

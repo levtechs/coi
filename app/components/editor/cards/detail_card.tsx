@@ -5,7 +5,7 @@ import { Card } from "@/lib/types";
 import MarkdownArticle from "../../md";
 
 import { FaYoutube } from "react-icons/fa";
-import { FiEdit2, FiMoreVertical, FiTrash2 } from "react-icons/fi";
+import { FiEdit2, FiMoreVertical, FiTrash2, FiStar } from "react-icons/fi";
 import { deleteCard, updateCard } from "@/app/views/cards";
 import EditCardPopup from "./edit_card_popup";
 
@@ -16,6 +16,7 @@ type DetailCardProps = {
 };
 
 export default function DetailCard({ card, onClick, projectId }: DetailCardProps) {
+    const showMenu = !!projectId && !card.isUnlocked;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
     const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
@@ -47,6 +48,9 @@ export default function DetailCard({ card, onClick, projectId }: DetailCardProps
             className="flex items-center justify-center text-center relative border border-[var(--neutral-300)] rounded-lg p-6 bg-[var(--neutral-200)] h-24 shadow hover:shadow-md transition cursor-pointer group"
             onClick={() => onClick(card)}
         >
+            {card.isUnlocked && (
+                <FiStar className="absolute top-2 left-2 text-[var(--accent-500)] w-5 h-5" />
+            )}
             {card.url && (card.url.includes("youtube.com") || card.url.includes("youtu.be")) ? (
                 <FaYoutube className="w-6 h-6 mr-2 text-[var(--error)] flex-shrink-0" />
             ) : (
@@ -66,20 +70,22 @@ export default function DetailCard({ card, onClick, projectId }: DetailCardProps
             </h3>
 
             {/* Three Dots Icon */}
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition" ref={buttonRef}>
-                <FiMoreVertical
-                    className="text-[var(--neutral-700)] cursor-pointer hover:text-[var(--accent-500)]"
-                    size={20}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (!isMenuOpen && buttonRef.current) {
-                            const rect = buttonRef.current.getBoundingClientRect();
-                            setMenuPosition({ top: rect.bottom + window.scrollY, left: rect.right - 128 + window.scrollX });
-                        }
-                        setIsMenuOpen(!isMenuOpen);
-                    }}
-                />
-            </div>
+            {showMenu && (
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition" ref={buttonRef}>
+                    <FiMoreVertical
+                        className="text-[var(--neutral-700)] cursor-pointer hover:text-[var(--accent-500)]"
+                        size={20}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isMenuOpen && buttonRef.current) {
+                                const rect = buttonRef.current.getBoundingClientRect();
+                                setMenuPosition({ top: rect.bottom + window.scrollY, left: rect.right - 128 + window.scrollX });
+                            }
+                            setIsMenuOpen(!isMenuOpen);
+                        }}
+                    />
+                </div>
+            )}
 
         </div>
         {projectId && (

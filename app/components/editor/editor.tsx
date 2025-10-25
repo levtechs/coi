@@ -15,6 +15,7 @@ interface EditorProps {
     user: { uid: string } | null;
     addCollaborator: (projectId: string, email: string) => Promise<void>;
     setTitle: (projectId: string, newTitle: string) => Promise<void>;
+    setProject: (project: Project) => void;
 }
 
 const Editor = ({
@@ -22,6 +23,7 @@ const Editor = ({
     user,
     addCollaborator,
     setTitle,
+    setProject,
 }: EditorProps) => {
     const [tab, setTab] = useState<"content" | "cards">("content"); // "content" or "cards"
 
@@ -78,6 +80,7 @@ const Editor = ({
                                 cards={project.cards}
                                 hidden={tab !== "content"}
                                 cardFilters={cardFilters}
+                                project={project}
                                 addAttachment={(attachment: ChatAttachment) =>
                                     setChatAttachments((prev) => {
                                         // Start with empty array if null

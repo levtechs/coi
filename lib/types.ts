@@ -1,22 +1,19 @@
 import { Timestamp } from "firebase/firestore";
 
+// General 
+
 export type Project = {
     id: string;
     title: string;
     ownerId: string;
     collaborators: string[]; // emails
     sharedWith: string[]; // ids
-    cards: Card[]; 
+    cards: Card[];
     hierarchy: ContentHierarchy;
-    quizIds?: string[]; // ids of quizzes 
+    quizIds?: string[]; // ids of quizzes
+    courseLesson?: CourseLesson; // if project is part of a courseLesson
+    courseId?: string; // if project is part of a course
 };
-
-export interface Message {
-    id?: string
-    content: string; //markdown
-    attachments?: null | ChatAttachment[];
-    isResponse: boolean;
-}
 
 export interface User {
     id: string
@@ -26,13 +23,29 @@ export interface User {
     dailyActions?: number;
     weeklyActions?: number;
     projectIds?: string[];
+    starUser?: boolean;
 }
 
-export interface PostCardPayload {
-    title: string;
-    details?: string[];
-    exclude?: boolean;
+// Chat
+
+export interface Message {
+    id?: string
+    content: string; //markdown
+    attachments?: null | ChatAttachment[];
+    isResponse: boolean;
 }
+
+export type ChatAttachment = Card | ContentNode | ContentHierarchy | GroundingChunk;
+export type StreamPhase = "starting" | "streaming" | "processing" | "generating content" | "generating cards";
+
+export interface GroundingChunk {
+    web: {
+        uri: string;
+        title: string;
+    };
+}
+
+// Cards 
 
 export interface Card {
     id: string;
@@ -42,7 +55,14 @@ export interface Card {
     refImageUrls?: string[];
     iconUrl?: string;
     exclude?: boolean;
+    isUnlocked?: boolean;
 }
+
+export type NewCard = Omit<Card, "id">;
+
+export type CardFilter = "00" | "01" | "10" | "11";
+
+// Content 
 
 export interface ContentHierarchy {
     title: string;
@@ -54,7 +74,19 @@ export type ContentNode =
     | { type: "card"; cardId: string }
     | { type: "subcontent"; content: ContentHierarchy };
 
-export type ChatAttachment = Card | ContentNode | ContentHierarchy | GroundingChunk;
+// Invites
+
+export interface Invite {
+    id?: string;
+    token: string;
+    projectId?: string;
+    courseId?: string;
+    createdBy: string;
+    createdAt: string;
+    acceptedBy: string[];
+}
+
+// Quiz 
 
 export type QuizQuestion = {
     type: "MCQ";
@@ -87,13 +119,30 @@ export interface QuizSettings {
     includeFRQ: boolean;
 }
 
-export type StreamPhase = "starting" | "streaming" | "processing" | "generating content" | "generating cards";
+// Course
 
-export interface GroundingChunk {
-    web: {
-        uri: string;
-        title: string;
-    };
+export interface Course {
+    id: string;
+    title: string;
+    description?: string;
+    lessons: CourseLesson[];
+    quizIds?: string[];
+    public?: boolean;
+    sharedWith?: string[]; // ids
+    category?: string;
+    ownerId?: string;
 }
 
-export type CardFilter = "00" | "01" | "10" | "11";
+export interface CourseLesson {
+    id: string;
+    courseId: string;
+    index: number;
+    title: string;
+    description: string;
+    content: string;
+    cardsToUnlock: Card[];
+    quizIds?: string[];
+}
+
+export type NewLesson = Omit<CourseLesson, "id" | "courseId" | "cardsToUnlock"> & { cardsToUnlock: NewCard[]; content: string };
+export type NewCourse = Omit<Course, "id" | "lessons"> & { lessons: NewLesson[] };

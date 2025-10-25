@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 
 import Link from "next/link";
-import { FiHome } from "react-icons/fi";
+import { FiHome, FiStar } from "react-icons/fi";
 
 import LoadingComponent from "../loading";
 import Error from "../error";
@@ -51,12 +51,20 @@ const ProfilePage = ({ userId }: ProfilePageProps) => {
 
     return (
         <div className="max-w-md mx-auto mt-8 p-6 bg-[var(--neutral-100)] rounded-xl shadow-md">
-            <Link href="/dashboard">
-                <FiHome
-                    size={32}
-                    className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
-                />
-            </Link>
+            <div className="flex justify-between items-center">
+                <Link href="/dashboard">
+                    <FiHome
+                        size={32}
+                        className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
+                    />
+                </Link>
+                {user.starUser && (
+                    <FiStar
+                        size={32}
+                        className="text-yellow-500"
+                    />
+                )}
+            </div>
             <hr className="border-2 border-[var(--neutral-200)] mt-4 mb-4" />
             <h2 className="text-2xl font-bold mb-2">{user.displayName}</h2>
             <p className="text-sm text-[var(--neutral-700)] mb-4">{user.email}</p>
