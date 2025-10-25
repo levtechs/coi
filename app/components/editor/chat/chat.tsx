@@ -58,7 +58,10 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, set
     // NEW: Scroll to the bottom when the chat is opened or mounted
     useEffect(() => {
         if (chatToggled && messagesEndRef.current) {
-            messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+            messagesEndRef.current.scrollTo({
+                top: messagesEndRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
         }
     }, [chatToggled, messages]);
 
