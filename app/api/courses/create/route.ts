@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { getVerifiedUid } from "../../helpers";
+import { getUserById } from "../../users/helpers";
 import { Course, CourseLesson, Card, NewCourse } from "@/lib/types";
 import { collection, addDoc } from "firebase/firestore";
 import { createCourseFromText, createLessonFromText } from "./helpers";
@@ -14,6 +15,11 @@ export async function POST(req: NextRequest) {
     const uid = await getVerifiedUid(req);
     if (!uid) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await getUserById(uid);
+    if (!user || !user.starUser) {
+        return NextResponse.json({ error: "Star user required" }, { status: 403 });
     }
 
     try {
@@ -95,6 +101,11 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const user = await getUserById(uid);
+    if (!user || !user.starUser) {
+        return NextResponse.json({ error: "Star user required" }, { status: 403 });
+    }
+
     try {
         const { text }: { text: string } = await req.json();
         console.log("PUT /api/courses/create: Received text, length:", text.length);
@@ -152,6 +163,11 @@ export async function PATCH(req: NextRequest) {
     if (!uid) {
         console.log("PATCH /api/courses/create: Unauthorized - no uid");
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await getUserById(uid);
+    if (!user || !user.starUser) {
+        return NextResponse.json({ error: "Star user required" }, { status: 403 });
     }
 
     try {

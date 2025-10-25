@@ -20,6 +20,7 @@ export async function getUserById(userId: string): Promise<User | null> {
             dailyActions: data.dailyActions,
             weeklyActions: data.weeklyActions,
             projectIds: data.projectIds,
+            starUser: data.starUser || false,
         };
 
         return user;

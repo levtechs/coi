@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -11,11 +11,20 @@ import { useSearchParams } from "next/navigation";
 import Button from "../components/button";
 import CoursesDashboard from "../components/courses/dashboard";
 import CreateCourse from "../components/courses/create/create_course";
+import { getUserFromId } from "../views/users";
+import { User } from "@/lib/types";
 
 function CoursesPageContent() {
     const { user, loading } = useAuth();
     const searchParams = useSearchParams();
     const isCreateMode = searchParams.get('new') === 'true' || searchParams.has('new') || searchParams.has('edit');
+    const [userData, setUserData] = useState<User | null>(null);
+
+    useEffect(() => {
+        if (user) {
+            getUserFromId(user.uid).then(setUserData);
+        }
+    }, [user]);
 
     if (loading) {
         return (
@@ -49,12 +58,12 @@ function CoursesPageContent() {
                               {isCreateMode ? (searchParams.has('edit') ? 'Edit Course' : 'Create Course') : 'Courses'}
                           </h1>
                      </div>
-                     <div className="flex flex-row gap-4 items-center">
-                          {!isCreateMode && (
-                              <Button color="var(--accent-500)" onClick={() => window.location.href = '/courses?new'}>
-                                  Create Course
-                              </Button>
-                          )}
+                      <div className="flex flex-row gap-4 items-center">
+                           {!isCreateMode && userData?.starUser && (
+                               <Button color="var(--accent-500)" onClick={() => window.location.href = '/courses?new'}>
+                                   Create Course
+                               </Button>
+                           )}
                           <Button color="var(--error)" onClick={() => signOut(auth)}>
                               <FiLogOut className="h-[25px] w-[25px]" />
                           </Button>
