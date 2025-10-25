@@ -105,14 +105,18 @@ export default function LessonDetailPage() {
                              Back to Course
                          </Button>
                      </div>
-                     <div className="flex flex-row gap-4 items-center">
-                         <Button color="var(--error)" onClick={() => signOut(auth)}>
-                             <FiLogOut className="h-[25px] w-[25px]" />
-                         </Button>
-                         <Button color="var(--accent-400)" onClick={() => window.location.href = "/profile"}>
-                             <FiUser className="h-[25px] w-[25px]" />
-                         </Button>
-                     </div>
+                        <div className="flex flex-row gap-4 items-center">
+                            <FiUser
+                                title="Profile"
+                                className="h-[25px] w-[25px] text-[var(--accent-400)] hover:text-[var(--accent-500)] cursor-pointer"
+                                onClick={() => window.location.href = "/profile"}
+                            />
+                            <FiLogOut
+                                title="Logout"
+                                className="h-[25px] w-[25px] text-[var(--error)] hover:text-[var(--error)] cursor-pointer"
+                                onClick={() => signOut(auth)}
+                            />
+                        </div>
                  </div>
 
                  <hr />

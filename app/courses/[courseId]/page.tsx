@@ -147,14 +147,18 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
                              Back to Courses
                          </Button>
                      </div>
-                      <div className="flex flex-row gap-4 items-center">
-                          <Button color="var(--error)" onClick={() => signOut(auth)}>
-                              <FiLogOut className="h-[25px] w-[25px]" />
-                          </Button>
-                          <Button color="var(--accent-400)" onClick={() => window.location.href = "/profile"}>
-                              <FiUser className="h-[25px] w-[25px]" />
-                          </Button>
-                      </div>
+                        <div className="flex flex-row gap-4 items-center">
+                            <FiUser
+                                title="Profile"
+                                className="h-[25px] w-[25px] text-[var(--accent-400)] hover:text-[var(--accent-500)] cursor-pointer"
+                                onClick={() => window.location.href = "/profile"}
+                            />
+                            <FiLogOut
+                                title="Logout"
+                                className="h-[25px] w-[25px] text-[var(--error)] hover:text-[var(--error)] cursor-pointer"
+                                onClick={() => signOut(auth)}
+                            />
+                        </div>
                  </div>
 
                  <hr />
@@ -201,50 +205,55 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
                       )}
                   </div>
 
-                     <div className="mt-8 flex justify-center gap-4">
-                        <FiArrowLeft
+                      <div className="mt-8 flex justify-center gap-4">
+                         <FiArrowLeft
+                             title="Back to Courses"
+                             size={32}
+                             className="text-[var(--neutral-600)] hover:text-[var(--neutral-700)] cursor-pointer"
+                             onClick={() => window.location.href = '/courses'}
+                         />
+                         <FiShare
+                            title="Share Course"
                             size={32}
-                            className="text-[var(--neutral-600)] hover:text-[var(--neutral-700)] cursor-pointer"
-                            onClick={() => window.location.href = '/courses'}
+                            className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
+                            onClick={() => {
+                                if (course?.public) {
+                                    setPanelTitle("Share Course");
+                                    setPanelMessage("Share this public course:");
+                                    setPanelUrl(`${window.location.origin}/courses/${courseId}`);
+                                    setShowLinkPanel(true);
+                                } else if (isOwner) {
+                                    setShowInvitePanel(true);
+                                } else {
+                                    alert("Only the owner can share this private course.");
+                                }
+                            }}
                         />
-                        <FiShare
-                           size={32}
-                           className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
-                           onClick={() => {
-                               if (course?.public) {
-                                   setPanelTitle("Share Course");
-                                   setPanelMessage("Share this public course:");
-                                   setPanelUrl(`${window.location.origin}/courses/${courseId}`);
-                                   setShowLinkPanel(true);
-                               } else if (isOwner) {
-                                   setShowInvitePanel(true);
-                               } else {
-                                   alert("Only the owner can share this private course.");
-                               }
-                           }}
-                       />
-                       {nextLesson && (
-                           <FiPlay
-                               size={32}
-                               className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
-                               onClick={() => window.location.href = `/courses/${courseId}/${nextLesson.index}`}
-                           />
-                       )}
-                       {isOwner && (
-                           <>
-                               <FiSettings
-                                   size={32}
-                                   className="text-[var(--neutral-600)] hover:text-[var(--neutral-700)] cursor-pointer"
-                                   onClick={() => window.location.href = `/courses?edit=${course.id}`}
-                               />
-                               <FiBarChart
-                                   size={32}
-                                   className="text-[var(--neutral-600)] hover:text-[var(--neutral-700)] cursor-pointer"
-                                   onClick={() => window.location.href = `/courses/${courseId}?analytics`}
-                               />
-                           </>
-                       )}
-                   </div>
+                        {nextLesson && (
+                            <FiPlay
+                                title="Continue"
+                                size={32}
+                                className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
+                                onClick={() => window.location.href = `/courses/${courseId}/${nextLesson.index}`}
+                            />
+                        )}
+                        {isOwner && (
+                            <>
+                                <FiSettings
+                                    title="Edit Course"
+                                    size={32}
+                                    className="text-[var(--neutral-600)] hover:text-[var(--neutral-700)] cursor-pointer"
+                                    onClick={() => window.location.href = `/courses?edit=${course.id}`}
+                                />
+                                <FiBarChart
+                                    title="Analytics"
+                                    size={32}
+                                    className="text-[var(--neutral-600)] hover:text-[var(--neutral-700)] cursor-pointer"
+                                    onClick={() => window.location.href = `/courses/${courseId}?analytics`}
+                                />
+                            </>
+                        )}
+                    </div>
              </div>
 
              {showInvitePanel && (
