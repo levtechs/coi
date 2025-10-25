@@ -1,4 +1,4 @@
-import { Course, CourseLesson, NewCard, NewCourse, NewLesson } from "@/lib/types";
+import { Course, CourseLesson, NewCard, NewCourse, NewLesson, QuizSettings } from "@/lib/types";
 import { llmModel, limitedGeneralConfig } from "@/app/api/gemini/config";
 import { SchemaType, ObjectSchema } from "@google/generative-ai";
 import {
@@ -9,6 +9,7 @@ import {
     createCourseStructurePrompt,
     createLessonContentPrompt
 } from "./prompts";
+import { createQuizFromCards, writeQuizToDb } from "../../quiz/helpers";
 
 const fullLessonSchema: ObjectSchema = {
     type: SchemaType.OBJECT,
@@ -76,7 +77,7 @@ const lessonContentSchema: ObjectSchema = {
     required: ["content", "cards"]
 };
 
-export const createCourseFromText = async (text: string, enqueue?: (data: string) => void): Promise<NewCourse> => {
+export const createCourseFromText = async (text: string, enqueue?: (data: string) => void, lessonQuizSettings?: QuizSettings): Promise<NewCourse> => {
     enqueue?.(JSON.stringify({ type: "status", message: "Analyzing input text and creating course structure..." }));
 
     const prompt = createCourseStructurePrompt(text);
@@ -202,6 +203,16 @@ export const createCourseFromText = async (text: string, enqueue?: (data: string
                 cardsToUnlock: cards,
                 quizIds: []
             };
+
+            // Generate quiz for lesson if lessonQuizSettings provided
+            if (lessonQuizSettings) {
+                enqueue?.(JSON.stringify({ type: "status", message: `Generating quiz for lesson ${i + 1}...` }));
+                const quizJson = await createQuizFromCards(cards, lessonQuizSettings);
+                if (quizJson) {
+                    const quizId = await writeQuizToDb(quizJson);
+                    lesson.quizIds = [quizId];
+                }
+            }
 
             lessons.push(lesson);
             enqueue?.(JSON.stringify({ type: "lesson_complete", lessonNumber: i + 1, lesson, cardCount: lesson.cardsToUnlock.length }));

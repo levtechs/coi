@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FiChevronDown, FiChevronRight, FiLoader } from "react-icons/fi";
 import Button from "../../button";
 
@@ -56,6 +56,22 @@ export default function LessonComponent({
     const [lessonQuizzes, setLessonQuizzes] = useState<{id?: string, status: 'creating' | 'created', title?: string}[]>(lesson.quizIds?.map(id => ({id, status: 'created'})) || []);
     const [isCreatingQuiz, setIsCreatingQuiz] = useState<boolean | string>(false);
     const [quizError, setQuizError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (lesson.quizIds && lesson.quizIds.length > 0) {
+            Promise.all(lesson.quizIds.map(id => getQuiz(id))).then(quizzes => {
+                setLessonQuizzes(quizzes.map((quiz, index) => ({
+                    id: lesson.quizIds![index],
+                    status: 'created' as const,
+                    title: quiz?.title
+                })));
+            }).catch(error => {
+                console.error('Error fetching quiz titles:', error);
+            });
+        } else {
+            setLessonQuizzes([]);
+        }
+    }, [lesson.quizIds]);
     return (
         <div
             className={`mb-6 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] p-3`}>
@@ -337,6 +353,7 @@ export default function LessonComponent({
                     }
                 }}
                 isGenerating={isGeneratingLesson}
+                mode="lesson"
             />
         </div>
     );
