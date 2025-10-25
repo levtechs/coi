@@ -3,7 +3,7 @@ import { db } from "@/lib/firebase";
 import { getVerifiedUid } from "../../helpers";
 import { getUserById } from "../../users/helpers";
 import { Course, CourseLesson, Card, NewCourse, QuizSettings } from "@/lib/types";
-import { collection, addDoc, writeBatch, doc, getDoc } from "firebase/firestore";
+import { collection, addDoc, writeBatch, doc } from "firebase/firestore";
 import { createCourseFromText, createLessonFromText } from "./helpers";
 import { createQuizFromCards, writeQuizToDb } from "../../quiz/helpers";
 
@@ -145,11 +145,8 @@ export async function PUT(req: NextRequest) {
                         if (quizJson) {
                             const quizId = await writeQuizToDb(quizJson);
                             courseData.quizIds = [quizId];
-                            // Fetch the quiz to include in response
-                            const quizDoc = await getDoc(doc(db, "quizzes", quizId));
-                            if (quizDoc.exists()) {
-                                courseQuizzes.push({ id: quizId, ...quizDoc.data() });
-                            }
+                            // Add quiz to response without re-fetching to avoid an extra DB read.
+                            courseQuizzes.push({ id: quizId, ...(quizJson as object) });
                             console.log("PUT /api/courses/create: Course quiz generated with ID:", quizId);
                         } else {
                             console.warn("PUT /api/courses/create: Failed to generate course quiz");
