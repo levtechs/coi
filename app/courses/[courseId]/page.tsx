@@ -5,7 +5,7 @@ import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import LoginPrompt from "../../components/login_prompt";
 import LessonCard from "@/app/components/courses/lesson_card" 
-import { FiHome, FiLogOut, FiUser, FiCopy, FiPlay, FiSettings, FiShare, FiBarChart } from "react-icons/fi";
+import { FiHome, FiLogOut, FiUser, FiCopy, FiPlay, FiSettings, FiShare, FiBarChart, FiArrowLeft } from "react-icons/fi";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
@@ -201,8 +201,13 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
                       )}
                   </div>
 
-                    <div className="mt-8 flex justify-center gap-4">
-                       <FiShare
+                     <div className="mt-8 flex justify-center gap-4">
+                        <FiArrowLeft
+                            size={32}
+                            className="text-[var(--neutral-600)] hover:text-[var(--neutral-700)] cursor-pointer"
+                            onClick={() => window.location.href = '/courses'}
+                        />
+                        <FiShare
                            size={32}
                            className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
                            onClick={() => {

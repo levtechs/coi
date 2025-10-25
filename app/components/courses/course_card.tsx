@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { FiLock, FiMoreVertical, FiEdit2, FiTrash2 } from "react-icons/fi";
+import { FiLock, FiMoreVertical, FiEdit2, FiTrash2, FiBarChart } from "react-icons/fi";
 import { Course } from "@/lib/types";
 import { deleteCourse } from "@/app/views/courses";
 import { useAuth } from "@/lib/AuthContext";
@@ -114,17 +114,26 @@ const MenuDropdown = ({
             ref={menuRef}
             onClick={(e) => e.stopPropagation()}
         >
-            <div
-                className="flex items-center gap-2 px-4 py-2 text-[var(--neutral-800)] hover:bg-[var(--neutral-200)] cursor-pointer"
-                onClick={() => {
-                    onClose();
-                    window.location.assign(`/courses?edit=${course.id}`);
-                }}
-            >
-                <FiEdit2 size={16} /> Edit
-            </div>
-            <div
-                className="flex items-center gap-2 px-4 py-2 text-red-500 hover:bg-[var(--neutral-200)] cursor-pointer"
+             <div
+                 className="flex items-center gap-2 px-4 py-2 text-[var(--neutral-800)] hover:bg-[var(--neutral-200)] cursor-pointer"
+                 onClick={() => {
+                     onClose();
+                     window.location.assign(`/courses?edit=${course.id}`);
+                 }}
+             >
+                 <FiEdit2 size={16} /> Edit
+             </div>
+             <div
+                 className="flex items-center gap-2 px-4 py-2 text-[var(--neutral-800)] hover:bg-[var(--neutral-200)] cursor-pointer"
+                 onClick={() => {
+                     onClose();
+                     window.location.assign(`/courses/${course.id}?analytics`);
+                 }}
+             >
+                 <FiBarChart size={16} /> Analytics
+             </div>
+             <div
+                 className="flex items-center gap-2 px-4 py-2 text-red-500 hover:bg-[var(--neutral-200)] cursor-pointer"
                 onClick={async () => {
                     onClose();
                     if (confirm("Are you sure you want to delete this course?")) {

@@ -20,7 +20,8 @@ export async function GET(req: NextRequest, context: { params: Promise<{ userId:
         const basicUser = {
             id: user.id,
             email: user.email,
-            displayName: user.displayName
+            displayName: user.displayName,
+            starUser: user.starUser
         };
 
         return NextResponse.json(basicUser);

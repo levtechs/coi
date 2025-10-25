@@ -7,15 +7,17 @@ import Dashboard from "@/app/components/dashboard/dashboard";
 import Button from "@/app/components/button";
 import MaintenencePage from "@/app/components/maintenence";
 import LoginPrompt from "../components/login_prompt";
-import { FiLogOut, FiUser } from "react-icons/fi";
+import { FiLogOut, FiUser, FiStar } from "react-icons/fi";
 import { FaPaintbrush } from "react-icons/fa6";
 import { useEffect, useState } from "react";
 import { useTheme } from "@/lib/ThemeContext";
+import StarModal from "./star_modal";
 
 export default function DashboardPage() {
     const { user, loading } = useAuth();
     const { setTheme } = useTheme();
     const [showThemeMenu, setShowThemeMenu] = useState(false);
+    const [starModalVisible, setStarModalVisible] = useState(false);
 
     useEffect(() => {
         document.title = "Dashboard - coi";
@@ -59,16 +61,23 @@ export default function DashboardPage() {
                         <Button color="var(--neutral-300)" onClick={() => window.location.href = "/courses"}>
                             Courses
                         </Button>
-                        <Button color="var(--error)" onClick={() => signOut(auth)}>
-                            <FiLogOut className="h-[25px] w-[25px]"/>
-                        </Button>
-                        <Button color="var(--accent-400)" onClick={() => window.location.href = "/profile"}>
-                            <FiUser className="h-[25px] w-[25px]"/>
-                        </Button>
+                        <FiLogOut
+                            className="h-[25px] w-[25px] text-[var(--error)] hover:text-[var(--error)] cursor-pointer"
+                            onClick={() => signOut(auth)}
+                        />
+                        <FiUser
+                            className="h-[25px] w-[25px] text-[var(--accent-400)] hover:text-[var(--accent-500)] cursor-pointer"
+                            onClick={() => window.location.href = "/profile"}
+                        />
+                        <FiStar
+                            className="h-[25px] w-[25px] text-[var(--neutral-600)] hover:text-[var(--neutral-700)] cursor-pointer"
+                            onClick={() => setStarModalVisible(true)}
+                        />
                         <div className="relative">
-                            <Button color="var(--neutral-400)" onClick={() => setShowThemeMenu(!showThemeMenu)}>
-                                <FaPaintbrush className="h-[25px] w-[25px]"/>
-                            </Button>
+                            <FaPaintbrush
+                                className="h-[25px] w-[25px] text-[var(--neutral-600)] hover:text-[var(--neutral-700)] cursor-pointer"
+                                onClick={() => setShowThemeMenu(!showThemeMenu)}
+                            />
                             {showThemeMenu && (
                                 <div className="absolute right-0 mt-2 w-32 bg-[var(--neutral-100)] border border-[var(--neutral-300)] rounded shadow-lg z-10">
                                     {["light", "dark", "device", "pink"].map((t) => (
@@ -86,10 +95,15 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                 <hr/>
+                  <hr/>
 
-                 <Dashboard user={user} />
+                  <Dashboard user={user} />
             </div>
+
+            <StarModal
+                isOpen={starModalVisible}
+                onClose={() => setStarModalVisible(false)}
+            />
         </div>
     );
 }

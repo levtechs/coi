@@ -10,7 +10,7 @@ import ProjectCard from "../../dashboard/project_card";
 import Modal from "../../modal";
 import DetailCard from "../../editor/cards/detail_card";
 import CardPopup from "../../editor/cards/card_popup";
-import { FiPlay, FiRefreshCw } from "react-icons/fi";
+import { FiPlay, FiRefreshCw, FiArrowLeft } from "react-icons/fi";
 
 interface LessonPageProps {
     lesson: CourseLesson;
@@ -177,36 +177,48 @@ const LessonPage = ({ lesson, courseId, lessonIdx, projects }: LessonPageProps) 
                  </div>
              )}
 
-               <div className="flex justify-center gap-4">
-                  {projects.length === 0 ? (
-                      <FiPlay
-                          size={32}
-                          className={`text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer ${isTakingLesson ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          onClick={handleTakeLesson}
-                      />
-                  ) : (() => {
-                     const progressPercent = typeof lessonProgress === 'string'
-                         ? parseInt(lessonProgress.replace('%', ''))
-                         : lessonProgress || 0;
+                <div className="flex justify-center gap-4">
+                   {projects.length === 0 ? (
+                       <>
+                           <FiArrowLeft
+                               size={32}
+                               className="text-[var(--neutral-600)] hover:text-[var(--neutral-700)] cursor-pointer"
+                               onClick={() => window.location.href = `/courses/${courseId}`}
+                           />
+                           <FiPlay
+                               size={32}
+                               className={`text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer ${isTakingLesson ? 'opacity-50 cursor-not-allowed' : ''}`}
+                               onClick={handleTakeLesson}
+                           />
+                       </>
+                   ) : (() => {
+                      const progressPercent = typeof lessonProgress === 'string'
+                          ? parseInt(lessonProgress.replace('%', ''))
+                          : lessonProgress || 0;
 
-                      if (progressPercent < 100) {
-                          return (
-                              <>
-                                  <FiPlay
-                                      size={32}
-                                      className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
-                                      onClick={() => window.location.href = `/projects/${projects[0].id}`}
-                                  />
-                                  <FiRefreshCw
-                                      size={32}
-                                      className={`text-[var(--neutral-600)] hover:text-[var(--neutral-700)] cursor-pointer ${isTakingLesson ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                      onClick={handleStartOver}
-                                  />
-                              </>
-                          );
-                      }
-                 })()}
-             </div>
+                       if (progressPercent < 100) {
+                           return (
+                               <>
+                                   <FiArrowLeft
+                                       size={32}
+                                       className="text-[var(--neutral-600)] hover:text-[var(--neutral-700)] cursor-pointer"
+                                       onClick={() => window.location.href = `/courses/${courseId}`}
+                                   />
+                                   <FiPlay
+                                       size={32}
+                                       className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
+                                       onClick={() => window.location.href = `/projects/${projects[0].id}`}
+                                   />
+                                   <FiRefreshCw
+                                       size={32}
+                                       className={`text-[var(--neutral-600)] hover:text-[var(--neutral-700)] cursor-pointer ${isTakingLesson ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                       onClick={handleStartOver}
+                                   />
+                               </>
+                           );
+                       }
+                  })()}
+              </div>
 
             <Modal
                 isOpen={showConfirmModal}

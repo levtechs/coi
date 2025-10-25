@@ -23,6 +23,7 @@ export interface User {
     dailyActions?: number;
     weeklyActions?: number;
     projectIds?: string[];
+    starUser?: boolean;
 }
 
 // Chat

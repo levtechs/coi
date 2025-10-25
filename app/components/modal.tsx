@@ -15,6 +15,7 @@ type ProjectModalProps = {
     onProceed?: () => void;
     title?: string;
     placeholder?: string;
+    error?: string;
     children?: ReactNode;
 };
 
@@ -29,6 +30,7 @@ export default function Modal({
     onProceed,
     title,
     placeholder = "Enter project title",
+    error = "",
     children
 }: ProjectModalProps) {
     const [value, setValue] = useState(initialValue);
@@ -68,17 +70,18 @@ export default function Modal({
                         {isLoading ? (
                             <LoadingComponent loadingText="Submitting" small={true}/>
                         ) : (
-                            <>
-                                <input
-                                    type="text"
-                                    value={value}
-                                    onChange={(e) => setValue(e.target.value)}
-                                    className="border border-[var(--neutral-300)] rounded-md p-2 bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] transition"
-                                    placeholder={placeholder}
-                                    autoFocus
-                                />
+                             <>
+                                 <input
+                                     type="text"
+                                     value={value}
+                                     onChange={(e) => setValue(e.target.value)}
+                                     className="border border-[var(--neutral-300)] rounded-md p-2 bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] transition"
+                                     placeholder={placeholder}
+                                     autoFocus
+                                 />
+                                 {error && <p className="text-red-500 text-sm">{error}</p>}
 
-                                <div className="flex justify-end gap-2">
+                                 <div className="flex justify-end gap-2">
                                     <Button
                                         color="var(--neutral-300)"
                                         type="button"
@@ -89,9 +92,9 @@ export default function Modal({
                                     >
                                         Cancel
                                     </Button>
-                                    <Button color="var(--accent-500)" type="submit">
-                                        Save
-                                    </Button>
+                                     <Button color="var(--accent-500)" type="submit">
+                                         Submit
+                                     </Button>
                                 </div>
                             </>
                         )}

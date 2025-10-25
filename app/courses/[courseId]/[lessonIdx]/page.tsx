@@ -118,9 +118,9 @@ export default function LessonDetailPage() {
                  <hr />
 
                  <div className="mt-8">
-                     <h1 className="text-3xl font-extrabold text-[var(--foreground)] mb-4">
-                         {lesson.title}
-                     </h1>
+                      <h1 className="text-3xl font-extrabold text-[var(--foreground)] mb-4">
+                          Lesson {lessonIdx + 1}: {lesson.title}
+                      </h1>
                       <LessonPage lesson={lesson} courseId={courseId} lessonIdx={lessonIdx} projects={projects} />
                  </div>
             </div>
