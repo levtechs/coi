@@ -260,7 +260,7 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
                         )}
                     </div>
 
-                    <CommentSection courseId={courseId} />
+                    <CommentSection courseId={courseId} isCourseOwner={isOwner} />
               </div>
 
              {showInvitePanel && (
