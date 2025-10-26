@@ -16,13 +16,13 @@ type EditCardPopupProps = {
 export default function EditCardPopup({ onSubmit, onCancel, card }: EditCardPopupProps) {
     const [title, setTitle] = useState(card?.title || "");
     const [details, setDetails] = useState<string[]>(card?.details && card.details.length > 0 ? card.details : [""]);
-    const [exclude, setExclude] = useState(card?.exclude ?? true);
+    const [exclude, setExclude] = useState(card?.exclude ?? false);
 
     useEffect(() => {
         if (card) {
             setTitle(card.title);
             setDetails(card.details && card.details.length > 0 ? card.details : [""]);
-            setExclude(card.exclude ?? true);
+            setExclude(card.exclude ?? false);
         }
     }, [card]);
 
