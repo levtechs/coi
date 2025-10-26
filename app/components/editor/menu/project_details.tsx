@@ -81,8 +81,8 @@ const ProjectDetailsPanel = ({ project, quizzes }: ProjectDetailsPanelProps) => 
                     {lessonQuizzes.length > 0 && (
                         <div className="mt-2">
                             <p className="text-sm font-semibold">Lesson Quiz:</p>
-                            {lessonQuizzes.map((quiz) => (
-                                <a key={quiz.id} className="underline text-sm font-bold mr-2" href={`/quiz/${quiz.id}`} target="_blank" rel="noopener noreferrer">
+                            {lessonQuizzes.map((quiz, index) => (
+                                <a key={quiz.id || index} className="underline text-sm font-bold mr-2" href={`/quiz/${quiz.id}`} target="_blank" rel="noopener noreferrer">
                                     {quiz.title}
                                 </a>
                             ))}
@@ -90,51 +90,7 @@ const ProjectDetailsPanel = ({ project, quizzes }: ProjectDetailsPanelProps) => 
                     )}
                 </div>
             )}
-            <h2 className="text-xl mb-2 font-bold">
-                Available quizzes:
-            </h2>
-            <div className="text-md flex flex-col gap-1 mb-4">
-                {project.quizIds && project.quizIds.length > 0 ? (
-                    <>
-                        {quizzes ? (
-                            <>
-                                {quizzes.map((quiz: Quiz) => {
-                                    let date: Date | null = null;
-                                    if (quiz.createdAt) {
-                                        if (typeof quiz.createdAt === 'string') {
-                                            date = new Date(quiz.createdAt);
-                                        } else if (quiz.createdAt instanceof Timestamp) {
-                                            date = quiz.createdAt.toDate();
-                                        }
-                                    }
-                                    if (!quiz.id) return (
-                                        <div key={quiz.title} className="flex flex-col">
-                                            <p>{quiz.title}</p>
-                                            {date && <p className="italic text-[var(--neutral-500)]">created {timeAgo(date)}</p>}
-                                        </div>
-                                    )
-                                    return (
-                                        <div key={quiz.id} className="flex flex-col">
-                                            <a className="underline" href={`/quiz/${quiz.id}`} target="_blank" rel="noopener noreferrer">
-                                                {quiz.title.length > 45 ? quiz.title.slice(0, 45) + "..." : quiz.title}
-                                            </a>
-                                            {date && <p className="italic text-[var(--neutral-500)]">created {timeAgo(date)}</p>}
-                                        </div>
-                                    )
-                                })}
-                            </>
-                        ) : (
-                            <>
-                            {project.quizIds?.map((id: string) => {
-                                return (<a key={id} className="underline" href={`/quiz/${id}`} target="_blank" rel="noopener noreferrer">{id}</a>)
-                            })}
-                            </>
-                        )}
-                    </>
-                ) : (
-                    <p className="italic">No quizzes found.</p>
-                )}
-            </div>
+
             {project.collaborators.length > 0 && (
                 <>
                 <h2 className="text-xl mb-2 mt-2 font-bold">

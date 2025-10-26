@@ -9,6 +9,7 @@ export interface ModalContents {
     message?: string;
     onSubmit?: (input: string) => void;
     onProceed?: () => void;
+    onClose?: () => void;
     title?: string;
     initialValue?: string;
     placeholder?: string;
