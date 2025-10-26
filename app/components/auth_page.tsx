@@ -97,49 +97,49 @@ export default function AuthPage({ signUpDefault, forward}: AuthPageParams) {
 
     return (
         <div className="flex flex-col items-center justify-center h-screen bg-[var(--background)] text-[var(--foreground)]">
-            <form 
-                onSubmit={handleSubmit} 
+            <form
+                onSubmit={handleSubmit}
                 className="flex flex-col space-y-3 w-72"
             >
-                <input
-                    type="email"
-                    placeholder="Email"
-                    className="border border-[var(--neutral-300)] rounded-md p-2 focus:outline-none focus:border-[var(--accent-500)] bg-[var(--background)] text-[var(--foreground)]"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                />
-                {isSignup && (
-                    <input
-                        type="text"
-                        placeholder="Display name"
-                        className="border border-[var(--neutral-300)] rounded-md p-2 focus:outline-none focus:border-[var(--accent-500)] bg-[var(--background)] text-[var(--foreground)]"
-                        value={dn}
-                        onChange={(e) => setDN(e.target.value)}
-                    />
-                )}
-                <input
-                    type="password"
-                    placeholder="Password"
-                    className="border border-[var(--neutral-300)] rounded-md p-2 focus:outline-none focus:border-[var(--accent-500)] bg-[var(--background)] text-[var(--foreground)]"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                />
+                        <input
+                            type="email"
+                            placeholder="Email"
+                            className="border border-[var(--neutral-300)] rounded-md p-2 focus:outline-none focus:border-[var(--accent-500)] bg-[var(--background)] text-[var(--foreground)]"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
+                        {isSignup && (
+                            <input
+                                type="text"
+                                placeholder="Display name"
+                                className="border border-[var(--neutral-300)] rounded-md p-2 focus:outline-none focus:border-[var(--accent-500)] bg-[var(--background)] text-[var(--foreground)]"
+                                value={dn}
+                                onChange={(e) => setDN(e.target.value)}
+                            />
+                        )}
+                        <input
+                            type="password"
+                            placeholder="Password"
+                            className="border border-[var(--neutral-300)] rounded-md p-2 focus:outline-none focus:border-[var(--accent-500)] bg-[var(--background)] text-[var(--foreground)]"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
 
-                <Button type="submit" color="var(--accent-500)">
-                    {isSignup ? "Sign Up" : "Login"}
-                </Button>
-            </form>
+                        <Button type="submit" color="var(--accent-500)">
+                            {isSignup ? "Sign Up" : "Login"}
+                        </Button>
+                    </form>
 
-            {errorMessage && (
-                <p className="text-[var(--error)] mt-2 text-center">{errorMessage}</p>
-            )}
+                    {errorMessage && (
+                        <p className="text-[var(--error)] mt-2 text-center">{errorMessage}</p>
+                    )}
 
-            <button
-                onClick={() => setIsSignup(!isSignup)}
-                className="text-[var(--accent-500)] hover:text-[var(--accent-600)] underline mt-4 transition"
-            >
-                {isSignup ? "Already have an account? Log in" : "Need an account? Sign up"}
-            </button>
+                    <button
+                        onClick={() => setIsSignup(!isSignup)}
+                        className="text-[var(--accent-500)] hover:text-[var(--accent-600)] underline mt-4 transition"
+                    >
+                        {isSignup ? "Already have an account? Log in" : "Need an account? Sign up"}
+                    </button>
 
             <Button onClick={handleGoogleLogin} color="var(--error)" className="flex items-center justify-center gap-2 mt-4 text-[var(--background)]">
                 <FcGoogle className="text-xl" />

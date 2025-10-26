@@ -1,4 +1,4 @@
-import { User } from "@/lib/types";
+import { User, SignUpResponses } from "@/lib/types";
 
 import { apiFetch } from "./helpers";
 
@@ -29,5 +29,24 @@ export async function getUserFromId(userId: string): Promise<User | null> {
     } catch (err) {
         console.error("Error fetching user from UID:", err);
         return null;
+    }
+}
+
+/**
+ * Update a user's sign-up responses.
+ * @param userId The ID of the user to update.
+ * @param responses The sign-up responses to save.
+ * @returns Success status.
+ */
+export async function updateUserSignUpResponses(userId: string, responses: SignUpResponses): Promise<boolean> {
+    try {
+        await apiFetch(`/api/users/${userId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ signUpResponses: responses }),
+        });
+        return true;
+    } catch (err) {
+        console.error("Error updating user sign-up responses:", err);
+        return false;
     }
 }
