@@ -2,7 +2,7 @@ import { apiFetch } from "./helpers";
 import React from "react";
 import { auth } from "@/lib/firebase";
 
-import { Course, CourseLesson, NewCard, Project, NewLesson, QuizSettings } from "@/lib/types";
+import { Course, CourseLesson, NewCard, Project, NewLesson, QuizSettings, CommentTree, CreateCommentData, UpdateCommentData } from "@/lib/types";
 
 type NewCourse = Omit<Course, "id" | "lessons"> & { lessons: NewLesson[] };
 type CourseLessonForm = Omit<NewLesson, "index"> & { id?: string; };
@@ -261,5 +261,70 @@ export async function streamGenerateCourse(
         }
 
         if (done) break;
+    }
+}
+
+// Comment functions
+
+export async function getCourseComments(courseId: string): Promise<CommentTree[]> {
+    try {
+        const data = await apiFetch<CommentTree[]>(`/api/courses/${courseId}/comments`, {
+            method: "GET",
+        });
+        return data || [];
+    } catch (err) {
+        console.error("Error fetching course comments:", err);
+        return [];
+    }
+}
+
+export async function createComment(courseId: string, commentData: CreateCommentData): Promise<CommentTree | null> {
+    try {
+        const data = await apiFetch<CommentTree>(`/api/courses/${courseId}/comments`, {
+            method: "POST",
+            body: JSON.stringify(commentData),
+        });
+        return data;
+    } catch (err) {
+        console.error("Error creating comment:", err);
+        return null;
+    }
+}
+
+export async function updateComment(courseId: string, commentId: string, commentData: UpdateCommentData): Promise<boolean> {
+    try {
+        await apiFetch(`/api/courses/${courseId}/comments/${commentId}`, {
+            method: "PUT",
+            body: JSON.stringify(commentData),
+        });
+        return true;
+    } catch (err) {
+        console.error("Error updating comment:", err);
+        return false;
+    }
+}
+
+export async function deleteComment(courseId: string, commentId: string): Promise<boolean> {
+    try {
+        await apiFetch(`/api/courses/${courseId}/comments/${commentId}`, {
+            method: "DELETE",
+        });
+        return true;
+    } catch (err) {
+        console.error("Error deleting comment:", err);
+        return false;
+    }
+}
+
+export async function voteOnComment(courseId: string, commentId: string, voteType: 'upvote' | 'downvote' | 'remove'): Promise<{ upvotes: number; downvotes: number } | null> {
+    try {
+        const data = await apiFetch<{ upvotes: number; downvotes: number }>(`/api/courses/${courseId}/comments/${commentId}/vote`, {
+            method: "POST",
+            body: JSON.stringify({ type: voteType }),
+        });
+        return data;
+    } catch (err) {
+        console.error("Error voting on comment:", err);
+        return null;
     }
 }
