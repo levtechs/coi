@@ -8,16 +8,16 @@ type ExtendedGenerateContentRequest = GenerateContentRequest & {
     tools?: { googleSearch: Record<string, never> }[];
 };
 
-import { ContentHierarchy, Card, Message, ChatAttachment, GroundingChunk } from "@/lib/types"; // { content: string; isResponse: boolean }
+import { ContentHierarchy, Card, Message, ChatAttachment, GroundingChunk, ChatPreferences } from "@/lib/types"; // { content: string; isResponse: boolean }
 
 import { getStringFromHierarchyAndCards } from "../helpers"
 
 import {
-    limitedGeneralConfig,
-    llmModel,
+    getLLMModel,
+    getGenerationConfig,
 } from "@/app/api/gemini/config";
 import {
-    chatResponseSystemInstruction,
+    getChatResponseSystemInstruction,
 } from "../prompts"
 
 /**
@@ -30,6 +30,7 @@ export async function streamChatResponse(
     previousCards: Card[] | null,
     previousContentHierarchy: ContentHierarchy | null,
     attachments: null | ChatAttachment[],
+    preferences: ChatPreferences,
     onToken: (token: string) => Promise<void> | void
 ): Promise<{ responseMessage: string; hasNewInfo: boolean; groundingChunks: GroundingChunk[] } | null> {
     if (!message || message.trim() === "") throw new Error("Message is required.");
@@ -61,22 +62,28 @@ export async function streamChatResponse(
             parts: [{text: `CHAT ATTACHMENTS: ${JSON.stringify(attachments)}`}]
         })
     }
-    // systemInstruction must be a Con;tent object with a role
-    const systemInstruction = { role: "system", parts: chatResponseSystemInstruction.parts }
+    // systemInstruction must be a Content object with a role
+    const systemInstruction = { role: "system", parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch).parts }
+
+    // Include Google Search tool based on preferences (always for force/auto, never for disable)
+    const shouldUseSearch = preferences.googleSearch !== "disable";
 
     const requestBody: ExtendedGenerateContentRequest = {
         contents,
         systemInstruction,
         generationConfig: {
-            ...limitedGeneralConfig,
+            ...getGenerationConfig(preferences.model),
             responseMimeType: "text/plain",
         },
-        tools: [{ googleSearch: {} }],
+        ...(shouldUseSearch && { tools: [{ googleSearch: {} }] }),
     };
 
     try {
+        // Get the appropriate model based on preferences
+        const selectedModel = getLLMModel(preferences.model);
+
         // NOTE: cast to any to avoid SDK typing mismatches — adapt to your SDK's call if needed
-        const streamingResp = await llmModel.generateContentStream(requestBody);
+        const streamingResp = await selectedModel.generateContentStream(requestBody);
 
         // accumulate whole returned text so we can parse JSON at the end
         let accumulated = "";
@@ -101,10 +108,18 @@ export async function streamChatResponse(
             }
         }
 
-        // Detect hasNewInfo from token
+        // Detect hasNewInfo from token, but override based on preferences
         let responseMessage = accumulated.trim();
-        const hasNewInfo = responseMessage.includes("[HAS_NEW_INFO]");
+        let hasNewInfo = responseMessage.includes("[HAS_NEW_INFO]");
         responseMessage = responseMessage.replace(/\[HAS_NEW_INFO\]/g, '').trim();
+
+        // Override hasNewInfo based on forceCardCreation preference
+        if (preferences.forceCardCreation === "on") {
+            hasNewInfo = true;
+        } else if (preferences.forceCardCreation === "off") {
+            hasNewInfo = false;
+        }
+        // If "auto", keep the original hasNewInfo detection
 
         return {
             responseMessage,

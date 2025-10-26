@@ -48,6 +48,7 @@ const Editor = ({
 
     const [chatAttachments, setChatAttachments] = useState<null | ChatAttachment[]>(null);
     const [cardPopup, setCardPopup] = useState<Card | null>(null);
+    const [chatFullscreen, setChatFullscreen] = useState(false);
 
 
     return (
@@ -74,7 +75,7 @@ const Editor = ({
                 {/* Main Content Area */}
                 <div className="relative mt-4 flex flex-row flex-1 w-full overflow-hidden">
                     {/* Main Content Panel - occupies the available space */}
-                    <div className={`flex flex-col flex-1 h-full overflow-y-auto transition-all duration-300`}>
+                    <div className={`flex flex-col flex-1 h-full overflow-y-auto transition-all duration-300 ${chatFullscreen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                             <ContentPanel
                                 hierarchy={project.hierarchy}
                                 cards={project.cards}
@@ -109,6 +110,7 @@ const Editor = ({
                         attachments={chatAttachments}
                         setAttachments={setChatAttachments}
                         setClickedCard={setCardPopup}
+                        onFullscreenChange={setChatFullscreen}
                     />
                 </div>
             </div>

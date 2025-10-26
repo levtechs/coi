@@ -24,6 +24,7 @@ export interface User {
     weeklyActions?: number;
     projectIds?: string[];
     starUser?: boolean;
+    chatPreferences?: ChatPreferences;
 }
 
 // Chat
@@ -37,6 +38,15 @@ export interface Message {
 
 export type ChatAttachment = Card | ContentNode | ContentHierarchy | GroundingChunk;
 export type StreamPhase = "starting" | "streaming" | "processing" | "generating content" | "generating cards";
+
+// Chat Preferences
+export interface ChatPreferences {
+  model: "normal" | "fast";
+  thinking: "off" | "force" | "auto";
+  googleSearch: "auto" | "force" | "disable";
+  forceCardCreation: "off" | "on" | "auto";
+  personality: "default" | "gossip" | "little kid" | "angry mom";
+}
 
 export interface GroundingChunk {
     web: {

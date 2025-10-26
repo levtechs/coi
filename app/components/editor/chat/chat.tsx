@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef, Dispatch, SetStateAction } from "react";
 
-import { FiCircle, FiSend, FiX } from "react-icons/fi";
+import { FiCircle, FiSend, FiX, FiSettings, FiMaximize, FiMinimize } from "react-icons/fi";
 import { BsFillChatRightTextFill } from "react-icons/bs";
 
 import ChatMessages from "./chat_messages";
 import NewCardsPopup from "./new_cards_popup";
+import ChatPreferencesPanel from "./chat_preferences_panel";
 
-import { Project, Message, Card, StreamPhase, ChatAttachment } from "@/lib/types";
+import { Project, Message, Card, StreamPhase, ChatAttachment, ChatPreferences } from "@/lib/types";
 import { ModalContents } from "../types";
 
-import { getChatHistory } from "@/app/views/chat";
+import { getChatHistory, getUserPreferences } from "@/app/views/chat";
 import { sendMessage } from "./helpers";
 
 interface ChatPanelProps {
@@ -18,17 +19,28 @@ interface ChatPanelProps {
     attachments: null | ChatAttachment[]
     setAttachments: Dispatch<SetStateAction<ChatAttachment[] | null>>;
     setClickedCard: Dispatch<SetStateAction<Card | null>>;
+    onFullscreenChange?: (isFullscreen: boolean) => void;
 }
 
-const ChatPanel = ({ project, setModalContents, attachments, setAttachments, setClickedCard }: ChatPanelProps) => {
+const ChatPanel = ({ project, setModalContents, attachments, setAttachments, setClickedCard, onFullscreenChange }: ChatPanelProps) => {
     const [chatToggled, setChatToggled] = useState(true);
-    
+
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
 
     const [isLoading, setLoading] = useState(false);
     const [stream, setStream] = useState<string | null>(null);
     const [streamPhase, setStreamPhase] = useState<null | StreamPhase>(null);
+
+    const [showPreferences, setShowPreferences] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [preferences, setPreferences] = useState<ChatPreferences>({
+        model: "normal",
+        thinking: "auto",
+        googleSearch: "auto",
+        forceCardCreation: "auto",
+        personality: "default",
+    });
 
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -39,7 +51,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, set
         children: <NewCardsPopup newCards={newCards} setClickedCard={setClickedCard} projectId={project.id}/>
     })
 
-    const onSend = () => sendMessage(input, messages, attachments, project, addMessage, setStream, setNewCards, setStreamPhase, setInput, setLoading)
+    const onSend = () => sendMessage(input, messages, attachments, project, preferences, addMessage, setStream, setNewCards, setStreamPhase, setInput, setLoading)
 
     const addMessage = (msg: Message) => {
         setMessages(prev => [
@@ -85,23 +97,72 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, set
         loadHistory();
     }, [project.id]);
 
+    // Load user preferences on mount
+    useEffect(() => {
+        const loadPreferences = async () => {
+            try {
+                const savedPreferences = await getUserPreferences();
+                if (savedPreferences) {
+                    setPreferences(savedPreferences);
+                }
+            } catch (err) {
+                console.error("Error loading user preferences:", err);
+            }
+        };
+
+        loadPreferences();
+    }, []);
+
+    // Notify parent when fullscreen state changes
+    useEffect(() => {
+        onFullscreenChange?.(isFullscreen);
+    }, [isFullscreen, onFullscreenChange]);
+
     return (
-        <div className="transition-all duration-300">
+        <div className={`transition-all duration-300 ${isFullscreen ? 'absolute inset-0 z-50 bg-[var(--neutral-100)]' : ''}`}>
             {chatToggled ? (
-                <div className="bg-[var(--neutral-200)] rounded-md p-3 flex flex-col h-[100%] w-[45vw]">
+                <div className={`bg-[var(--neutral-200)] rounded-md p-3 flex flex-col h-[100%] ${isFullscreen ? 'w-full' : 'w-[45vw]'}`}>
                     {/* Header */}
                     <div className="flex justify-between items-center mb-2">
                         <h2 className="text-[var(--foreground)] text-xl font-semibold">Chat</h2>
-                        <FiX
-                            size={24}
-                            className="text-[var(--neutral-500)] cursor-pointer hover:text-[var(--foreground)]"
-                            onClick={() => {setChatToggled(false);}}
+                        <div className="flex items-center gap-2">
+                            <FiSettings
+                                size={20}
+                                className={`text-[var(--neutral-500)] cursor-pointer hover:text-[var(--foreground)] ${showPreferences ? 'text-[var(--accent-500)]' : ''}`}
+                                onClick={() => setShowPreferences(!showPreferences)}
+                            />
+                            {isFullscreen ? (
+                                <FiMinimize
+                                    size={20}
+                                    className="text-[var(--neutral-500)] cursor-pointer hover:text-[var(--foreground)]"
+                                    onClick={() => setIsFullscreen(false)}
+                                />
+                            ) : (
+                                <FiMaximize
+                                    size={20}
+                                    className="text-[var(--neutral-500)] cursor-pointer hover:text-[var(--foreground)]"
+                                    onClick={() => setIsFullscreen(true)}
+                                />
+                            )}
+                            <FiX
+                                size={24}
+                                className="text-[var(--neutral-500)] cursor-pointer hover:text-[var(--foreground)]"
+                                onClick={() => {setChatToggled(false);}}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Preferences Panel */}
+                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${showPreferences ? 'max-h-96 mb-2' : 'max-h-0'}`}>
+                        <ChatPreferencesPanel
+                            preferences={preferences}
+                            onPreferencesChange={setPreferences}
                         />
                     </div>
-                    
+
                     {/* This is the new scrollable container with the ref attached */}
-                    <div ref={messagesEndRef} className="flex-1 overflow-y-auto bg-[var(--neutral-100)] rounded-md p-2 mb-2 flex flex-col">
-                        <ChatMessages 
+                    <div ref={messagesEndRef} className="flex-1 overflow-y-auto bg-[var(--neutral-100)] rounded-md p-2 mb-2 flex flex-col min-h-0">
+                        <ChatMessages
                             messages={messages}
                             stream={stream}
                             isLoading={isLoading}

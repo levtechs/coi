@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction } from "react";
-import { Message, Project, Card, StreamPhase, ChatAttachment } from "@/lib/types";
+import { Message, Project, Card, StreamPhase, ChatAttachment, ChatPreferences } from "@/lib/types";
 import { streamChat } from "@/app/views/chat";
 
 export const sendMessage = async (
@@ -7,6 +7,7 @@ export const sendMessage = async (
     messages: Message[],
     attatchments: null | ChatAttachment[],
     project: Project,
+    preferences: ChatPreferences,
     addMessage: (msg: Message) => void,
     setStream: Dispatch<SetStateAction<string | null>>,
     setNewCards: (newCards: Card[]) => void,
@@ -42,6 +43,7 @@ export const sendMessage = async (
             recentMessages,
             attatchments,
             project.id,
+            preferences,
             setPhase,
             (finalMessage: Message) => addMessage({...finalMessage, id: crypto.randomUUID()}),
             (newCards: Card[]) => setNewCards(newCards),

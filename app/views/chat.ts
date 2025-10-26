@@ -3,7 +3,7 @@
 import { auth } from "@/lib/firebase";
 import { apiFetch } from "./helpers"; // adjust path if needed
 
-import { Message, Card, StreamPhase, GroundingChunk, ContentHierarchy, ChatAttachment } from "@/lib/types";
+import { Message, Card, StreamPhase, GroundingChunk, ContentHierarchy, ChatAttachment, ChatPreferences } from "@/lib/types";
 
 /**
  * Streams a chat response from the API.
@@ -18,6 +18,7 @@ export async function streamChat(
     messageHistory: Message[],
     attachments: null | ChatAttachment[],
     projectId: string,
+    preferences: ChatPreferences,
     setPhase: (phase: null | StreamPhase) => void,
     setFinalResponseMessage: (message: Message) => void,
     setNewCards: (newCards: Card[]) => void,
@@ -29,7 +30,7 @@ export async function streamChat(
     const idToken = await user.getIdToken();
     const res = await fetch("/api/chat/stream", {
         method: "POST",
-        body: JSON.stringify({ message, messageHistory, attachments, projectId }),
+        body: JSON.stringify({ message, messageHistory, attachments, projectId, preferences }),
         headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${idToken}`,
@@ -165,6 +166,25 @@ export async function getChatHistory(
     } catch (err) {
         console.error("Error fetching chat history:", err);
         return [];
+    }
+}
+
+/**
+ * Get the user's chat preferences.
+ * @returns Promise resolving to ChatPreferences or null if not found.
+ */
+export async function getUserPreferences(): Promise<ChatPreferences | null> {
+    try {
+        const data = await apiFetch<{ preferences: ChatPreferences | null }>(
+            "/api/chat/preferences",
+            {
+                method: "GET",
+            }
+        );
+        return data.preferences;
+    } catch (err) {
+        console.error("Error fetching user preferences:", err);
+        return null;
     }
 }
 
