@@ -17,6 +17,7 @@ import { Course, CourseLesson, Project, Quiz } from "@/lib/types";
 import LoadingComponent from "../../components/loading";
 import Button from "../../components/button";
 import Analytics from "../../components/courses/analytics/analytics";
+import CommentSection from "../../components/courses/comments/comment_section";
 
 export default function CoursePage({ params }: { params: Promise<{ courseId: string }> }) {
     const { user, loading: authLoading } = useAuth();
@@ -207,9 +208,9 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
                       ) : (
                           <p className="text-sm text-[var(--neutral-600)]">No quizzes available for this course.</p>
                       )}
-                  </div>
+                   </div>
 
-                      <div className="mt-8 flex justify-center gap-4">
+                       <div className="mt-8 flex justify-center gap-4">
                          <FiArrowLeft
                              title="Back to Courses"
                              size={32}
@@ -258,7 +259,9 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
                             </>
                         )}
                     </div>
-             </div>
+
+                    <CommentSection courseId={courseId} />
+              </div>
 
              {showInvitePanel && (
                  <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/50">

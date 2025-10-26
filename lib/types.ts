@@ -148,3 +148,44 @@ export interface CourseLesson {
 
 export type NewLesson = Omit<CourseLesson, "id" | "courseId" | "cardsToUnlock"> & { cardsToUnlock: NewCard[]; content: string };
 export type NewCourse = Omit<Course, "id" | "lessons"> & { lessons: NewLesson[] };
+
+// Comments
+
+export interface Comment {
+    id: string;
+    userId: string;
+    content: string;
+    createdAt: Timestamp;
+    updatedAt: Timestamp;
+    parentId: string | null;
+    upvotes: string[];
+    downvotes: string[];
+    replies: string[];
+}
+
+export interface CommentWithAuthor extends Omit<Comment, 'replies'> {
+    author: {
+        id: string;
+        displayName: string;
+        email: string;
+    };
+    replies: string[];
+}
+
+export interface CommentTree extends Omit<Comment, 'replies'> {
+    author: {
+        id: string;
+        displayName: string;
+        email: string;
+    };
+    replies: CommentTree[];
+}
+
+export type CreateCommentData = {
+    content: string;
+    parentId?: string;
+};
+
+export type UpdateCommentData = {
+    content: string;
+};
