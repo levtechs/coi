@@ -1,7 +1,7 @@
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, setDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
 
-import { Message, Card, NewCard, ContentNode, ContentHierarchy, ChatAttachment, GroundingChunk} from "@/lib/types"; // { content: string; isResponse: boolean }
+import { Message, Card, NewCard, ContentNode, ContentHierarchy, ChatAttachment, GroundingChunk, ChatPreferences} from "@/lib/types"; // { content: string; isResponse: boolean }
 import { Contents } from "./types";
 
 import { 
@@ -10,7 +10,7 @@ import {
     limitedGeneralConfig,
 } from "../gemini/config";
 import {
-    chatResponseSystemInstruction,
+    getChatResponseSystemInstruction,
     generateCardsSystemInstruction,
     generateCardsWithUnlockingSystemInstruction,
     generateHierarchySystemInstruction,
@@ -687,6 +687,52 @@ export const writeChatPairToDb = async (
 };
 
 
+/**
+ * Updates the user's chat preferences in the database.
+ *
+ * @param uid - The user ID.
+ * @param preferences - The chat preferences to store.
+ */
+export const updatePreferences = async (
+    uid: string,
+    preferences: ChatPreferences
+): Promise<void> => {
+    try {
+        const userDocRef = doc(db, "users", uid);
+        await updateDoc(userDocRef, {
+            chatPreferences: preferences
+        });
+    } catch (err) {
+        console.error(`Error updating preferences for user ${uid}:`, err);
+        throw err;
+    }
+};
+
+/**
+ * Loads the user's chat preferences from the database.
+ *
+ * @param uid - The user ID.
+ * @returns The user's chat preferences, or null if not found.
+ */
+export const getUserPreferences = async (
+    uid: string
+): Promise<ChatPreferences | null> => {
+    try {
+        const userDocRef = doc(db, "users", uid);
+        const userSnap = await getDoc(userDocRef);
+
+        if (userSnap.exists()) {
+            const data = userSnap.data();
+            return data.chatPreferences || null;
+        }
+
+        return null;
+    } catch (err) {
+        console.error(`Error loading preferences for user ${uid}:`, err);
+        return null;
+    }
+};
+
 /*
  * ========================================================
  * ========================================================
@@ -787,7 +833,7 @@ export const getChatResponse = async (message: string, messageHistory: Message[]
     };
     const body = {
         contents,
-        systemInstruction: (prevContent ? chatResponseSystemInstruction : firstChatResponseSystemInstruction),
+        systemInstruction: (prevContent ? getChatResponseSystemInstruction("default", "auto") : firstChatResponseSystemInstruction),
         generationConfig: generationConfig,
     };
 

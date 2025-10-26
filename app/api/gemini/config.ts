@@ -19,5 +19,23 @@ export const limitedGeneralConfig = {
 
 
 export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-export const llmModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+// Model selection based on preferences
+export const getLLMModel = (modelPreference: "normal" | "fast") => {
+    return genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+};
+
+// Get generation config based on model preference
+export const getGenerationConfig = (modelPreference: "normal" | "fast") => {
+    if (modelPreference === "fast") {
+        return {
+            temperature: 0.3, // Lower temperature for faster, more focused responses
+            maxOutputTokens: 2048, // Shorter responses for speed
+        };
+    }
+    return limitedGeneralConfig; // Default config for normal
+};
+
+// Default model for backward compatibility
+export const llmModel = getLLMModel("normal");
 

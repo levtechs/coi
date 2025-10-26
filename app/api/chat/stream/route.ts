@@ -6,11 +6,12 @@ import {
     groundingChunksToCardsAndWrite,
     generateNewHierarchyFromCards,
     writeHierarchy,
+    updatePreferences,
 } from "../helpers";
 import { streamChatResponse } from "./helpers";
 import { getProjectById } from "@/app/api/projects/helpers";
 import { fetchCardsFromProject, copyCardsToDb } from "@/app/api/cards/helpers";
-import { Card, ContentHierarchy, ChatAttachment, StreamPhase, GroundingChunk } from "@/lib/types";
+import { Card, ContentHierarchy, ChatAttachment, StreamPhase, GroundingChunk, ChatPreferences } from "@/lib/types";
 
 export async function POST(req: NextRequest) {
     const uid = await getVerifiedUid(req);
@@ -24,8 +25,12 @@ export async function POST(req: NextRequest) {
             messageHistory: { content: string; isResponse: boolean }[];
             projectId: string;
             attachments: ChatAttachment[] | null; // added attachments
+            preferences: ChatPreferences;
         } = await req.json();
-        const { message, messageHistory, projectId, attachments } = body;
+        const { message, messageHistory, projectId, attachments, preferences } = body;
+
+        // Update user preferences
+        await updatePreferences(uid, preferences);
 
         // Load the project for hierarchy
         const project = await getProjectById(projectId, uid);
@@ -67,6 +72,7 @@ export async function POST(req: NextRequest) {
                         effectivePreviousCards,
                         previousContentHierarchy,
                         attachments,
+                        preferences,
                         (token: string) => {
                             if (phase === "starting") updatePhase("streaming");
 
