@@ -12,9 +12,10 @@ import LoadingComponent from "../../loading";
 
 interface CommentSectionProps {
     courseId: string;
+    isCourseOwner?: boolean;
 }
 
-export default function CommentSection({ courseId }: CommentSectionProps) {
+export default function CommentSection({ courseId, isCourseOwner }: CommentSectionProps) {
     const { user } = useAuth();
     const [comments, setComments] = useState<CommentTree[]>([]);
     const [loading, setLoading] = useState(true);
@@ -171,6 +172,7 @@ export default function CommentSection({ courseId }: CommentSectionProps) {
                         key={comment.id}
                         comment={comment}
                         courseId={courseId}
+                        isCourseOwner={isCourseOwner}
                         onCommentUpdate={() => {}} // No-op since we use real-time updates
                     />
                 ))}

@@ -11,6 +11,7 @@ import CommentForm from "./comment_form";
 interface CommentItemProps {
     comment: CommentTree;
     courseId: string;
+    isCourseOwner?: boolean;
     onCommentUpdate: () => void;
     onReply?: () => void;
     showReplyButton?: boolean;
@@ -19,6 +20,7 @@ interface CommentItemProps {
 export default function CommentItem({
     comment,
     courseId,
+    isCourseOwner,
     onCommentUpdate,
     onReply,
     showReplyButton = true
@@ -31,6 +33,7 @@ export default function CommentItem({
     const [showMenu, setShowMenu] = useState(false);
 
     const isAuthor = user?.uid === comment.userId;
+    const canManageComment = isAuthor || isCourseOwner;
     const hasUpvoted = user && comment.upvotes.includes(user.uid);
     const hasDownvoted = user && comment.downvotes.includes(user.uid);
 
@@ -145,7 +148,7 @@ export default function CommentItem({
                     )}
                 </div>
 
-                {isAuthor && (
+                {canManageComment && (
                     <div className="relative">
                         <button
                             onClick={() => setShowMenu(!showMenu)}
@@ -156,22 +159,26 @@ export default function CommentItem({
 
                         {showMenu && (
                             <div className="absolute right-0 top-8 bg-[var(--neutral-100)] border border-[var(--neutral-300)] rounded-lg shadow-lg z-10 min-w-[120px]">
-                                <button
-                                    onClick={() => {
-                                        setEditing(true);
-                                        setShowMenu(false);
-                                    }}
-                                    className="w-full text-left px-3 py-2 hover:bg-[var(--neutral-200)] rounded-t-lg flex items-center gap-2"
-                                >
-                                    <FiEdit2 size={14} />
-                                    Edit
-                                </button>
+                                {isAuthor && (
+                                    <button
+                                        onClick={() => {
+                                            setEditing(true);
+                                            setShowMenu(false);
+                                        }}
+                                        className="w-full text-left px-3 py-2 hover:bg-[var(--neutral-200)] rounded-t-lg flex items-center gap-2"
+                                    >
+                                        <FiEdit2 size={14} />
+                                        Edit
+                                    </button>
+                                )}
                                 <button
                                     onClick={() => {
                                         handleDelete();
                                         setShowMenu(false);
                                     }}
-                                    className="w-full text-left px-3 py-2 hover:bg-[var(--neutral-200)] rounded-b-lg flex items-center gap-2 text-red-600"
+                                    className={`w-full text-left px-3 py-2 hover:bg-[var(--neutral-200)] flex items-center gap-2 text-red-600 ${
+                                        isAuthor ? 'rounded-b-lg' : 'rounded-lg'
+                                    }`}
                                     disabled={deleting}
                                 >
                                     <FiTrash2 size={14} />

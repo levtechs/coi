@@ -10,6 +10,7 @@ import CommentItem from "./comment_item";
 interface CommentTreeProps {
     comment: CommentTree;
     courseId: string;
+    isCourseOwner?: boolean;
     onCommentUpdate: () => void;
     depth?: number;
 }
@@ -17,6 +18,7 @@ interface CommentTreeProps {
 export default function CommentTreeComponent({
     comment,
     courseId,
+    isCourseOwner,
     onCommentUpdate,
     depth = 0
 }: CommentTreeProps) {
@@ -51,6 +53,7 @@ export default function CommentTreeComponent({
             <CommentItem
                 comment={comment}
                 courseId={courseId}
+                isCourseOwner={isCourseOwner}
                 onCommentUpdate={onCommentUpdate}
                 onReply={() => canReply && setShowReplyForm(!showReplyForm)}
                 showReplyButton={canReply}
@@ -74,6 +77,7 @@ export default function CommentTreeComponent({
                             key={reply.id}
                             comment={reply}
                             courseId={courseId}
+                            isCourseOwner={isCourseOwner}
                             onCommentUpdate={onCommentUpdate}
                             depth={depth + 1}
                         />
