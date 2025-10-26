@@ -36,6 +36,20 @@ export default function Modal({
     const [value, setValue] = useState(initialValue);
     const [isLoading, setIsLoading] = useState(false);
 
+    const getWidthClass = (width: string) => {
+        switch(width) {
+            case "xs": return "w-64";
+            case "sm": return "w-sm";
+            case "md": return "w-md";
+            case "lg": return "w-lg";
+            case "xl": return "w-xl";
+            case "2xl": return "w-2xl";
+            case "3xl": return "w-3xl";
+            case "4xl": return "w-[60rem]";
+            default: return "w-80";
+        }
+    };
+
     useEffect(() => {
         setValue(initialValue);
     }, [initialValue]);
@@ -46,7 +60,7 @@ export default function Modal({
         // This is the new full-screen overlay container
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/50">
             {/* This is your existing modal content */}
-            <div className={`bg-[var(--neutral-100)] p-6 rounded-lg shadow-lg w-${width ?? "80"} flex flex-col gap-4`}>
+            <div className={`bg-[var(--neutral-100)] p-6 rounded-lg shadow-lg ${getWidthClass(width)} flex flex-col gap-4`}>
                 {title && <h2 className="text-[var(--foreground)] font-semibold text-xl">{title}</h2>}
 
                 {(!type || type === "input") ? (
@@ -102,34 +116,24 @@ export default function Modal({
                 ) : (
                     <>
                         {message && (<p className={type === "error" ? "text-[var(--error)]" : "text-[var(--foreground)]"}>{message}</p>)}
-                        {type === "info" ? (
-                            <div className="flex flex-col">
-                                {children}
-                                <div className="flex flex-row w-[100%] gap-4">
-                                    <Button
-                                        className="flex-1"
-                                        color="var(--accent-300)"
-                                        type="button"
-                                        onClick={onClose}
-                                    >
-                                        close
-                                    </Button>
-                                </div>
-                            </div>
-                        ) : type === "empty" ? (
-                            <div className="flex flex-col">
-                                {children}
-                                <div className="flex flex-row w-[100%] gap-4 mt-4">
-                                    <Button
-                                        className="flex-1"
-                                        color="var(--neutral-300)"
-                                        type="button"
-                                        onClick={onClose}
-                                    >
-                                        Close
-                                    </Button>
-                                </div>
-                            </div>
+                         {type === "info" ? (
+                             <div className="flex flex-col">
+                                 {children}
+                                 <div className="flex flex-row w-[100%] gap-4">
+                                     <Button
+                                         className="flex-1"
+                                         color="var(--accent-300)"
+                                         type="button"
+                                         onClick={onClose}
+                                     >
+                                         close
+                                     </Button>
+                                 </div>
+                             </div>
+                         ) : type === "empty" ? (
+                             <div className="flex flex-col">
+                                 {children}
+                             </div>
                         ) : (
                             <>
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { Timestamp } from "firebase/firestore";
 
 import { FiEdit2 } from "react-icons/fi";
 import { FiHome } from "react-icons/fi";
@@ -38,6 +39,24 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
 
     // Check if this project is from a lesson
     const isLessonProject = !!project.courseLesson;
+
+    const timeAgo = (date: Date): string => {
+        const now = new Date();
+        const diff = now.getTime() - date.getTime();
+        const minutes = Math.floor(diff / 60000);
+        if (minutes < 1) return 'just now';
+        if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+        const days = Math.floor(hours / 24);
+        if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
+        const weeks = Math.floor(days / 7);
+        if (weeks < 4) return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+        const months = Math.floor(days / 30);
+        if (months < 12) return `${months} month${months > 1 ? 's' : ''} ago`;
+        const years = Math.floor(days / 365);
+        return `${years} year${years > 1 ? 's' : ''} ago`;
+    };
 
     useEffect(() => {
         const fetchQuizzes = async () => {
@@ -140,24 +159,72 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                     className="px-3 py-1 text-sm bg-[var(--neutral-200)] text-[var(--foreground)] hover:bg-[var(--neutral-300)] rounded-md transition-colors duration-200 ml-2 whitespace-nowrap"
                     onClick={() => {setModalContents({
                         isOpen: true,
-                        type: "confirm",
-                        message: "Generate a personalized quiz based on the content of this project",
-                        title: "Create quiz",
-                        onProceed: async () => window.open(`/quiz?create=true&projectId=${project.id}`),
+                        type: "empty",
+                        width: "3xl",
+                        children: (
+                            <div className="mb-2">
+                                <h1 className="text-2xl mb-6 font-bold underline">
+                                    Quizzes
+                                </h1>
+                                <h2 className="text-lg mb-2 font-bold">
+                                    Available quizzes:
+                                </h2>
+                                <div className="text-md flex flex-col gap-1 mb-4">
+                                    {quizzes && quizzes.length > 0 ? (
+                                        quizzes.map((quiz: Quiz) => {
+                                            let date: Date | null = null;
+                                            if (quiz.createdAt) {
+                                                if (typeof quiz.createdAt === 'string') {
+                                                    date = new Date(quiz.createdAt);
+                                                } else if (quiz.createdAt instanceof Timestamp) {
+                                                    date = quiz.createdAt.toDate();
+                                                }
+                                            }
+                                            return (
+                                                <div key={quiz.id} className="flex flex-col">
+                                                    <a className="underline" href={`/quiz/${quiz.id}`} target="_blank" rel="noopener noreferrer">
+                                                        {quiz.title.length > 45 ? quiz.title.slice(0, 45) + "..." : quiz.title}
+                                                    </a>
+                                                    {date && <p className="italic text-[var(--neutral-500)]">created {timeAgo(date)}</p>}
+                                                </div>
+                                            )
+                                        })
+                                    ) : (
+                                        <p className="italic">No quizzes found.</p>
+                                    )}
+                                </div>
+                                <div className="flex w-full gap-4">
+                                    <Button
+                                        className="flex-1"
+                                        color="var(--neutral-300)"
+                                        onClick={() => setModalContents({isOpen: false, type: "empty"})}
+                                    >
+                                        Close
+                                    </Button>
+                                    <Button
+                                        className="flex-1"
+                                        color="var(--accent-500)"
+                                        onClick={() => window.open(`/quiz?create=true&projectId=${project.id}`, '_blank')}
+                                    >
+                                        Create new quiz
+                                    </Button>
+                                </div>
+                            </div>
+                        ),
                     })}}
                 >
                     Quiz me!
                 </button>
                 <button
                     className="px-3 py-1 text-sm bg-[var(--neutral-200)] text-[var(--foreground)] hover:bg-[var(--neutral-300)] rounded-md transition-colors duration-200 ml-2 whitespace-nowrap"
-                    onClick={() => {
-                        setModalContents({
-                            isOpen: true,
-                            type: "info",
-                            width: "4xl",
-                            children: <StudyPanel cards={project.cards} />
-                        });
-                    }}
+                     onClick={() => {
+                         setModalContents({
+                             isOpen: true,
+                             type: "info",
+                             width: "4xl",
+                             children: <StudyPanel cards={project.cards.filter(card => !card.url)} />
+                         });
+                     }}
                 >
                     Review
                 </button>
@@ -184,7 +251,7 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                         setModalContents({
                             isOpen: true,
                             type: "info",
-                            width: "3xl",
+                        width: "xs",
                             children: <ProjectDetailsPanel project={project} quizzes={quizzes} />
                         })
                     }}
