@@ -65,9 +65,9 @@ export default function DetailCard({ card, onClick, projectId }: DetailCardProps
                     />
                 )
             )}
-            <h3 className="text-[var(--foreground)] font-semibold text-xl">
-                <MarkdownArticle markdown={displayTitle} singleLine={true} />
-            </h3>
+             <h3 className="text-[var(--foreground)] font-semibold text-xl">
+                 <MarkdownArticle markdown={displayTitle} singleLine={true} />
+             </h3>
 
             {/* Three Dots Icon */}
             {showMenu && (

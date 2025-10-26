@@ -8,6 +8,7 @@ import Button from "../../button";
 import CollaboratorsDropdown from "./collabs_dd";
 import ShareMenu from "./share";
 import ProjectDetailsPanel from "./project_details";
+import StudyPanel from "../study/study_panel";
 import { ModalContents } from "../types";
 import { Project, Quiz, CardFilter } from "@/lib/types";
 import { getQuiz } from "@/app/views/quiz";
@@ -84,7 +85,7 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                         className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
                     />
                 </Link>
-                <div className="flex items-center gap-2 group mr-4 ml-4">
+                <div className="flex items-center gap-2 group mr-2 ml-4">
                     <h1 className="text-[var(--foreground)] text-2xl font-bold truncate">{truncatedTitle}</h1>
                     <FiEdit2
                         className="text-[var(--accent-500)] cursor-pointer opacity-0 group-hover:opacity-100 hover:text-[var(--accent-600)] transition"
@@ -106,12 +107,14 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                         }
                     />
                 </div>
-                <TabSelector
-                    tabs={["content", "cards"]}
-                    activeTab={tab}
-                    onTabChange={(tabName) => setTab(tabName as "content" | "cards")}
-                />
-                <div className="relative inline-block ml-4">
+                <div className="ml-2">
+                    <TabSelector
+                        tabs={["content", "cards"]}
+                        activeTab={tab}
+                        onTabChange={(tabName) => setTab(tabName as "content" | "cards")}
+                    />
+                </div>
+                <div className="relative inline-block ml-2">
                     <div className={`absolute right-0 top-full mt-2 flex space-x-4 transition-opacity duration-300 bg-[var(--neutral-100)] border border-[var(--neutral-300)] rounded-md p-2 shadow-md ${filtersExpanded ? 'opacity-100' : 'opacity-0'}`}>
                         <button
                             className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${cardFilters[0] === '1' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
@@ -134,7 +137,7 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                     </button>
                 </div>
                 <button
-                    className="px-3 py-1 text-sm bg-[var(--neutral-200)] text-[var(--foreground)] hover:bg-[var(--neutral-300)] rounded-md transition-colors duration-200 ml-4 whitespace-nowrap"
+                    className="px-3 py-1 text-sm bg-[var(--neutral-200)] text-[var(--foreground)] hover:bg-[var(--neutral-300)] rounded-md transition-colors duration-200 ml-2 whitespace-nowrap"
                     onClick={() => {setModalContents({
                         isOpen: true,
                         type: "confirm",
@@ -144,6 +147,19 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                     })}}
                 >
                     Quiz me!
+                </button>
+                <button
+                    className="px-3 py-1 text-sm bg-[var(--neutral-200)] text-[var(--foreground)] hover:bg-[var(--neutral-300)] rounded-md transition-colors duration-200 ml-2 whitespace-nowrap"
+                    onClick={() => {
+                        setModalContents({
+                            isOpen: true,
+                            type: "info",
+                            width: "4xl",
+                            children: <StudyPanel cards={project.cards} />
+                        });
+                    }}
+                >
+                    Review
                 </button>
             </div>
 
