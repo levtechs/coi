@@ -22,8 +22,9 @@ export async function streamChat(
     setPhase: (phase: null | StreamPhase) => void,
     setFinalResponseMessage: (message: Message) => void,
     setNewCards: (newCards: Card[]) => void,
+    setFollowUpQuestions: (questions: string[]) => void,
     onToken: (token: string) => void,
-): Promise<{ responseMessage: string; groundingChunks: GroundingChunk[]; newHierarchy: ContentHierarchy | null; allCards: Card[] | null }> {
+): Promise<{ responseMessage: string; groundingChunks: GroundingChunk[]; newHierarchy: ContentHierarchy | null; allCards: Card[] | null; followUpQuestions: string[] }> {
     const user = auth.currentUser;
     if (!user) throw new Error("User not authenticated");
 
@@ -98,6 +99,10 @@ export async function streamChat(
                     if (obj.newCards) {
                         setNewCards(JSON.parse(obj.newCards) as Card[]);
                     }
+                    if (obj.followUpQuestions) {
+                        console.log("Received follow-up questions update:", obj.followUpQuestions);
+                        setFollowUpQuestions(JSON.parse(obj.followUpQuestions) as string[]);
+                    }
                     continue;
                 }
 
@@ -109,11 +114,12 @@ export async function streamChat(
                     }
                     
                      return {
-                        responseMessage: obj.responseMessage,
-                        groundingChunks: obj.groundingChunks ?? [],
-                        newHierarchy: obj.newHierarchy ?? null,
-                        allCards: obj.allCards ?? null,
-                    };
+                         responseMessage: obj.responseMessage,
+                         groundingChunks: obj.groundingChunks ?? [],
+                         newHierarchy: obj.newHierarchy ?? null,
+                         allCards: obj.allCards ?? null,
+                         followUpQuestions: obj.followUpQuestions ?? [],
+                     };
                 }
             } catch (err) {
                 console.warn("Failed to parse JSON update:", jsonStr, err);

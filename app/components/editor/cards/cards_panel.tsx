@@ -44,9 +44,10 @@ export default function CardsPanel({ project, onCardClick, hidden, cardFilters }
         <div className={`${hidden ? 'hidden' : ''}`}>
             {filteredCards.length === 0 ? (
                 <>
+                    <p className="text-[var(--neutral-500)] text-center p-4">Blank project, start using chat to see the cards populate, or create a card manually.</p>
                     {/* Create Project Card */}
                     <div
-                        className="flex items-center justify-center border border-[var(--neutral-300)] rounded-lg p-6 cursor-pointer mt-8 mr-4
+                        className="flex items-center justify-center border border-[var(--neutral-300)] rounded-lg p-6 cursor-pointer mt-4 mr-4
                             bg-[var(--neutral-100)]
                             hover:bg-[var(--neutral-300)]"
                         onClick={() => setNewCardPopupOpen(true)}

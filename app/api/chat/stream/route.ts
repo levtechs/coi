@@ -29,6 +29,8 @@ export async function POST(req: NextRequest) {
         } = await req.json();
         const { message, messageHistory, projectId, attachments, preferences } = body;
 
+
+
         // Update user preferences
         await updatePreferences(uid, preferences);
 
@@ -66,6 +68,7 @@ export async function POST(req: NextRequest) {
                     
                     updatePhase("starting");
 
+                    let followUpDetected = false;
                     const result = await streamChatResponse(
                         message,
                         messageHistory,
@@ -76,6 +79,22 @@ export async function POST(req: NextRequest) {
                         (token: string) => {
                             if (phase === "starting") updatePhase("streaming");
 
+                            // Check if this token contains [FOLLOW_UP]
+                            if (token.includes('[FOLLOW_UP]')) {
+                                followUpDetected = true;
+                                // Send only the part before [FOLLOW_UP]
+                                const cleanToken = token.split('[FOLLOW_UP]')[0];
+                                if (cleanToken) {
+                                    controller.enqueue(encoder.encode(cleanToken));
+                                }
+                                return; // Don't send the rest
+                            }
+
+                            // If follow-up has been detected, don't send subsequent tokens
+                            if (followUpDetected) {
+                                return;
+                            }
+
                             // Send tokens directly without \n
                             controller.enqueue(encoder.encode(token));
                         }
@@ -83,7 +102,9 @@ export async function POST(req: NextRequest) {
 
                     updatePhase("processing"); // phase 2
 
-                    const { responseMessage, hasNewInfo, groundingChunks } = result!;
+                    const { responseMessage, hasNewInfo, groundingChunks, followUpQuestions } = result!;
+
+                    console.log("Follow-up questions from AI:", followUpQuestions);
 
                     let finalResponseMessage = responseMessage;
                     // Remove citation markers
@@ -91,6 +112,11 @@ export async function POST(req: NextRequest) {
 
                     //controller.enqueue(encoder.encode(JSON.stringify({ type: "update", responseMessage }) + "\n"));
                     sendUpdate("responseMessage", finalResponseMessage, groundingChunks);
+
+                    // Send follow-up questions immediately after streaming
+                    if (followUpQuestions.length > 0) {
+                        sendUpdate("followUpQuestions", JSON.stringify(followUpQuestions));
+                    }
 
                     // Save the chat pair
                     await writeChatPairToDb(message, attachments, finalResponseMessage, projectId, uid, groundingChunks);
@@ -102,12 +128,14 @@ export async function POST(req: NextRequest) {
                         groundingChunks: GroundingChunk[];
                         newHierarchy: ContentHierarchy | null;
                         allCards: Card[] | null;
+                        followUpQuestions: string[];
                     } = {
                         type: "final",
                         responseMessage: finalResponseMessage,
                         groundingChunks,
                         newHierarchy: null,
-                        allCards: null
+                        allCards: null,
+                        followUpQuestions
                     };
 
                     if (hasNewInfo || groundingChunks.length>0) {
@@ -148,7 +176,8 @@ export async function POST(req: NextRequest) {
                             responseMessage: finalResponseMessage,
                             groundingChunks,
                             newHierarchy,
-                            allCards
+                            allCards,
+                            followUpQuestions
                         };
                     }
 

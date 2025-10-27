@@ -60,6 +60,7 @@ You may or may not be provided:
 - chat attachments
 
 Your response will be plain text. If the response contains new information (more on this below), append ' [HAS_NEW_INFO]' at the end.
+You may also include follow-up questions using the [FOLLOW_UP] token format described below.
 `
 
 const userPasteChunk = `
@@ -96,11 +97,12 @@ const markdownChunk = `
 const autoSearchChunk = `
 You have access to the Google Search tool for finding new information.
 
-Use the Google Search tool when you need up-to-date information, facts, current events, or when the user asks questions that require external knowledge beyond what you already know. This includes:
-- Questions about recent developments or current status
-- Factual queries like "what is", "who is", "when did", "where is"
-- Requests for statistics, data, or specific information
-- When you need to verify or expand on information
+Use the Google Search tool ONLY when:
+- The user explicitly asks for search or current information
+- The information is too niche or specialized to rely on general model knowledge
+- The query requires present-day or real-time information
+
+Otherwise, DO NOT use the search tool. Rely on your existing knowledge for general questions, explanations, and common facts.
 
 The top 5 resources that result in the search will be automatically given to the user. When searching:
 - Search for reliable sources
@@ -136,11 +138,40 @@ export const getSearchChunk = (googleSearch: string): string => {
     }
 };
 
+const followUpChunk = `
+FOLLOW-UP QUESTIONS:
+Aim to include 1-3 follow-up questions to encourage deeper learning and exploration.
+To include follow-up questions, append them at the very end of your response using this exact format:
+[FOLLOW_UP] Your question here? [FOLLOW_UP] Another question here?
+
+You can put multiple questions on the same line or separate lines.
+`
+
+const disableFollowUpChunk = ``
+
+/**
+ * Returns the appropriate follow-up chunk based on the followUpQuestions preference.
+ */
+export const getFollowUpChunk = (followUpQuestions: string): string => {
+    switch (followUpQuestions) {
+        case "auto":
+            return followUpChunk;
+        case "off":
+            return disableFollowUpChunk;
+        default:
+            return disableFollowUpChunk;
+    }
+};
+
 // ==== Full prompts with new hierarchy examples ====
 
-export const getChatResponseSystemInstruction = (personality: string, googleSearch: string) => {
+export const getChatResponseSystemInstruction = (personality: string, googleSearch: string, followUpQuestions: string) => {
     const personalityChunk = getPersonalityChunk(personality);
     const searchChunk = getSearchChunk(googleSearch);
+    const followUpChunk = getFollowUpChunk(followUpQuestions);
+
+    const example1FollowUp = followUpQuestions === "auto" ? "\n[FOLLOW_UP] How do neurons communicate with each other across synapses?\n[FOLLOW_UP] What are the different types of neurons in the nervous system?" : "";
+    const example2FollowUp = followUpQuestions === "auto" ? "\n[FOLLOW_UP] Explain how neurons form networks" : "";
 
     return {
         parts: [{ text: `
@@ -159,57 +190,17 @@ ${chatAttachmentsChunk}
 In the responseMessage
 ${markdownChunk}
 
-${searchChunk}
+ ${searchChunk}
 
-EXAMPLE INPUT 1:
+ ${followUpChunk}
 
-{
-  "user_message": "Can you explain the structure of a neuron?",
-  "message_history": []
-}
+EXAMPLE OUTPUT 1
 
-EXAMPLE CONTEXT INPUT (from getStringFromHierarchyAndCards):
+Sure! A neuron is a specialized cell in the nervous system. It has dendrites to receive signals, a soma (cell body) for processing, and an axon to transmit signals. Action potentials are rapid electrical signals that travel along the axon, enabling communication between neurons. [HAS_NEW_INFO]${example1FollowUp}
 
-{
-  "title": "Neuroscience Overview",
-  "children": [
-    { "type": "text", "text": "Neurons are the basic units of the nervous system." },
-    {
-      "type": "card",
-      "id": "c1",
-      "title": "Neuron Structure",
-      "details": ["Neurons consist of dendrites, a soma, and an axon.", "Signal travels from dendrites to axon terminals."]
-    },
-    {
-      "type": "subcontent",
-      "content": {
-        "title": "Neuron Functions",
-        "children": [
-          { "type": "card", "id": "c2", "title": "Action Potential", "details": ["Rapid electrical signal propagation along the axon."] },
-          { "type": "text", "text": "Action potentials allow neurons to communicate efficiently." }
-        ]
-      }
-    }
-  ]
-}
+EXAMPLE OUTPUT 2
 
-EXAMPLE CORRESPONDING OUTPUT 1:
-
-Sure! A neuron is a specialized cell in the nervous system. It has dendrites to receive signals, a soma (cell body) for processing, and an axon to transmit signals. Action potentials are rapid electrical signals that travel along the axon, enabling communication between neurons. [HAS_NEW_INFO]
-
-EXAMPLE INPUT 2:
-
-{
-  "user_message": "Thanks, that clarifies things.",
-  "message_history": [
-    {"role": "user", "content": "Can you explain the structure of a neuron?"},
-    {"role": "assistant", "content": "Sure! A neuron is a specialized cell in the nervous system. It has dendrites to receive signals, a soma (cell body) for processing, and an axon to transmit signals. Action potentials are rapid electrical signals that travel along the axon, enabling communication between neurons."}
-  ]
-}
-
-EXAMPLE CORRESPONDING OUTPUT 2:
-
-You're welcome! If you want, I can also explain how neurons form networks and process complex information.
+You're welcome! If you want, I can also explain how neurons form networks and process complex information.${example2FollowUp}
 `   }]
     };
 };

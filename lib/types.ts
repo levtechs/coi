@@ -98,6 +98,7 @@ export interface ChatPreferences {
   googleSearch: "auto" | "force" | "disable";
   forceCardCreation: "off" | "on" | "auto";
   personality: "default" | "gossip" | "little kid" | "angry mom";
+  followUpQuestions: "off" | "auto";
 }
 
 export interface GroundingChunk {

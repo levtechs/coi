@@ -32,7 +32,7 @@ export async function streamChatResponse(
     attachments: null | ChatAttachment[],
     preferences: ChatPreferences,
     onToken: (token: string) => Promise<void> | void
-): Promise<{ responseMessage: string; hasNewInfo: boolean; groundingChunks: GroundingChunk[] } | null> {
+): Promise<{ responseMessage: string; hasNewInfo: boolean; groundingChunks: GroundingChunk[]; followUpQuestions: string[] } | null> {
     if (!message || message.trim() === "") throw new Error("Message is required.");
 
     // Build contents array as Gemini expects: each content has role and parts (parts are objects with text)
@@ -63,7 +63,8 @@ export async function streamChatResponse(
         })
     }
     // systemInstruction must be a Content object with a role
-    const systemInstruction = { role: "system", parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch).parts }
+    const systemInstruction = { role: "system", parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch, preferences.followUpQuestions).parts }
+
 
     // Include Google Search tool based on preferences (always for force/auto, never for disable)
     const shouldUseSearch = preferences.googleSearch !== "disable";
@@ -103,8 +104,12 @@ export async function streamChatResponse(
             }
 
             if (partText) {
-                accumulated += partText;
-                await onToken(partText);
+                // Remove [HAS_NEW_INFO] from streaming tokens to prevent it from appearing in UI
+                const cleanToken = partText.replace(/\[HAS_NEW_INFO\]/g, '');
+                accumulated += partText; // Keep original for parsing
+                if (cleanToken) {
+                    await onToken(cleanToken);
+                }
             }
         }
 
@@ -121,10 +126,37 @@ export async function streamChatResponse(
         }
         // If "auto", keep the original hasNewInfo detection
 
+        // Parse follow-up questions if enabled
+        const followUpQuestions: string[] = [];
+        if (preferences.followUpQuestions === "auto") {
+            console.log("Full response message before parsing follow-ups:", responseMessage);
+            // Find the position of the first [FOLLOW_UP]
+            const followUpIndex = responseMessage.indexOf('[FOLLOW_UP]');
+            if (followUpIndex !== -1) {
+                // Extract the main response (everything before [FOLLOW_UP])
+                const mainResponse = responseMessage.substring(0, followUpIndex).trim();
+                const followUpPart = responseMessage.substring(followUpIndex);
+
+                // Parse follow-up questions from the followUpPart
+                const followUpRegex = /\[FOLLOW_UP\]\s*([\s\S]*?)(?=\[FOLLOW_UP\]|$)/g;
+                let match;
+                while ((match = followUpRegex.exec(followUpPart)) !== null) {
+                    const question = match[1].trim();
+                    if (question) {
+                        followUpQuestions.push(question);
+                    }
+                }
+
+                // Update responseMessage to only contain the main response
+                responseMessage = mainResponse;
+            }
+        }
+
         return {
             responseMessage,
             hasNewInfo,
             groundingChunks,
+            followUpQuestions,
         };
     } catch (err) {
         console.error("streamChatResponse error:", err);

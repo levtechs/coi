@@ -73,23 +73,35 @@ const ChatPreferencesPanel = ({ preferences, onPreferencesChange }: ChatPreferen
         </select>
       </div>
 
-      {/* Personality */}
-      <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-[var(--foreground)]">Personality</label>
-        <select
-          value={preferences.personality}
-          onChange={(e) => updatePreference("personality", e.target.value as ChatPreferences["personality"])}
-          className="bg-[var(--neutral-200)] border border-[var(--neutral-300)] rounded px-2 py-1 text-sm text-[var(--foreground)]"
-        >
-          <option value="default">Default</option>
-          <option value="gossip">Gossip</option>
-          <option value="little kid">Little Kid</option>
-          <option value="angry mom">Angry Mom</option>
-        </select>
-      </div>
+       {/* Personality */}
+       <div className="flex items-center justify-between">
+         <label className="text-sm font-medium text-[var(--foreground)]">Personality</label>
+         <select
+           value={preferences.personality}
+           onChange={(e) => updatePreference("personality", e.target.value as ChatPreferences["personality"])}
+           className="bg-[var(--neutral-200)] border border-[var(--neutral-300)] rounded px-2 py-1 text-sm text-[var(--foreground)]"
+         >
+           <option value="default">Default</option>
+           <option value="gossip">Gossip</option>
+           <option value="little kid">Little Kid</option>
+           <option value="angry mom">Angry Mom</option>
+         </select>
+       </div>
 
+       {/* Follow-up Questions */}
+       <div className="flex items-center justify-between">
+         <label className="text-sm font-medium text-[var(--foreground)]">Follow-up Questions</label>
+         <select
+           value={preferences.followUpQuestions}
+           onChange={(e) => updatePreference("followUpQuestions", e.target.value as "off" | "auto")}
+           className="bg-[var(--neutral-200)] border border-[var(--neutral-300)] rounded px-2 py-1 text-sm text-[var(--foreground)]"
+         >
+           <option value="auto">Auto</option>
+           <option value="off">Off</option>
+         </select>
+       </div>
 
-    </div>
+     </div>
   );
 };
 

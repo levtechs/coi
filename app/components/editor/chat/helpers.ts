@@ -13,13 +13,15 @@ export const sendMessage = async (
     setNewCards: (newCards: Card[]) => void,
     updatePhase: Dispatch<SetStateAction<null | StreamPhase>>,
     setInput: Dispatch<SetStateAction<string>>,
-    setLoading: Dispatch<SetStateAction<boolean>>
+    setLoading: Dispatch<SetStateAction<boolean>>,
+    setFollowUpQuestions: Dispatch<SetStateAction<string[]>>
 ) => {
     if (!input.trim()) return;
 
     const userInput = input.trim();
     const userMessage: Message = { content: userInput, attachments: attatchments, isResponse: false, id: crypto.randomUUID() };
     addMessage(userMessage)
+    setFollowUpQuestions([]); // Clear previous follow-ups with animation
     setInput("");
 
     try {
@@ -38,26 +40,29 @@ export const sendMessage = async (
             updatePhase(phase);
         }
 
-        const result = await streamChat(
-            userInput,
-            recentMessages,
-            attatchments,
-            project.id,
-            preferences,
-            setPhase,
-            (finalMessage: Message) => addMessage({...finalMessage, id: crypto.randomUUID()}),
-            (newCards: Card[]) => setNewCards(newCards),
-            (token) => {
-                streamedContent += token;
-                setStream(streamedContent);
-            },
-         );
+         const result = await streamChat(
+             userInput,
+             recentMessages,
+             attatchments,
+             project.id,
+             preferences,
+             setPhase,
+             (finalMessage: Message) => addMessage({...finalMessage, id: crypto.randomUUID()}),
+             (newCards: Card[]) => setNewCards(newCards),
+             (questions: string[]) => setFollowUpQuestions(questions),
+             (token) => {
+                 streamedContent += token;
+                 setStream(streamedContent);
+             },
+          );
 
-        // Cards are updated via Firestore listener
+         // Follow-up questions are now set via the update callback above
 
-        setPhase(null);
+         // Cards are updated via Firestore listener
 
-        setLoading(false);
+         setPhase(null);
+
+         setLoading(false);
     } catch (err) {
         console.error("Error streaming chat:", err);
         addMessage({ content: "I couldn't generate a response. Please try again later.", isResponse: true, id: crypto.randomUUID() } as Message)

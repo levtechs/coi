@@ -237,7 +237,7 @@ const ContentPanel = ({ hierarchy, cards, hidden = false, cardFilters, addAttach
     return (
         <div className={`flex-1 w-full ${hidden ? "hidden" : ""}`}>
             <div className="relative p-3 rounded-md text-[var(--foreground)] bg-[var(--neutral-100)]">
-                {hierarchy ? (
+                {hierarchy && (hierarchy.title || hierarchy.children.length > 0) ? (
                     <HierarchicalNode
                         hierarchy={hierarchy}
                         cards={cards}
@@ -253,7 +253,7 @@ const ContentPanel = ({ hierarchy, cards, hidden = false, cardFilters, addAttach
                         project={project}
                     />
                 ) : (
-                    <p className="text-[var(--neutral-500)]">(No content)</p>
+                    <p className="text-[var(--neutral-500)]">Blank project, start using chat to see the content populate.</p>
                 )}
             </div>
         </div>
