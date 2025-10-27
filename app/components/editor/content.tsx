@@ -11,7 +11,7 @@ type CollapseStateMap = Record<string, boolean>;
 
 // --- New Component: AddIcon ---
 interface AddIconProps {
-    onClick: () => void;
+    onClick: (e: React.MouseEvent) => void;
     position?: 'top' | 'bottom';
 }
 
@@ -83,7 +83,7 @@ const HierarchicalNode = ({
                         {cardBuffer.map((card) => (
                             <div key={card.id} className="group shrink-0 relative">
                                 <DetailCard card={card} onClick={() => setClickedCard(card)} projectId={projectId} />
-                                <AddIcon onClick={() => { addAttachment(card) }} position="bottom" />
+                                <AddIcon onClick={(e) => { e.stopPropagation(); addAttachment(card) }} position="bottom" />
                             </div>
                         ))}
                     </div>
@@ -105,7 +105,7 @@ const HierarchicalNode = ({
                             key={stableKey}
                         >
                             <MarkdownArticle markdown={child.text} />
-                            <AddIcon onClick={() => { addAttachment(child) }} />
+                            <AddIcon onClick={(e) => { e.stopPropagation(); addAttachment(child) }} />
                         </div>
                     );
                     break;
@@ -189,7 +189,7 @@ const HierarchicalNode = ({
                     )}
 
                     <div className="hidden group-hover:block absolute top-1 right-1 z-10">
-                        <AddIcon onClick={() => { addAttachment(hierarchy) }} />
+                        <AddIcon onClick={(e) => { e.stopPropagation(); addAttachment(hierarchy) }} />
                     </div>
                 </div>
             )}
