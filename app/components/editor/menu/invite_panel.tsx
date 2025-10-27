@@ -70,11 +70,12 @@ export default function InvitePanel({ onClose, project }: InvitePanelProps) {
             )}
 
             {onClose && (
-                <div className="flex justify-end gap-2 mt-6">
+                <div className="mt-4">
                     <Button
                         color="var(--neutral-300)"
                         type="button"
                         onClick={onClose}
+                        className="w-full"
                     >
                         Close
                     </Button>

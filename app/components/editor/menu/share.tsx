@@ -55,7 +55,7 @@ const ShareMenu = ({ project, user, setModalContents, addCollaborator }: ShareMe
             type: "empty",
             width: "md",
             title: "Share Project",
-            children: <InvitePanel project={project} />
+            children: <InvitePanel project={project} onClose={() => setModalContents({isOpen: false, type: "empty"})} />
         });
     };
 
