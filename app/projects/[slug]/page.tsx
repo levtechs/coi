@@ -120,7 +120,6 @@ export default function ProjectPage() {
             user={user}
             addCollaborator={addCollaborator}
             setTitle={setTitle}
-            setProject={setProject}
         />
     );
 }

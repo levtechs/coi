@@ -45,7 +45,6 @@ export default function SignUpQuestionnaireModal({ isOpen, onClose, userId }: Si
 
                 <SignUpQuestions
                     onSubmit={handleSubmit}
-                    onSkip={handleSkip}
                 />
             </div>
         </div>
