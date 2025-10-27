@@ -74,20 +74,25 @@ function InvitePageContent() {
             // Check if user is already in the project/course
             if (user && data.id) {
                 let isAlreadyIn: boolean = false;
-                if (data.type === 'project') {
-                    const project = await getProject(data.id);
-                    if (project) {
-                        isAlreadyIn = project.ownerId === user.uid ||
-                                      Boolean(project.sharedWith && project.sharedWith.includes(user.uid)) ||
-                                      Boolean(user.email && project.collaborators && project.collaborators.includes(user.email));
+                try {
+                    if (data.type === 'project') {
+                        const project = await getProject(data.id);
+                        if (project) {
+                            isAlreadyIn = project.ownerId === user.uid ||
+                                          Boolean(project.sharedWith && project.sharedWith.includes(user.uid)) ||
+                                          Boolean(user.email && project.collaborators && project.collaborators.includes(user.email));
+                        }
+                    } else if (data.type === 'course') {
+                        const result = await getCourse(data.id);
+                        if (result) {
+                            const course = result.course;
+                            isAlreadyIn = course.ownerId === user.uid ||
+                                          Boolean(course.sharedWith && course.sharedWith.includes(user.uid));
+                        }
                     }
-                } else if (data.type === 'course') {
-                    const result = await getCourse(data.id);
-                    if (result) {
-                        const course = result.course;
-                        isAlreadyIn = course.ownerId === user.uid ||
-                                      Boolean(course.sharedWith && course.sharedWith.includes(user.uid));
-                    }
+                } catch (_) {
+                    // If access denied (404), assume not already in; don't set error
+                    isAlreadyIn = false;
                 }
 
                 if (isAlreadyIn) {
@@ -119,9 +124,7 @@ function InvitePageContent() {
 
         try {
             await acceptInvitation(token);
-            // TODO: The acceptInvitation route should return the projectId to redirect to
-            // For now, we'll navigate to the dashboard.
-            router.push("/dashboard");
+            router.push(itemType === 'project' ? `/projects/${itemId}` : `/courses/${itemId}`);
         } catch (err) {
             setError((err as Error).message);
             setIsLoading(false);
@@ -130,7 +133,7 @@ function InvitePageContent() {
 
     const handleSubmitToken = () => {
         if (inputToken.trim()) {
-            router.push(`/i?token=${inputToken.trim()}`);
+            window.location.href = `/i?token=${inputToken.trim()}`;
         }
     };
 
