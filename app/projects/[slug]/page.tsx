@@ -42,6 +42,7 @@ export default function ProjectPage() {
                 if (docSnap.exists()) {
                     const projectData = docSnap.data();
                     // Exclude cards from document data, as cards are managed by subcollection
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     const { cards: _, ...projectDataWithoutCards } = projectData as Project;
                     const projectWithId = { ...projectDataWithoutCards, id: docSnap.id };
 

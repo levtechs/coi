@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { getVerifiedUid } from "../../helpers";
-import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc, setDoc, addDoc, query, where, or, and, orderBy } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc, addDoc, query, where, or, and, orderBy } from "firebase/firestore";
 import { Course, CourseLesson, Project, Card } from "@/lib/types";
 
 export async function GET(

@@ -40,7 +40,7 @@ export const sendMessage = async (
             updatePhase(phase);
         }
 
-         const result = await streamChat(
+         await streamChat(
              userInput,
              recentMessages,
              attatchments,

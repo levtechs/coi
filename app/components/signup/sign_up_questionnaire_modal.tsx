@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+
 import SignUpQuestions from "@/app/components/signup/sign_up_questions";
 import { SignUpResponses } from "@/lib/types";
 import { updateUserSignUpResponses } from "@/app/views/users";

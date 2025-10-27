@@ -3,14 +3,13 @@
 import { useState } from "react";
 import { Role, Interest, HowDidYouHear, SignUpResponses } from "@/lib/types";
 import Button from "@/app/components/button";
-import { FiBookOpen, FiUser, FiSearch, FiHeart, FiBriefcase, FiAward, FiHelpCircle, FiMoreHorizontal, FiZap } from "react-icons/fi";
+import { FiBookOpen, FiUser, FiSearch, FiHeart, FiBriefcase, FiAward, FiMoreHorizontal, FiZap } from "react-icons/fi";
 
 interface SignUpQuestionsProps {
     onSubmit: (responses: SignUpResponses) => void;
-    onSkip: () => void;
 }
 
-export default function SignUpQuestions({ onSubmit, onSkip }: SignUpQuestionsProps) {
+export default function SignUpQuestions({ onSubmit }: SignUpQuestionsProps) {
     const [role, setRole] = useState<Role | "">("");
     const [howDidYouHear, setHowDidYouHear] = useState<HowDidYouHear[]>([]);
     const [interests, setInterests] = useState<Interest[]>([]);

@@ -6,7 +6,7 @@ import Button from "../../button";
 
 import FastCreatePopup from "./fast_create_popup";
 import QuizSettingsComponent from "./quiz_settings";
-import { CourseLesson, Card, NewCard, QuizSettings } from "@/lib/types";
+import { CourseLesson, NewCard, QuizSettings } from "@/lib/types";
 import { createQuiz, getQuiz } from "@/app/views/quiz";
 
 type LessonForm = Omit<CourseLesson, "id" | "courseId" | "index" | "cardsToUnlock"> & { cardsToUnlock: NewCard[] };
@@ -54,7 +54,7 @@ export default function LessonComponent({
     const [quizSettings, setQuizSettings] = useState<QuizSettings>({includeMCQ: true, includeFRQ: false});
     const [selectedCards, setSelectedCards] = useState<boolean[]>(lesson.cardsToUnlock.map(() => true));
     const [lessonQuizzes, setLessonQuizzes] = useState<{id?: string, status: 'creating' | 'created', title?: string}[]>(lesson.quizIds?.map(id => ({id, status: 'created'})) || []);
-    const [isCreatingQuiz, setIsCreatingQuiz] = useState<boolean | string>(false);
+    const [isCreatingQuiz] = useState<boolean | string>(false);
     const [quizError, setQuizError] = useState<string | null>(null);
 
     useEffect(() => {

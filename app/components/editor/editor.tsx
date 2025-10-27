@@ -15,7 +15,6 @@ interface EditorProps {
     user: { uid: string } | null;
     addCollaborator: (projectId: string, email: string) => Promise<void>;
     setTitle: (projectId: string, newTitle: string) => Promise<void>;
-    setProject: (project: Project) => void;
 }
 
 const Editor = ({
@@ -23,7 +22,6 @@ const Editor = ({
     user,
     addCollaborator,
     setTitle,
-    setProject,
 }: EditorProps) => {
     const [tab, setTab] = useState<"content" | "cards">("content"); // "content" or "cards"
 

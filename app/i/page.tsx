@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { initializeApp, getApps, getApp } from "firebase/app";
@@ -33,35 +33,7 @@ function InvitePageContent() {
     const [token, setToken] = useState<string | null>(null);
     const [inputToken, setInputToken] = useState<string>("");
 
-    // Auth state listener and initial login
-    useEffect(() => {
-        document.title = "Invite - coi";
-    }, []);
-
-    useEffect(() => {
-        const urlToken = searchParams.get("token");
-        if (urlToken) {
-            setToken(urlToken);
-            fetchProjectTitle(urlToken);
-        } else {
-            setIsLoading(false);
-        }
-
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            if (currentUser) {
-                setUser(currentUser);
-            } else {
-                // If there is no signed-in user, redirect to the login page.
-                // This is a more direct approach for a page that requires authentication.
-                const forwardUrl = `/i${urlToken ? `?token=${urlToken}` : ""}`;
-                router.push(`/login?forward=${encodeURIComponent(forwardUrl)}`);
-            }
-        });
-
-        return () => unsubscribe();
-    }, [searchParams, router]);
-
-    const fetchProjectTitle = async (tkn: string) => {
+    const fetchProjectTitle = useCallback(async (tkn: string) => {
         setIsLoading(true);
         setError(null);
         try {
@@ -90,7 +62,7 @@ function InvitePageContent() {
                                           Boolean(course.sharedWith && course.sharedWith.includes(user.uid));
                         }
                     }
-                } catch (_) {
+                } catch {
                     // If access denied (404), assume not already in; don't set error
                     isAlreadyIn = false;
                 }
@@ -105,7 +77,35 @@ function InvitePageContent() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [user, router]);
+
+    // Auth state listener and initial login
+    useEffect(() => {
+        document.title = "Invite - coi";
+    }, []);
+
+    useEffect(() => {
+        const urlToken = searchParams.get("token");
+        if (urlToken) {
+            setToken(urlToken);
+            fetchProjectTitle(urlToken);
+        } else {
+            setIsLoading(false);
+        }
+
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            if (currentUser) {
+                setUser(currentUser);
+            } else {
+                // If there is no signed-in user, redirect to the login page.
+                // This is a more direct approach for a page that requires authentication.
+                const forwardUrl = `/i${urlToken ? `?token=${urlToken}` : ""}`;
+                router.push(`/login?forward=${encodeURIComponent(forwardUrl)}`);
+            }
+        });
+
+        return () => unsubscribe();
+    }, [searchParams, router, fetchProjectTitle]);
 
     const handleAccept = async () => {
         if (!user) {

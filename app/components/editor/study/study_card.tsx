@@ -2,10 +2,11 @@
 
 import React from "react";
 import { Card } from "@/lib/types";
+import Image from "next/image";
 import MarkdownArticle from "../../md";
 
 import { FaYoutube } from "react-icons/fa";
-import { FiEdit2, FiMoreVertical, FiTrash2, FiStar } from "react-icons/fi";
+import { FiStar } from "react-icons/fi";
 
 type StudyCardProps = {
     card: Card;
@@ -27,9 +28,11 @@ export default function StudyCard({ card, onClick }: StudyCardProps) {
                 <FaYoutube className="w-6 h-6 mr-2 text-[var(--error)] flex-shrink-0" />
             ) : (
                 card.iconUrl && (
-                    <img
+                    <Image
                         src={card.iconUrl}
                         alt="Favicon"
+                        width={24}
+                        height={24}
                         className="w-6 h-6 mr-2 rounded-sm flex-shrink-0"
                         onError={(e) => {
                             (e.target as HTMLImageElement).style.display = 'none';

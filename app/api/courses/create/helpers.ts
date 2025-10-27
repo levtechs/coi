@@ -1,4 +1,4 @@
-import { Course, CourseLesson, NewCard, NewCourse, NewLesson, QuizSettings } from "@/lib/types";
+import { NewCard, NewCourse, NewLesson, QuizSettings } from "@/lib/types";
 import { llmModel, limitedGeneralConfig } from "@/app/api/gemini/config";
 import { SchemaType, ObjectSchema } from "@google/generative-ai";
 import {
