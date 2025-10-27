@@ -27,7 +27,7 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
     const [lessonProjects, setLessonProjects] = useState<{ [lessonId: string]: Project[] }>({});
     const [lessonProgresses, setLessonProgresses] = useState<{ [lessonId: string]: number }>({});
     const [courseQuizzes, setCourseQuizzes] = useState<Quiz[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [courseId, setCourseId] = useState<string>("");
     const [showInvitePanel, setShowInvitePanel] = useState(false);
     const [showLinkPanel, setShowLinkPanel] = useState(false);
@@ -107,12 +107,16 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
         }
     }, [course]);
 
-    if (authLoading || loading) {
+    if (authLoading) {
         return <LoadingComponent small={false} />;
     }
 
     if (!user) {
         return <LoginPrompt page="courses" />;
+    }
+
+    if (loading) {
+        return <LoadingComponent small={false} />;
     }
 
     if (!course) {
