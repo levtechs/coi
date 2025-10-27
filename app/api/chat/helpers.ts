@@ -425,13 +425,21 @@ export const groundingChunksToCardsAndWrite = async (
  * Keeps the first occurrence of each card ID.
  */
 const deduplicateHierarchy = (hierarchy: ContentHierarchy): ContentHierarchy => {
-    const seen = new Set<string>();
+    const seenCards = new Set<string>();
+    const seenSubcontent = new Set<string>();
     const deduplicatedChildren = hierarchy.children.filter(child => {
         if (child.type === 'card') {
-            if (seen.has(child.cardId)) {
+            if (seenCards.has(child.cardId)) {
                 return false;
             } else {
-                seen.add(child.cardId);
+                seenCards.add(child.cardId);
+                return true;
+            }
+        } else if (child.type === 'subcontent') {
+            if (seenSubcontent.has(child.content.title)) {
+                return false;
+            } else {
+                seenSubcontent.add(child.content.title);
                 return true;
             }
         }
