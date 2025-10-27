@@ -422,8 +422,9 @@ Follow these instructions carefully:
    - Use text nodes freely for explanatory content.  
    - Keep hierarchy depth reasonable. 
    - Using their conent and context, place resource cards (cards with urls to a resource) throughout the heirarchy, wherever they are most rellevant. Do not create a seperate section for resources. 
-   - Titles should be concise but descriptive.  
-   - Always preserve card IDs exactly.
+    - Titles should be concise but descriptive.
+    - Ensure section titles are unique within the hierarchy. Do not create duplicate sections with the same title.
+    - Always preserve card IDs exactly.
 
 4. **Examples**  
 
