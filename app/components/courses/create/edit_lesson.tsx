@@ -54,7 +54,7 @@ export default function LessonComponent({
     const [quizSettings, setQuizSettings] = useState<QuizSettings>({includeMCQ: true, includeFRQ: false});
     const [selectedCards, setSelectedCards] = useState<boolean[]>(lesson.cardsToUnlock.map(() => true));
     const [lessonQuizzes, setLessonQuizzes] = useState<{id?: string, status: 'creating' | 'created', title?: string}[]>(lesson.quizIds?.map(id => ({id, status: 'created'})) || []);
-    const [isCreatingQuiz] = useState<boolean | string>(false);
+    const [isCreatingQuiz, setIsCreatingQuiz] = useState<boolean | string>(false);
     const [quizError, setQuizError] = useState<string | null>(null);
 
     useEffect(() => {

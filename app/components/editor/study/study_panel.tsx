@@ -14,6 +14,16 @@ const StudyPanel = ({ cards }: { cards: Card[] }) => {
     const [currentSlot, setCurrentSlot] = useState(1);
     const [selectedCard, setSelectedCard] = useState<Card | null>(null);
 
+    const handleCardClick = (card: Card, position: number) => {
+        if (position === 0) {
+            setSelectedCard(card);
+        } else if (position === -1) {
+            setCurrentSlot(currentSlot - 1);
+        } else if (position === 1) {
+            next();
+        }
+    };
+
     const getRandomCard = useCallback(() => {
         const available = cards.filter(c => !visibleCards.some(v => v.id === c.id));
         const pool = available.length > 0 ? available : cards;

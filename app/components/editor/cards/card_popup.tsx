@@ -80,17 +80,17 @@ export default function CardPopup({ card, onClose }: CardPopupProps) {
                         card.refImageUrls && card.refImageUrls.length > 0 && (
                             <div className="grid grid-cols-2 gap-4">
                                 {card.refImageUrls.map((url, index) => (
-                                    <div key={index} className="relative w-full h-48">
-                                        <Image
-                                            src={url}
-                                            alt={`Reference image ${index + 1}`}
-                                            fill
-                                            className="rounded-lg object-scale-down"
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).style.display = 'none';
-                                            }}
-                                        />
-                                    </div>
+                                    <Image
+                                        key={index}
+                                        src={url}
+                                        alt={`Reference image ${index + 1}`}
+                                        width={200}
+                                        height={200}
+                                        className="w-full h-auto rounded-lg object-scale-down"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).style.display = 'none';
+                                        }}
+                                    />
                                 ))}
                             </div>
                         )
