@@ -129,7 +129,6 @@ export async function streamChatResponse(
         // Parse follow-up questions if enabled
         const followUpQuestions: string[] = [];
         if (preferences.followUpQuestions === "auto") {
-            console.log("Full response message before parsing follow-ups:", responseMessage);
             // Find the position of the first [FOLLOW_UP]
             const followUpIndex = responseMessage.indexOf('[FOLLOW_UP]');
             if (followUpIndex !== -1) {

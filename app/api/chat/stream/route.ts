@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
 
                     const { responseMessage, hasNewInfo, groundingChunks, followUpQuestions } = result!;
 
-                    console.log("Follow-up questions from AI:", followUpQuestions);
+
 
                     let finalResponseMessage = responseMessage;
                     // Remove citation markers
