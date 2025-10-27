@@ -723,7 +723,20 @@ export const getUserPreferences = async (
 
         if (userSnap.exists()) {
             const data = userSnap.data();
-            return data.chatPreferences || null;
+            const storedPreferences = data.chatPreferences;
+            if (storedPreferences) {
+                // Merge with defaults for any missing fields
+                const defaults: ChatPreferences = {
+                    model: "normal",
+                    thinking: "auto",
+                    googleSearch: "auto",
+                    forceCardCreation: "auto",
+                    personality: "default",
+                    followUpQuestions: "auto"
+                };
+                return { ...defaults, ...storedPreferences };
+            }
+            return null;
         }
 
         return null;
@@ -833,7 +846,7 @@ export const getChatResponse = async (message: string, messageHistory: Message[]
     };
     const body = {
         contents,
-        systemInstruction: (prevContent ? getChatResponseSystemInstruction("default", "auto") : firstChatResponseSystemInstruction),
+        systemInstruction: (prevContent ? getChatResponseSystemInstruction("default", "auto", "auto") : firstChatResponseSystemInstruction),
         generationConfig: generationConfig,
     };
 
