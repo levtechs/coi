@@ -248,12 +248,12 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                 <Button
                     color="var(--neutral-300)"
                     onClick={()=>{
-                        setModalContents({
-                            isOpen: true,
-                            type: "info",
-                        width: "xs",
-                            children: <ProjectDetailsPanel project={project} quizzes={quizzes} />
-                        })
+                         setModalContents({
+                             isOpen: true,
+                             type: "info",
+                             width: "3xl",
+                             children: <ProjectDetailsPanel project={project} quizzes={quizzes} />
+                         })
                     }}
                 >
                     Details
