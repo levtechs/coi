@@ -13,7 +13,7 @@ import { getCourse } from "../../views/courses";
 import { getCards } from "../../views/cards";
 import { getQuiz } from "../../views/quiz";
 import { createCourseInvitation } from "../../views/invite";
-import { Course, CourseLesson, Project, Quiz } from "@/lib/types";
+import { Course, Project, Quiz } from "@/lib/types";
 import LoadingComponent from "../../components/loading";
 import Button from "../../components/button";
 import Analytics from "../../components/courses/analytics/analytics";

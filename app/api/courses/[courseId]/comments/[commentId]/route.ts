@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { getVerifiedUid } from "../../../../helpers";
-import { doc, getDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, Timestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteDoc, Timestamp } from "firebase/firestore";
 import { UpdateCommentData } from "@/lib/types";
 
 export async function PUT(

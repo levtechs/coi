@@ -81,7 +81,7 @@ export async function streamChatResponse(
 
     try {
         // Get the appropriate model based on preferences
-        const selectedModel = getLLMModel(preferences.model);
+        const selectedModel = getLLMModel();
 
         // NOTE: cast to any to avoid SDK typing mismatches — adapt to your SDK's call if needed
         const streamingResp = await selectedModel.generateContentStream(requestBody);

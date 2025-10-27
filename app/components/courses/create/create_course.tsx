@@ -8,7 +8,7 @@ import Loading from "../../loading";
 import FastCreatePopup from "./fast_create_popup";
 import QuizSettingsComponent from "./quiz_settings";
 import LessonComponent from "./edit_lesson";
-import { CourseLesson, Card, NewCard, Course, NewCourse, QuizSettings, CourseCategory, NewLesson } from "@/lib/types";
+import { Card, NewCard, NewCourse, QuizSettings, CourseCategory, NewLesson } from "@/lib/types";
 import { createCourse, getCourse, updateCourse, streamGenerateCourse } from "@/app/views/courses";
 import { createQuiz, getQuiz } from "@/app/views/quiz";
 import { auth } from "@/lib/firebase";

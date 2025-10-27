@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { Card } from "@/lib/types";
+import Image from "next/image";
 import MarkdownArticle from "../../md";
 
 import { FaYoutube } from "react-icons/fa";
@@ -55,9 +56,11 @@ export default function DetailCard({ card, onClick, projectId }: DetailCardProps
                 <FaYoutube className="w-6 h-6 mr-2 text-[var(--error)] flex-shrink-0" />
             ) : (
                 card.iconUrl && (
-                    <img
+                    <Image
                         src={card.iconUrl}
                         alt="Favicon"
+                        width={24}
+                        height={24}
                         className="w-6 h-6 mr-2 rounded-sm flex-shrink-0"
                         onError={(e) => {
                             (e.target as HTMLImageElement).style.display = 'none';
