@@ -22,7 +22,7 @@ export default function LessonDetailPage() {
     const lessonIdx = parseInt(params.lessonIdx as string);
     const [lesson, setLesson] = useState<CourseLesson | null>(null);
     const [projects, setProjects] = useState<Project[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         const fetchLesson = async () => {
@@ -74,12 +74,16 @@ export default function LessonDetailPage() {
         }
     }, [lesson]);
 
-    if (authLoading || loading) {
+    if (authLoading) {
         return <LoadingComponent small={false} />;
     }
 
     if (!user) {
         return <LoginPrompt page="courses" />;
+    }
+
+    if (loading) {
+        return <LoadingComponent small={false} />;
     }
 
     if (!lesson) {
