@@ -70,8 +70,8 @@ export async function streamChatResponse(
             parts: [{text: `CHAT ATTACHMENTS: ${JSON.stringify(attachments)}`}]
         })
     }
-    // systemInstruction must be a Content object with a role
-    const systemInstruction = { role: "system", parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch, preferences.followUpQuestions).parts }
+    // systemInstruction as first content with role "user"
+    const systemInstruction = { role: "user", parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch, preferences.followUpQuestions).parts }
 
     // Include systemInstruction at the beginning of contents
     const allContents = [systemInstruction, ...contents];

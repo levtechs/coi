@@ -178,8 +178,8 @@ export const generateAndWriteNewCards = async (
 
     const systemInstruction = cardsToUnlock ? generateCardsWithUnlockingSystemInstruction : generateCardsSystemInstruction;
 
-    const systemContent = { role: "system", parts: systemInstruction.parts };
-    const allContents = [systemContent, { role: "user", parts }];
+    const systemInstructionContent = { role: "user", parts: systemInstruction.parts };
+    const allContents = [systemInstructionContent, { role: "user", parts }];
 
     const model = generationModel === "flash-lite" ? "gemini-2.5-flash-lite" : "gemini-2.5-flash";
     const config: MyConfig = {
@@ -642,8 +642,8 @@ export const generateNewHierarchyFromCards = async (
     const attachments = { oldHierarchy, previousCards, newCards };
     const parts = [{ text: JSON.stringify(attachments) }];
 
-    const systemInstruction = { role: "system", parts: generateHierarchySystemInstruction.parts };
-    const allContents = [systemInstruction, { role: "user", parts }];
+    const systemInstructionContent = { role: "user", parts: generateHierarchySystemInstruction.parts };
+    const allContents = [systemInstructionContent, { role: "user", parts }];
 
     const model = generationModel === "flash-lite" ? "gemini-2.5-flash-lite" : "gemini-2.5-flash";
     const config: MyConfig = {
