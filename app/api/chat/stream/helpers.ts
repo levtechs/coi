@@ -1,6 +1,18 @@
 
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Content, GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
+
+type MyConfig = {
+  generationConfig: GenerationConfig;
+  thinkingConfig?: ThinkingConfig;
+  tools?: Tool[];
+};
+
+type MyGenerateContentParameters = {
+  model: string;
+  contents: Content[];
+  config: MyConfig;
+};
 
 import { ContentHierarchy, Card, Message, ChatAttachment, GroundingChunk, ChatPreferences } from "@/lib/types"; // { content: string; isResponse: boolean }
 
@@ -83,18 +95,19 @@ export async function streamChatResponse(
         // Get the appropriate model based on preferences
         const selectedModel = getLLMModel(preferences.model);
 
-        // NOTE: cast to any to avoid SDK typing mismatches — adapt to your SDK's call if needed
-        const streamingResp = await (genAI as any).models.generateContentStream({
+        const params: MyGenerateContentParameters = {
             model: selectedModel,
-            contents: allContents,
+            contents: allContents as Content[],
             config,
-        });
+        };
+
+        const streamingResp = await genAI.models.generateContentStream(params);
 
         // accumulate whole returned text so we can parse JSON at the end
         let accumulated = "";
         const chatAttachments: ChatAttachment[] = [];
 
-        let thoughtSummaries: string[] = [];
+        const thoughtSummaries: string[] = [];
         let totalThoughtTime = 0;
 
         // The SDK returns an async iterable / stream; iterate and collect parts
