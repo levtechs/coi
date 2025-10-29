@@ -93,7 +93,7 @@ export async function streamChatResponse(
 
     try {
         // Get the appropriate model based on preferences
-        const selectedModel = getLLMModel(preferences.model);
+        const selectedModel = getLLMModel(preferences.model, preferences.generationModel);
 
         const params: MyGenerateContentParameters = {
             model: selectedModel,
