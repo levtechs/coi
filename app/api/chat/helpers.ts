@@ -642,7 +642,7 @@ export const generateNewHierarchyFromCards = async (
     const attachments = { oldHierarchy, previousCards, newCards };
     const parts = [{ text: JSON.stringify(attachments) }];
 
-    const systemInstruction = { role: "user", parts: generateHierarchySystemInstruction.parts };
+    const systemInstruction = { role: "system", parts: generateHierarchySystemInstruction.parts };
     const allContents = [systemInstruction, { role: "user", parts }];
 
     const model = generationModel === "flash-lite" ? "gemini-2.5-flash-lite" : "gemini-2.5-flash";
