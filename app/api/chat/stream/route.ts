@@ -11,7 +11,7 @@ import {
 import { streamChatResponse } from "./helpers";
 import { getProjectById } from "@/app/api/projects/helpers";
 import { fetchCardsFromProject, copyCardsToDb } from "@/app/api/cards/helpers";
-import { Card, ContentHierarchy, ChatAttachment, StreamPhase, GroundingChunk, ChatPreferences, ThinkData } from "@/lib/types";
+import { Card, ContentHierarchy, ChatAttachment, StreamPhase, GroundingChunk, ChatPreferences } from "@/lib/types";
 
 export async function POST(req: NextRequest) {
     const uid = await getVerifiedUid(req);

@@ -1,6 +1,6 @@
 
 
-import { GoogleGenAI, Content, GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
+import { Content, GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
 
 type MyConfig = {
   generationConfig: GenerationConfig;
