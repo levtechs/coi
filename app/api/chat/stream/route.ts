@@ -144,18 +144,23 @@ export async function POST(req: NextRequest) {
 
                         let newCards: Card[] = []
                         let unlockedCards: Card[] = []
-                        if (hasNewInfo) {
-                            const cardsToUnlock = project.courseLesson?.cardsToUnlock || [];
-                            const [resultFromChat, cardsFromGrounding] = await Promise.all([
-                                generateAndWriteNewCards(projectId, effectivePreviousCards, message, responseMessage, cardsToUnlock, preferences.generationModel),
-                                groundingChunksToCardsAndWrite(projectId, previousCards, chatAttachments.filter((a): a is GroundingChunk => 'web' in a)),
-                            ]);
+                        try {
+                            if (hasNewInfo) {
+                                const cardsToUnlock = project.courseLesson?.cardsToUnlock || [];
+                                const [resultFromChat, cardsFromGrounding] = await Promise.all([
+                                    generateAndWriteNewCards(projectId, effectivePreviousCards, message, responseMessage, cardsToUnlock, preferences.generationModel),
+                                    groundingChunksToCardsAndWrite(projectId, previousCards, chatAttachments.filter((a): a is GroundingChunk => 'web' in a)),
+                                ]);
 
-                            newCards = [...resultFromChat.newCards, ...cardsFromGrounding];
-                            unlockedCards = resultFromChat.unlockedCards;
-                        }
-                        else { // There are chatAttachments but hasNewInfo is false
-                            newCards = await groundingChunksToCardsAndWrite(projectId, previousCards, chatAttachments.filter((a): a is GroundingChunk => 'web' in a))
+                                newCards = [...resultFromChat.newCards, ...cardsFromGrounding];
+                                unlockedCards = resultFromChat.unlockedCards;
+                            }
+                            else { // There are chatAttachments but hasNewInfo is false
+                                newCards = await groundingChunksToCardsAndWrite(projectId, previousCards, chatAttachments.filter((a): a is GroundingChunk => 'web' in a))
+                            }
+                        } catch (cardErr) {
+                            console.error("Failed to generate cards:", cardErr);
+                            finalResponseMessage += "\n\n*Note: Card generation failed. Some information may not be properly organized.*";
                         }
 
                         if (unlockedCards.length > 0) {
@@ -169,8 +174,15 @@ export async function POST(req: NextRequest) {
 
                         updatePhase("generating content"); // phase 4
 
-                        const newHierarchy = await generateNewHierarchyFromCards(previousContentHierarchy, effectivePreviousCards, [...newCards, ...unlockedCards], preferences.generationModel);
-                        await writeHierarchy(projectId, newHierarchy);
+                        let newHierarchy: any = null;
+                        try {
+                            newHierarchy = await generateNewHierarchyFromCards(previousContentHierarchy, effectivePreviousCards, [...newCards, ...unlockedCards], preferences.generationModel);
+                            await writeHierarchy(projectId, newHierarchy);
+                        } catch (hierarchyErr) {
+                            console.error("Failed to generate hierarchy:", hierarchyErr);
+                            // Log error in chat by adding to responseMessage or as a separate message
+                            finalResponseMessage += "\n\n*Note: Content hierarchy generation failed. Cards were created but organization may be incomplete.*";
+                        }
 
                         const allCards = previousCards ? [...previousCards, ...newCards, ...unlockedCards] : [...newCards, ...unlockedCards];
 
