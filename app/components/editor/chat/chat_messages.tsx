@@ -61,30 +61,42 @@ const ChatMessage = ({ message, stream }: ChatMessageParams) => {
             {/* Attachments of user-sent message*/}
             {message && message.attachments && (
                 <div className={`flex items-center gap-2 overflow-auto py-1 ${message.isResponse ? "ml-4 p-2 justify-start" : "justify-end"}`}>
-                     {message.attachments.map((attachment: ChatAttachment) => {
+                     {message.attachments
+                         .sort((a, b) => {
+                             const isThinkA = 'time' in a;
+                             const isThinkB = 'time' in b;
+                             if (isThinkA && !isThinkB) return -1;
+                             if (!isThinkA && isThinkB) return 1;
+                             return 0;
+                         })
+                         .map((attachment: ChatAttachment) => {
                          // Determine display text based on type
                          let text: string | undefined;
                          let url: string | undefined;
-                         if ("web" in attachment && attachment.web) {
-                             text = attachment.web.title;
-                             url = attachment.web.uri;
-                         } else if ("title" in attachment) {
-                             text = attachment.title;
-                         } else if ("text" in attachment) {
-                             text = attachment.text;
-                         }
+                          if ("web" in attachment && attachment.web) {
+                              text = attachment.web.title;
+                              url = attachment.web.uri;
+                          } else if ("summary" in attachment) {
+                              // For thinking attachments, show title
+                              text = attachment.title;
+                          } else if ("title" in attachment) {
+                              text = attachment.title;
+                          } else if ("text" in attachment) {
+                              text = attachment.text;
+                          }
 
                          if (!text) return null;
 
-                        return (
-                            <div
-                                key={"id" in attachment ? attachment.id : crypto.randomUUID()}
-                                className={`flex items-center justify-between w-32 h-8 bg-[var(--neutral-300)] rounded flex-shrink-0 ${url ? 'cursor-pointer hover:bg-[var(--neutral-400)]' : ''}`}
-                                onClick={url ? () => window.open(url, '_blank') : undefined}
-                            >
-                                <p className="truncate ml-2 text-sm">{text}</p>
-                            </div>
-                        );
+                         return (
+                             <div
+                                 key={"id" in attachment ? attachment.id : crypto.randomUUID()}
+                                 className={`flex items-center justify-between ${'time' in attachment ? 'px-2 w-auto min-w-32 max-w-full' : 'w-32'} h-8 bg-[var(--neutral-300)] rounded flex-shrink-0 ${url ? 'cursor-pointer hover:bg-[var(--neutral-400)]' : ''}`}
+                                 onClick={url ? () => window.open(url, '_blank') : undefined}
+                                 title={'summary' in attachment ? attachment.summary : undefined}
+                             >
+                                 <p className={`text-sm ${'time' in attachment ? '' : 'ml-2 truncate'}`}>{text}</p>
+                             </div>
+                         );
                      })}
                 </div>
             )}

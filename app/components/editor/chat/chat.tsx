@@ -43,6 +43,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, set
         forceCardCreation: "auto",
         personality: "default",
         followUpQuestions: "auto",
+        generationModel: "flash",
     });
 
     const messagesEndRef = useRef<HTMLDivElement | null>(null);

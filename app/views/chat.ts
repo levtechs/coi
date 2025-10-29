@@ -3,7 +3,7 @@
 import { auth } from "@/lib/firebase";
 import { apiFetch } from "./helpers"; // adjust path if needed
 
-import { Message, Card, StreamPhase, GroundingChunk, ContentHierarchy, ChatAttachment, ChatPreferences } from "@/lib/types";
+import { Message, Card, StreamPhase, ContentHierarchy, ChatAttachment, ChatPreferences } from "@/lib/types";
 
 /**
  * Streams a chat response from the API.
@@ -24,7 +24,7 @@ export async function streamChat(
     setNewCards: (newCards: Card[]) => void,
     setFollowUpQuestions: (questions: string[]) => void,
     onToken: (token: string) => void,
-): Promise<{ responseMessage: string; groundingChunks: GroundingChunk[]; newHierarchy: ContentHierarchy | null; allCards: Card[] | null; followUpQuestions: string[] }> {
+): Promise<{ responseMessage: string; chatAttachments: ChatAttachment[]; newHierarchy: ContentHierarchy | null; allCards: Card[] | null; followUpQuestions: string[] }> {
     const user = auth.currentUser;
     if (!user) throw new Error("User not authenticated");
 
@@ -93,7 +93,7 @@ export async function streamChat(
                         setFinalResponseMessage({
                             content: obj.responseMessage,
                             isResponse: true,
-                            attachments: obj.groundingChunks ?? null,
+                            attachments: obj.chatAttachments ?? null,
                         } as Message);
                     }
                     if (obj.newCards) {
@@ -114,12 +114,12 @@ export async function streamChat(
                     }
                     
                      return {
-                         responseMessage: obj.responseMessage,
-                         groundingChunks: obj.groundingChunks ?? [],
-                         newHierarchy: obj.newHierarchy ?? null,
-                         allCards: obj.allCards ?? null,
-                         followUpQuestions: obj.followUpQuestions ?? [],
-                     };
+                          responseMessage: obj.responseMessage,
+                          chatAttachments: obj.chatAttachments ?? [],
+                          newHierarchy: obj.newHierarchy ?? null,
+                          allCards: obj.allCards ?? null,
+                          followUpQuestions: obj.followUpQuestions ?? [],
+                      };
                 }
             } catch (err) {
                 console.warn("Failed to parse JSON update:", jsonStr, err);

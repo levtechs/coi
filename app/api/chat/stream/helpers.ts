@@ -1,11 +1,17 @@
 
 
-import {
-    GenerateContentRequest,
-} from "@google/generative-ai";
+import { Content, GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
 
-type ExtendedGenerateContentRequest = GenerateContentRequest & {
-    tools?: { googleSearch: Record<string, never> }[];
+type MyConfig = {
+  generationConfig: GenerationConfig;
+  thinkingConfig?: ThinkingConfig;
+  tools?: Tool[];
+};
+
+type MyGenerateContentParameters = {
+  model: string;
+  contents: Content[];
+  config: MyConfig;
 };
 
 import { ContentHierarchy, Card, Message, ChatAttachment, GroundingChunk, ChatPreferences } from "@/lib/types"; // { content: string; isResponse: boolean }
@@ -15,6 +21,7 @@ import { getStringFromHierarchyAndCards } from "../helpers"
 import {
     getLLMModel,
     getGenerationConfig,
+    genAI,
 } from "@/app/api/gemini/config";
 import {
     getChatResponseSystemInstruction,
@@ -31,8 +38,9 @@ export async function streamChatResponse(
     previousContentHierarchy: ContentHierarchy | null,
     attachments: null | ChatAttachment[],
     preferences: ChatPreferences,
+    startTime: number,
     onToken: (token: string) => Promise<void> | void
-): Promise<{ responseMessage: string; hasNewInfo: boolean; groundingChunks: GroundingChunk[]; followUpQuestions: string[] } | null> {
+): Promise<{ responseMessage: string; hasNewInfo: boolean; chatAttachments: ChatAttachment[]; followUpQuestions: string[] } | null> {
     if (!message || message.trim() === "") throw new Error("Message is required.");
 
     // Build contents array as Gemini expects: each content has role and parts (parts are objects with text)
@@ -65,16 +73,20 @@ export async function streamChatResponse(
     // systemInstruction must be a Content object with a role
     const systemInstruction = { role: "system", parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch, preferences.followUpQuestions).parts }
 
+    // Include systemInstruction at the beginning of contents
+    const allContents = [systemInstruction, ...contents];
 
     // Include Google Search tool based on preferences (always for force/auto, never for disable)
     const shouldUseSearch = preferences.googleSearch !== "disable";
 
-    const requestBody: ExtendedGenerateContentRequest = {
-        contents,
-        systemInstruction,
+    const config = {
         generationConfig: {
             ...getGenerationConfig(preferences.model),
             responseMimeType: "text/plain",
+        },
+        thinkingConfig: {
+            thinkingBudget: preferences.thinking === "off" ? 0 : (preferences.thinking === "force" ? 16384 : -1),
+            includeThoughts: true,
         },
         ...(shouldUseSearch && { tools: [{ googleSearch: {} }] }),
     };
@@ -83,24 +95,44 @@ export async function streamChatResponse(
         // Get the appropriate model based on preferences
         const selectedModel = getLLMModel(preferences.model);
 
-        // NOTE: cast to any to avoid SDK typing mismatches — adapt to your SDK's call if needed
-        const streamingResp = await selectedModel.generateContentStream(requestBody);
+        const params: MyGenerateContentParameters = {
+            model: selectedModel,
+            contents: allContents as Content[],
+            config,
+        };
+
+        const streamingResp = await genAI.models.generateContentStream(params);
 
         // accumulate whole returned text so we can parse JSON at the end
         let accumulated = "";
-        const groundingChunks: GroundingChunk[] = [];
+        const chatAttachments: ChatAttachment[] = [];
+
+        const thoughtSummaries: string[] = [];
+        let totalThoughtTime = 0;
 
         // The SDK returns an async iterable / stream; iterate and collect parts
-        for await (const chunk of streamingResp.stream) {
-            // chunk shape varies by SDK; this attempts to read the usual shape
-            const partText =
-                chunk?.candidates?.[0]?.content?.parts?.[0]?.text ||
-                chunk?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") || "";
+        for await (const chunk of streamingResp) {
+            const parts = chunk?.candidates?.[0]?.content?.parts || [];
+            let partText = "";
 
-            // Collect grounding chunks
+            for (const part of parts) {
+                if (part.text) {
+                    if (part.thought) {
+                        thoughtSummaries.push(part.text);
+                        const timeMatch = part.text.match(/Thought for (\d+) secs/);
+                        if (timeMatch) {
+                            totalThoughtTime += parseInt(timeMatch[1]);
+                        }
+                    } else {
+                        partText += part.text;
+                    }
+                }
+            }
+
+            // Collect grounding chunks as chat attachments
             const metadata = (chunk as { candidates?: { groundingMetadata?: { groundingChunks?: GroundingChunk[] } }[] })?.candidates?.[0]?.groundingMetadata;
             if (metadata?.groundingChunks) {
-                groundingChunks.push(...metadata.groundingChunks);
+                chatAttachments.push(...metadata.groundingChunks);
             }
 
             if (partText) {
@@ -111,6 +143,12 @@ export async function streamChatResponse(
                     await onToken(cleanToken);
                 }
             }
+        }
+
+        // Add single thinking attachment if any thoughts
+        if (thoughtSummaries.length > 0) {
+            const combinedSummary = thoughtSummaries.join('\n\n');
+            chatAttachments.push({ title: `Thought for ${totalThoughtTime} seconds`, summary: combinedSummary, time: totalThoughtTime });
         }
 
         // Detect hasNewInfo from token, but override based on preferences
@@ -154,7 +192,7 @@ export async function streamChatResponse(
         return {
             responseMessage,
             hasNewInfo,
-            groundingChunks,
+            chatAttachments,
             followUpQuestions,
         };
     } catch (err) {
