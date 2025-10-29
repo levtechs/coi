@@ -4,9 +4,10 @@ import { doc, getDoc, updateDoc, setDoc, addDoc, collection, serverTimestamp } f
 import { Message, Card, NewCard, ContentNode, ContentHierarchy, ChatAttachment, GroundingChunk, ChatPreferences} from "@/lib/types"; // { content: string; isResponse: boolean }
 import { Contents } from "./types";
 
-import { 
-    llmModel,
-    defaultGeneralConfig, 
+import {
+    genAI,
+    getLLMModel,
+    defaultGeneralConfig,
     limitedGeneralConfig,
 } from "../gemini/config";
 import {
@@ -156,7 +157,8 @@ export const generateAndWriteNewCards = async (
     oldCards: Card[] | null,
     userMessage: string,
     responseMessage: string,
-    cardsToUnlock?: Card[]
+    cardsToUnlock?: Card[],
+    generationModel?: "flash" | "flash-lite"
 ): Promise<{ newCards: Card[]; unlockedCards: Card[] }> => {
 
     const attachments = { oldCards, userMessage, responseMessage, ...(cardsToUnlock && { cardsToUnlock }) };
@@ -164,15 +166,11 @@ export const generateAndWriteNewCards = async (
 
     const systemInstruction = cardsToUnlock ? generateCardsWithUnlockingSystemInstruction : generateCardsSystemInstruction;
 
-    const requestBody: GenerateContentRequest = {
-        contents: [{
-            role: "user",
-            parts,
-        }],
-        systemInstruction: {
-            role: "system",
-            parts: systemInstruction.parts,
-        },
+    const systemContent = { role: "user", parts: systemInstruction.parts };
+    const allContents = [systemContent, { role: "user", parts }];
+
+    const model = generationModel === "flash-lite" ? "gemini-2.5-flash-lite" : "gemini-2.5-flash";
+    const config = {
         generationConfig: {
             responseMimeType: "application/json",
         },
@@ -181,14 +179,22 @@ export const generateAndWriteNewCards = async (
     // Call Gemini, fallback to streaming on 503
     let jsonString: string;
     try {
-        const result = await llmModel.generateContent(requestBody);
-        jsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const result = await (genAI as any).models.generateContent({
+            model,
+            contents: allContents,
+            config,
+        });
+        jsonString = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
     } catch (err) {
         const error = err as { status?: number };
         if (error.status === 503) {
-            const streamingResp = await llmModel.generateContentStream(requestBody);
+            const streamingResp = await (genAI as any).models.generateContentStream({
+                model,
+                contents: allContents,
+                config,
+            });
             let accumulated = "";
-            for await (const chunk of streamingResp.stream) {
+            for await (const chunk of streamingResp) {
                 const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
                 accumulated += partText;
             }
@@ -202,7 +208,8 @@ export const generateAndWriteNewCards = async (
     let unlockedCardIds: string[] = [];
 
     try {
-        const parsed = JSON.parse(jsonString!);
+        jsonString = jsonString.replace(/```json\s*/, '').replace(/\s*```$/, '').trim();
+        const parsed = JSON.parse(jsonString);
         if (cardsToUnlock) {
             // Expect { newCards, unlockedCardIds }
             newCardsRaw = parsed.newCards || [];
@@ -427,6 +434,7 @@ export const groundingChunksToCardsAndWrite = async (
 const deduplicateHierarchy = (hierarchy: ContentHierarchy): ContentHierarchy => {
     const seenCards = new Set<string>();
     const seenSubcontent = new Set<string>();
+    const seenText = new Set<string>();
     const deduplicatedChildren = hierarchy.children.filter(child => {
         if (child.type === 'card') {
             if (seenCards.has(child.cardId)) {
@@ -440,6 +448,13 @@ const deduplicateHierarchy = (hierarchy: ContentHierarchy): ContentHierarchy => 
                 return false;
             } else {
                 seenSubcontent.add(child.content.title);
+                return true;
+            }
+        } else if (child.type === 'text') {
+            if (seenText.has(child.text)) {
+                return false;
+            } else {
+                seenText.add(child.text);
                 return true;
             }
         }
@@ -472,6 +487,7 @@ const parseHierarchyResponse = (jsonString: string, oldHierarchy: ContentHierarc
     try {
         let hierarchy: ContentHierarchy | null = null;
 
+        jsonString = jsonString.replace(/```json\s*/, '').replace(/\s*```$/, '').trim();
         const responseJSON = JSON.parse(jsonString);
 
         if (responseJSON.type === "new") {
@@ -611,16 +627,16 @@ export const generateNewHierarchyFromCards = async (
     oldHierarchy: ContentHierarchy | null,
     previousCards: Card[],
     newCards: Card[],
+    generationModel?: "flash" | "flash-lite"
 ): Promise<ContentHierarchy> => {
     const attachments = { oldHierarchy, previousCards, newCards };
     const parts = [{ text: JSON.stringify(attachments) }];
 
-    const requestBody: GenerateContentRequest = {
-        contents: [{ role: "user", parts }],
-        systemInstruction: {
-            role: "system",
-            parts: generateHierarchySystemInstruction.parts,
-        },
+    const systemInstruction = { role: "user", parts: generateHierarchySystemInstruction.parts };
+    const allContents = [systemInstruction, { role: "user", parts }];
+
+    const model = generationModel === "flash-lite" ? "gemini-2.5-flash-lite" : "gemini-2.5-flash";
+    const config = {
         generationConfig: {
             responseMimeType: "application/json",
         },
@@ -628,14 +644,22 @@ export const generateNewHierarchyFromCards = async (
 
     let jsonString: string;
     try {
-        const result = await llmModel.generateContent(requestBody);
-        jsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const result = await (genAI as any).models.generateContent({
+            model,
+            contents: allContents,
+            config,
+        });
+        jsonString = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
     } catch (err) {
         const error = err as { status?: number };
         if (error.status === 503) {
-            const streamingResp = await llmModel.generateContentStream(requestBody);
+            const streamingResp = await (genAI as any).models.generateContentStream({
+                model,
+                contents: allContents,
+                config,
+            });
             let accumulated = "";
-            for await (const chunk of streamingResp.stream) {
+            for await (const chunk of streamingResp) {
                 const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
                 accumulated += partText;
             }
@@ -657,7 +681,7 @@ export const writeChatPairToDb = async (
     result: string,
     projectId: string,
     uid: string,
-    groundingChunks?: GroundingChunk[]
+    responseAttachments?: ChatAttachment[]
 ) => {
     try {
         const chatRef = doc(db, "projects", projectId, "chats", uid);
@@ -679,7 +703,7 @@ export const writeChatPairToDb = async (
             {
                 content: result,
                 isResponse: true,
-                ...(groundingChunks && groundingChunks.length > 0 ? { attachments: groundingChunks } : {})
+                ...(responseAttachments && responseAttachments.length > 0 ? { attachments: responseAttachments } : {})
             }
         ];
 
@@ -740,7 +764,8 @@ export const getUserPreferences = async (
                     googleSearch: "auto",
                     forceCardCreation: "auto",
                     personality: "default",
-                    followUpQuestions: "auto"
+                    followUpQuestions: "auto",
+                    generationModel: "flash-lite"
                 };
                 return { ...defaults, ...storedPreferences };
             }
