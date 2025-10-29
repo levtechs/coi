@@ -6,10 +6,23 @@ import { Contents } from "./types";
 
 import {
     genAI,
-    getLLMModel,
     defaultGeneralConfig,
     limitedGeneralConfig,
 } from "../gemini/config";
+
+import { Content, GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
+
+type MyConfig = {
+  generationConfig: GenerationConfig;
+  thinkingConfig?: ThinkingConfig;
+  tools?: Tool[];
+};
+
+type MyGenerateContentParameters = {
+  model: string;
+  contents: Content[];
+  config: MyConfig;
+};
 import {
     getChatResponseSystemInstruction,
     generateCardsSystemInstruction,
@@ -21,7 +34,6 @@ import {
     updateContentSystemInstruction,
 } from "./prompts"
 import { callGeminiApi } from "../gemini/helpers";
-import { GenerateContentRequest } from "@google/generative-ai";
 import { writeCardsToDb } from "../cards/helpers";
 import { getYoutubeData } from "../youtube/helpers";
 
@@ -170,29 +182,27 @@ export const generateAndWriteNewCards = async (
     const allContents = [systemContent, { role: "user", parts }];
 
     const model = generationModel === "flash-lite" ? "gemini-2.5-flash-lite" : "gemini-2.5-flash";
-    const config = {
+    const config: MyConfig = {
         generationConfig: {
             responseMimeType: "application/json",
         },
     };
 
+    const params: MyGenerateContentParameters = {
+        model,
+        contents: allContents as Content[],
+        config,
+    };
+
     // Call Gemini, fallback to streaming on 503
     let jsonString: string;
     try {
-        const result = await (genAI as any).models.generateContent({
-            model,
-            contents: allContents,
-            config,
-        });
+        const result = await genAI.models.generateContent(params);
         jsonString = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
     } catch (err) {
         const error = err as { status?: number };
         if (error.status === 503) {
-            const streamingResp = await (genAI as any).models.generateContentStream({
-                model,
-                contents: allContents,
-                config,
-            });
+            const streamingResp = await genAI.models.generateContentStream(params);
             let accumulated = "";
             for await (const chunk of streamingResp) {
                 const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -636,28 +646,26 @@ export const generateNewHierarchyFromCards = async (
     const allContents = [systemInstruction, { role: "user", parts }];
 
     const model = generationModel === "flash-lite" ? "gemini-2.5-flash-lite" : "gemini-2.5-flash";
-    const config = {
+    const config: MyConfig = {
         generationConfig: {
             responseMimeType: "application/json",
         },
     };
 
+    const params: MyGenerateContentParameters = {
+        model,
+        contents: allContents as Content[],
+        config,
+    };
+
     let jsonString: string;
     try {
-        const result = await (genAI as any).models.generateContent({
-            model,
-            contents: allContents,
-            config,
-        });
+        const result = await genAI.models.generateContent(params);
         jsonString = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
     } catch (err) {
         const error = err as { status?: number };
         if (error.status === 503) {
-            const streamingResp = await (genAI as any).models.generateContentStream({
-                model,
-                contents: allContents,
-                config,
-            });
+            const streamingResp = await genAI.models.generateContentStream(params);
             let accumulated = "";
             for await (const chunk of streamingResp) {
                 const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
