@@ -91,7 +91,7 @@ export default function MarkdownArticle({ markdown, singleLine = false }: Props)
         >
             <ReactMarkdown
                 remarkPlugins={[remarkMath]}
-                rehypePlugins={[rehypeKatex, rehypeRaw]}
+                rehypePlugins={[rehypeRaw, rehypeKatex]}
                 components={{
                     h1: ({ ...props }) => (
                         <h1
