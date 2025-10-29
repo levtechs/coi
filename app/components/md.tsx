@@ -5,18 +5,47 @@ import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
-import "katex/dist/katex.min.css";
+
 
 /**
- * Normalize display math $$ ... $$ to be on their own lines.
+ * Normalize math delimiters in Markdown for remark-math + rehype-katex.
+ * - Converts \( ... \) → $...$
+ * - Converts \[ ... \] → $$...$$
+ * - Normalizes $$...$$ blocks to be on their own lines
+ * - Optionally converts (math) patterns into $math$
  */
 export function normalizeMathMarkdown(md: string) {
+    // Normalize newlines
     md = md.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+
+    // Convert LaTeX-style math delimiters to remark-math format
+    // Display math: \[ ... \] → $$ ... $$
+    md = md.replace(/\\\[(.+?)\\\]/gs, (_, inner) => {
+        return `\n\n$$\n${inner.trim()}\n$$\n\n`;
+    });
+
+    // Inline math: \( ... \) → $ ... $
+    md = md.replace(/\\\((.+?)\\\)/gs, (_, inner) => {
+        return `$${inner.trim()}$`;
+    });
+
+    // Normalize display math $$ ... $$ blocks to have line spacing
     md = md.replace(/\$\$([\s\S]*?)\$\$/g, (_, inner) => {
         return `\n\n$$\n${inner.trim()}\n$$\n\n`;
     });
+
+    // Convert (math) → $math$ for inline math heuristics
+    md = md.replace(/\(\s*([^()]+?)\s*\)/g, (match, inner) => {
+        // Detect math-like content (operators, symbols, LaTeX commands)
+        if (/[\+\-\*\/=\^\{\}\[\]\|\\]/.test(inner)) {
+            return `$${inner.trim()}$`;
+        }
+        return match; // Leave non-math parentheses alone
+    });
+
     return md;
 }
+
 
 /**
  * Sanity check for unmatched delimiters
@@ -56,13 +85,13 @@ export default function MarkdownArticle({ markdown, singleLine = false }: Props)
 
     return (
         <div
-            className={`prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-[var(--foreground)] prose-p:text-[var(--foreground)] ${
+            className={`max-w-none ${
                 singleLine ? "m-0 p-0" : ""
             }`}
         >
             <ReactMarkdown
                 remarkPlugins={[remarkMath]}
-                rehypePlugins={[rehypeRaw, rehypeKatex]}
+                rehypePlugins={[rehypeKatex, rehypeRaw]}
                 components={{
                     h1: ({ ...props }) => (
                         <h1

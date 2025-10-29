@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@import "katex/dist/katex.min.css";
+
 /* Base variables (Light mode by default) */
 :root {
   /* Background & Text */
