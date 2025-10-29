@@ -178,7 +178,7 @@ export const generateAndWriteNewCards = async (
 
     const systemInstruction = cardsToUnlock ? generateCardsWithUnlockingSystemInstruction : generateCardsSystemInstruction;
 
-    const systemContent = { role: "user", parts: systemInstruction.parts };
+    const systemContent = { role: "system", parts: systemInstruction.parts };
     const allContents = [systemContent, { role: "user", parts }];
 
     const model = generationModel === "flash-lite" ? "gemini-2.5-flash-lite" : "gemini-2.5-flash";
