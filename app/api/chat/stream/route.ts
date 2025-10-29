@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
 
                         updatePhase("generating content"); // phase 4
 
-                        let newHierarchy: any = null;
+                        let newHierarchy: ContentHierarchy | null = null;
                         try {
                             newHierarchy = await generateNewHierarchyFromCards(previousContentHierarchy, effectivePreviousCards, [...newCards, ...unlockedCards], preferences.generationModel);
                             await writeHierarchy(projectId, newHierarchy);
