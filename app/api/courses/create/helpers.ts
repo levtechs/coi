@@ -1,5 +1,5 @@
-import { Course, CourseLesson, NewCard, NewCourse, NewLesson, QuizSettings } from "@/lib/types";
-import { llmModel, limitedGeneralConfig } from "@/app/api/gemini/config";
+import { NewCard, NewCourse, NewLesson, QuizSettings } from "@/lib/types";
+import { llmModel, limitedGeneralConfig, genAI } from "@/app/api/gemini/config";
 import { SchemaType, ObjectSchema } from "@google/generative-ai";
 import {
     createLessonFromTextSystemInstruction,
@@ -84,6 +84,7 @@ export const createCourseFromText = async (text: string, enqueue?: (data: string
 
     try {
         const requestBody = {
+            model: llmModel,
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             systemInstruction: { role: "system", parts: createLessonDescriptionsFromTextSystemInstruction.parts },
             generationConfig: {
@@ -95,14 +96,14 @@ export const createCourseFromText = async (text: string, enqueue?: (data: string
 
         let jsonString: string;
         try {
-            const result = await llmModel.generateContent(requestBody);
-            jsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            const result = await genAI.models.generateContent(requestBody);
+            jsonString = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
         } catch (err) {
             const error = err as { status?: number };
             if (error.status === 503) {
-                const streamingResp = await llmModel.generateContentStream(requestBody);
+                const streamingResp = await genAI.models.generateContentStream(requestBody);
                 let accumulated = "";
-                for await (const chunk of streamingResp.stream) {
+                for await (const chunk of streamingResp) {
                     const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
                     accumulated += partText;
                 }
@@ -152,6 +153,7 @@ export const createCourseFromText = async (text: string, enqueue?: (data: string
                     });
 
                     const lessonRequestBody = {
+                        model: llmModel,
                         contents: [{ role: "user", parts: [{ text: lessonPrompt }] }],
                         systemInstruction: { role: "system", parts: createLessonFromDescriptionSystemInstruction.parts },
                         generationConfig: {
@@ -163,14 +165,14 @@ export const createCourseFromText = async (text: string, enqueue?: (data: string
 
                     let lessonJsonString: string;
                     try {
-                        const result = await llmModel.generateContent(lessonRequestBody);
-                        lessonJsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                        const result = await genAI.models.generateContent(lessonRequestBody);
+                        lessonJsonString = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
                     } catch (err) {
                         const error = err as { status?: number };
                         if (error.status === 503) {
-                            const streamingResp = await llmModel.generateContentStream(lessonRequestBody);
+                            const streamingResp = await genAI.models.generateContentStream(lessonRequestBody);
                             let accumulated = "";
-                            for await (const chunk of streamingResp.stream) {
+                            for await (const chunk of streamingResp) {
                                 const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
                                 accumulated += partText;
                             }
@@ -260,6 +262,7 @@ export const createLessonFromText = async (text: string): Promise<NewLesson> => 
 
     try {
         const requestBody = {
+            model: llmModel,
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             systemInstruction: { role: "system", parts: createLessonFromTextSystemInstruction.parts },
             generationConfig: {
@@ -271,14 +274,14 @@ export const createLessonFromText = async (text: string): Promise<NewLesson> => 
 
         let jsonString: string;
         try {
-            const result = await llmModel.generateContent(requestBody);
-            jsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            const result = await genAI.models.generateContent(requestBody);
+            jsonString = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
         } catch (err) {
             const error = err as { status?: number };
             if (error.status === 503) {
-                const streamingResp = await llmModel.generateContentStream(requestBody);
+                const streamingResp = await genAI.models.generateContentStream(requestBody);
                 let accumulated = "";
-                for await (const chunk of streamingResp.stream) {
+                for await (const chunk of streamingResp) {
                     const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
                     accumulated += partText;
                 }

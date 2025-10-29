@@ -1,7 +1,7 @@
 import { db } from "@/lib/firebase";
 import { collection, addDoc, doc, updateDoc, arrayUnion } from "firebase/firestore";
 
-import { defaultGeneralConfig, llmModel } from "../gemini/config";
+import { defaultGeneralConfig, llmModel, genAI } from "../gemini/config";
 import { createQuizFromCardsSystemInstruction } from "./prompts";
 
 import { NewCard, QuizSettings } from "@/lib/types";
@@ -63,6 +63,7 @@ export const createQuizFromCards = async (cards: NewCard[], quizSettings: QuizSe
     };
 
     const body = {
+        model: llmModel,
         contents,
         systemInstruction: { role: "system", parts: createQuizFromCardsSystemInstruction(quizSettings).parts },
         generationConfig: generationConfig,
@@ -71,14 +72,14 @@ export const createQuizFromCards = async (cards: NewCard[], quizSettings: QuizSe
     try {
         let jsonString: string;
         try {
-            const result = await llmModel.generateContent(body);
-            jsonString = result?.response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            const result = await genAI.models.generateContent(body);
+            jsonString = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
         } catch (err) {
             const error = err as { status?: number };
             if (error.status === 503) {
-                const streamingResp = await llmModel.generateContentStream(body);
+                const streamingResp = await genAI.models.generateContentStream(body);
                 let accumulated = "";
-                for await (const chunk of streamingResp.stream) {
+                for await (const chunk of streamingResp) {
                     const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
                     accumulated += partText;
                 }
