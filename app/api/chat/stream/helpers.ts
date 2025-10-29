@@ -71,7 +71,7 @@ export async function streamChatResponse(
         })
     }
     // systemInstruction must be a Content object with a role
-    const systemInstruction = { role: "user", parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch, preferences.followUpQuestions).parts }
+    const systemInstruction = { role: "system", parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch, preferences.followUpQuestions).parts }
 
     // Include systemInstruction at the beginning of contents
     const allContents = [systemInstruction, ...contents];
