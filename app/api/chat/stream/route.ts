@@ -57,10 +57,10 @@ export async function POST(req: NextRequest) {
                         controller.enqueue(encoder.encode('\u001F' + JSON.stringify({ phase: newPhase }) + '\u001E'));
                     }
 
-                    const sendUpdate = (key: string, value: string, groundingChunks?: GroundingChunk[]) => {
+                    const sendUpdate = (key: string, value: string, chatAttachments?: ChatAttachment[]) => {
                         const updateObj: { type: "update"; [key: string]: unknown } = { type: "update" };
                         updateObj[key] = value;
-                        if (groundingChunks) updateObj.groundingChunks = groundingChunks;
+                        if (chatAttachments) updateObj.chatAttachments = chatAttachments;
                         controller.enqueue(
                             encoder.encode('\u001F' + JSON.stringify(updateObj) + '\u001E')
                         );
@@ -69,6 +69,8 @@ export async function POST(req: NextRequest) {
                     updatePhase("starting");
 
                     let followUpDetected = false;
+                    const startTime = Date.now();
+
                     const result = await streamChatResponse(
                         message,
                         messageHistory,
@@ -76,6 +78,7 @@ export async function POST(req: NextRequest) {
                         previousContentHierarchy,
                         attachments,
                         preferences,
+                        startTime,
                         (token: string) => {
                             if (phase === "starting") updatePhase("streaming");
 
@@ -100,18 +103,16 @@ export async function POST(req: NextRequest) {
                         }
                     );
 
+                    const { responseMessage, hasNewInfo, chatAttachments, followUpQuestions } = result!;
+
                     updatePhase("processing"); // phase 2
-
-                    const { responseMessage, hasNewInfo, groundingChunks, followUpQuestions } = result!;
-
-
 
                     let finalResponseMessage = responseMessage;
                     // Remove citation markers
                     finalResponseMessage = finalResponseMessage.replace(/\[cite:[^\]]*\]/g, '');
 
                     //controller.enqueue(encoder.encode(JSON.stringify({ type: "update", responseMessage }) + "\n"));
-                    sendUpdate("responseMessage", finalResponseMessage, groundingChunks);
+                    sendUpdate("responseMessage", finalResponseMessage, chatAttachments);
 
                     // Send follow-up questions immediately after streaming
                     if (followUpQuestions.length > 0) {
@@ -119,26 +120,26 @@ export async function POST(req: NextRequest) {
                     }
 
                     // Save the chat pair
-                    await writeChatPairToDb(message, attachments, finalResponseMessage, projectId, uid, groundingChunks);
+                    await writeChatPairToDb(message, attachments, finalResponseMessage, projectId, uid, chatAttachments);
 
                     // Generate/update content only if needed
                     let finalObj: {
                         type: "final";
                         responseMessage: string;
-                        groundingChunks: GroundingChunk[];
+                        chatAttachments: ChatAttachment[];
                         newHierarchy: ContentHierarchy | null;
                         allCards: Card[] | null;
                         followUpQuestions: string[];
                     } = {
                         type: "final",
                         responseMessage: finalResponseMessage,
-                        groundingChunks,
+                        chatAttachments,
                         newHierarchy: null,
                         allCards: null,
                         followUpQuestions
                     };
 
-                    if (hasNewInfo || groundingChunks.length>0) {
+                    if (hasNewInfo || chatAttachments.filter(a => !('time' in a)).length > 0) {
                         updatePhase("generating cards"); // phase 3
 
                         let newCards: Card[] = []
@@ -146,15 +147,15 @@ export async function POST(req: NextRequest) {
                         if (hasNewInfo) {
                             const cardsToUnlock = project.courseLesson?.cardsToUnlock || [];
                             const [resultFromChat, cardsFromGrounding] = await Promise.all([
-                                generateAndWriteNewCards(projectId, effectivePreviousCards, message, responseMessage, cardsToUnlock),
-                                groundingChunksToCardsAndWrite(projectId, previousCards, groundingChunks),
+                                generateAndWriteNewCards(projectId, effectivePreviousCards, message, responseMessage, cardsToUnlock, preferences.generationModel),
+                                groundingChunksToCardsAndWrite(projectId, previousCards, chatAttachments.filter((a): a is GroundingChunk => 'web' in a)),
                             ]);
 
                             newCards = [...resultFromChat.newCards, ...cardsFromGrounding];
                             unlockedCards = resultFromChat.unlockedCards;
                         }
-                        else { // There are groundingChunks but hasNewInfo is false
-                            newCards = await groundingChunksToCardsAndWrite(projectId, previousCards, groundingChunks)
+                        else { // There are chatAttachments but hasNewInfo is false
+                            newCards = await groundingChunksToCardsAndWrite(projectId, previousCards, chatAttachments.filter((a): a is GroundingChunk => 'web' in a))
                         }
 
                         if (unlockedCards.length > 0) {
@@ -162,11 +163,13 @@ export async function POST(req: NextRequest) {
                             await copyCardsToDb(projectId, unlockedCards);
                         }
 
-                        sendUpdate("newCards", JSON.stringify([...newCards, ...unlockedCards]));
+                        if (newCards.length > 0 || unlockedCards.length > 0) {
+                            sendUpdate("newCards", JSON.stringify([...newCards, ...unlockedCards]));
+                        }
 
                         updatePhase("generating content"); // phase 4
 
-                        const newHierarchy = await generateNewHierarchyFromCards(previousContentHierarchy, effectivePreviousCards, [...newCards, ...unlockedCards]);
+                        const newHierarchy = await generateNewHierarchyFromCards(previousContentHierarchy, effectivePreviousCards, [...newCards, ...unlockedCards], preferences.generationModel);
                         await writeHierarchy(projectId, newHierarchy);
 
                         const allCards = previousCards ? [...previousCards, ...newCards, ...unlockedCards] : [...newCards, ...unlockedCards];
@@ -174,7 +177,7 @@ export async function POST(req: NextRequest) {
                         finalObj = {
                             type: "final",
                             responseMessage: finalResponseMessage,
-                            groundingChunks,
+                            chatAttachments,
                             newHierarchy,
                             allCards,
                             followUpQuestions

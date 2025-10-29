@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 export const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent";
 
@@ -14,15 +14,15 @@ export const defaultGeneralConfig = {
 
 export const limitedGeneralConfig = {
     temperature: 0.7,
-    maxOutputTokens: 4096
+    maxOutputTokens: 8192
 }
 
 
-export const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+export const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 // Model selection based on preferences
 export const getLLMModel = (modelPreference: "normal" | "fast") => {
-    return genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    return "gemini-2.5-flash";
 };
 
 // Get generation config based on model preference
@@ -30,7 +30,7 @@ export const getGenerationConfig = (modelPreference: "normal" | "fast") => {
     if (modelPreference === "fast") {
         return {
             temperature: 0.3, // Lower temperature for faster, more focused responses
-            maxOutputTokens: 2048, // Shorter responses for speed
+            maxOutputTokens: 4096, // Shorter responses for speed
         };
     }
     return limitedGeneralConfig; // Default config for normal

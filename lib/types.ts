@@ -88,7 +88,13 @@ export interface Message {
     isResponse: boolean;
 }
 
-export type ChatAttachment = Card | ContentNode | ContentHierarchy | GroundingChunk;
+export type ThinkData = {
+    title: string;
+    summary: string;
+    time: number;
+};
+
+export type ChatAttachment = Card | ContentNode | ContentHierarchy | GroundingChunk | ThinkData;
 export type StreamPhase = "starting" | "streaming" | "processing" | "generating content" | "generating cards";
 
 // Chat Preferences
@@ -99,6 +105,7 @@ export interface ChatPreferences {
   forceCardCreation: "off" | "on" | "auto";
   personality: "default" | "gossip" | "little kid" | "angry mom";
   followUpQuestions: "off" | "auto";
+  generationModel: "flash" | "flash-lite";
 }
 
 export interface GroundingChunk {
