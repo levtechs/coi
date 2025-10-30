@@ -5,19 +5,8 @@ import { defaultGeneralConfig, llmModel, genAI } from "../gemini/config";
 import { createQuizFromCardsSystemInstruction } from "./prompts";
 
 import { NewCard, QuizSettings } from "@/lib/types";
-import { Content, GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
-
-type MyConfig = {
-  generationConfig: GenerationConfig;
-  thinkingConfig?: ThinkingConfig;
-  tools?: Tool[];
-};
-
-type MyGenerateContentParameters = {
-  model: string;
-  contents: Content[];
-  config: MyConfig;
-};
+import { Content, GenerationConfig, ThinkingConfig, Tool, Type, Schema } from "@google/genai";
+import { MyConfig, MyGenerateContentParameters } from "../gemini/types";
 
 /**
  * Writes a new quiz entry to the project's quizes collection.
@@ -62,7 +51,7 @@ export const createQuizFromCards = async (cards: NewCard[], quizSettings: QuizSe
 
     const filteredCards = cards.filter((card) => !card.url && card.details && card.title.trim() !== "");
 
-    const cardText = filteredCards.map((card) => `Title: ${card.title}\nDetails: ${card.details.join('\n')}`).join('\n\n---\n\n');
+    const cardText = filteredCards.map((card) => `Title: ${card.title}\nDetails: ${card.details!.join('\n')}`).join('\n\n---\n\n');
 
     const systemInstruction = { role: "user", parts: createQuizFromCardsSystemInstruction(quizSettings).parts };
 
@@ -147,43 +136,59 @@ export const buildQuizSchema = (settings: QuizSettings = { includeMCQ: true, inc
         throw new Error("At least one of includeMCQ or includeFRQ must be true in QuizSettings.");
     }
 
+    const mcqContentSchema: Schema = {
+        type: Type.OBJECT,
+        properties: {
+            options: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                minItems: "2",
+            } as Schema,
+            correctOptionIndex: { type: Type.NUMBER } as Schema,
+        },
+        required: ["options", "correctOptionIndex"],
+    } as Schema;
+
+    const frqContentSchema: Schema = {
+        type: Type.OBJECT,
+        properties: {
+            gradingCriteria: { type: Type.STRING } as Schema,
+            exampleAnswer: { type: Type.STRING } as Schema,
+        },
+        required: ["gradingCriteria", "exampleAnswer"],
+    } as Schema;
+
+    const contentSchemas: Schema[] = [];
+    if (includeMCQ) contentSchemas.push(mcqContentSchema);
+    if (includeFRQ) contentSchemas.push(frqContentSchema);
+
     const questionSchema = {
-        type: "object",
+        type: Type.OBJECT,
         properties: {
             type: {
-                type: "string",
+                type: Type.STRING,
                 enum: allowedTypes,
             },
-            question: { type: "string" },
+            question: { type: Type.STRING },
             content: {
-                type: "object",
-                properties: {
-                    options: {
-                        type: "array",
-                        items: { type: "string" },
-                        minItems: 2,
-                    },
-                    correctOptionIndex: { type: "number" },
-                    gradingCriteria: { type: "string" },
-                    exampleAnswer: { type: "string" },
-                },
+                oneOf: contentSchemas,
             },
         },
         required: ["type", "question", "content"],
     };
 
     const quizSchema = {
-        type: "object",
+        type: Type.OBJECT,
         properties: {
-            id: { type: "string" },
-            createdAt: { type: "string" },
-            description: { type: "string" },
-            title: { type: "string" },
+            id: { type: Type.STRING },
+            createdAt: { type: Type.STRING },
+            description: { type: Type.STRING },
+            title: { type: Type.STRING },
             questions: {
-                type: "array",
+                type: Type.ARRAY,
                 items: questionSchema,
-                ...(minNumQuestions ? { minItems: minNumQuestions } : {}),
-                ...(maxNumQuestions ? { maxItems: maxNumQuestions } : {}),
+                ...(minNumQuestions ? { minItems: minNumQuestions.toString() } : {}),
+                ...(maxNumQuestions ? { maxItems: maxNumQuestions.toString() } : {}),
             },
         },
         required: ["description", "title", "questions"],
