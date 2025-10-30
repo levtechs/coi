@@ -29,6 +29,7 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
     const [quizSettings, setQuizSettings] = useState<QuizSettings>({includeMCQ: true, includeFRQ: false});
 
     const [cards, setCards] = useState<Card[]>();
+    const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(new Set());
     const [clickedCard, setClickedCard] = useState<Card | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [showErrorDetails, setShowErrorDetails] = useState(false);
@@ -40,6 +41,7 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
         const fetchCards = async () => {
             const cards = await getCards(projectId);
             setCards(cards);
+            setSelectedCardIds(new Set(cards.map(c => c.id)));
             setIsLoadingCards(false);
         }
         
@@ -61,7 +63,22 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
                         </h2>
                         <div className="flex flex-row gap-8 p-4 w-full overflow-x-auto">
                             {cards.filter(card => !card.url).map((card) => (
-                                <div key={card.id} className="shrink-0">
+                                <div key={card.id} className="shrink-0 relative">
+                                    <button
+                                        className={`absolute top-2 right-2 px-2 py-1 rounded-md transition-colors duration-200 text-xs whitespace-nowrap z-10 ${selectedCardIds.has(card.id) ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const newSelected = new Set(selectedCardIds);
+                                            if (newSelected.has(card.id)) {
+                                                newSelected.delete(card.id);
+                                            } else {
+                                                newSelected.add(card.id);
+                                            }
+                                            setSelectedCardIds(newSelected);
+                                        }}
+                                    >
+                                        ✓
+                                    </button>
                                     <DetailCard
                                         card={card}
                                         onClick={() => {setClickedCard(card)}}
@@ -125,10 +142,11 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
                                     }
                                     setError(null);
                                     setIsLoadingQuiz(true);
-                                    try {
-                                        const quizId = await createQuiz(cards, quizSettings, projectId);
-                                        setIsLoadingQuiz(quizId);
-                                    } catch (err) {
+                                     try {
+                                         const selectedCards = cards.filter(c => selectedCardIds.has(c.id)).map(({id: _, ...rest}) => rest); // eslint-disable-line @typescript-eslint/no-unused-vars
+                                         const quizId = await createQuiz(selectedCards, quizSettings, projectId);
+                                         setIsLoadingQuiz(quizId);
+                                     } catch (err) {
                                         setError((err as Error).message);
                                         setIsLoadingQuiz(false);
                                     }
