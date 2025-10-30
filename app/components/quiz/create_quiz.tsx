@@ -31,6 +31,7 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
     const [cards, setCards] = useState<Card[]>();
     const [clickedCard, setClickedCard] = useState<Card | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [showErrorDetails, setShowErrorDetails] = useState(false);
 
     useEffect(() => {
         setIsLoadingCards(true);
@@ -59,9 +60,9 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
                             Cards:
                         </h2>
                         <div className="flex flex-row gap-8 p-4 w-full overflow-x-auto">
-                            {cards.map((card) => (
+                            {cards.filter(card => !card.url).map((card) => (
                                 <div key={card.id} className="shrink-0">
-                                    <DetailCard 
+                                    <DetailCard
                                         card={card}
                                         onClick={() => {setClickedCard(card)}}
                                     />
@@ -75,13 +76,26 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
                             />
                         )}
 
-                        {isLoadingQuiz==false && (
+                        {error ? (
+                            <div className="mt-4">
+                                <p className="text-[var(--error)]">Error generating quiz</p>
+                                <button
+                                    onClick={() => setShowErrorDetails(!showErrorDetails)}
+                                    className="text-sm text-[var(--accent-500)] underline mt-1"
+                                >
+                                    {showErrorDetails ? 'Hide details' : 'Show details'}
+                                </button>
+                                {showErrorDetails && <p className="text-[var(--error)] mt-2 text-sm">{error}</p>}
+                            </div>
+                        ) : isLoadingQuiz === true ? (
+                            <LoadingComponent loadingText="Creating quiz" small={true} />
+                        ) : isLoadingQuiz === false ? (
                             <div className="">
                                 <h2 className="mt-4 mb-4 italic">
                                     Quiz settings:
                                 </h2>
 
-                                <div className="flex flex-row gap-2"> 
+                                <div className="flex flex-row gap-2">
                                      <button
                                         className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${quizSettings.includeMCQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
                                         onClick={() => {setQuizSettings({...quizSettings, includeMCQ: !quizSettings.includeMCQ}); setError(null);}}
@@ -98,28 +112,35 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
                                  </div>
                                  {error && <p className="text-[var(--error)] mt-2">{error}</p>}
                              </div>
+                        ) : null}
 
-                         )}
-                        {isLoadingQuiz==true && (<LoadingComponent loadingText="Creating quiz" small={true} />)}
-                        {typeof(isLoadingQuiz) != typeof("string") ? (
-                            <Button 
+                        {isLoadingQuiz === false && !error && (
+                            <Button
                                 className="w-full mt-8"
-                                color={isLoadingQuiz ?  ("var(--neutral-400)") : ("var(--accent-400)")}
-                                 onClick={async ()=>{
+                                color="var(--accent-400)"
+                                onClick={async ()=>{
                                     if (!quizSettings.includeMCQ && !quizSettings.includeFRQ) {
                                         setError("Please select at least one type of question to include in your quiz.");
                                         return;
                                     }
+                                    setError(null);
                                     setIsLoadingQuiz(true);
-                                    const quizId = await createQuiz(cards, quizSettings, projectId);
-                                    setIsLoadingQuiz(quizId);
+                                    try {
+                                        const quizId = await createQuiz(cards, quizSettings, projectId);
+                                        setIsLoadingQuiz(quizId);
+                                    } catch (err) {
+                                        setError((err as Error).message);
+                                        setIsLoadingQuiz(false);
+                                    }
                                 }}
                                 type="submit"
                             >
                                 Create Quiz
                             </Button>
-                        ) : (
-                            <Button 
+                        )}
+
+                        {typeof isLoadingQuiz === 'string' && (
+                            <Button
                                 className="w-full mt-8"
                                 color="var(--accent-400)"
                                 onClick={()=>{
