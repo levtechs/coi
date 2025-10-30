@@ -2,9 +2,21 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 import { Quiz, QuizQuestion } from "@/lib/types";
-import { defaultGeneralConfig } from "../../gemini/config";
-import { callGeminiApi } from "../../gemini/helpers";
+import { genAI } from "../../gemini/config";
 import { gradeFRQsSystemInstruction } from "../prompts";
+import { Content, GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
+
+type MyConfig = {
+  generationConfig: GenerationConfig;
+  thinkingConfig?: ThinkingConfig;
+  tools?: Tool[];
+};
+
+type MyGenerateContentParameters = {
+  model: string;
+  contents: Content[];
+  config: MyConfig;
+};
 
 export async function fetchQuiz(quizId: string) {
     const quizDocRef = doc(db, "quizzes", quizId);
@@ -30,42 +42,66 @@ export const gradeFRQs = async (
 
     const combinedText = frqList.map((f, i) => `Question ${i + 1}: ${f.question.question}\nResponse: ${f.response}\nGrading Criteria: ${(f.question.content as {gradingCriteria: string, exampleAnswer: string}).gradingCriteria}\nExample Answer: ${(f.question.content as {gradingCriteria: string, exampleAnswer: string}).exampleAnswer}`).join('\n\n---\n\n');
 
+    const systemInstructionContent = { role: "user", parts: gradeFRQsSystemInstruction().parts };
     const contents = [{
         role: "user",
         parts: [{ text: combinedText }]
     }];
 
-    const generationConfig = {
-        ...defaultGeneralConfig,
-        responseMimeType: "application/json",
-        responseSchema: {
-            type: "array",
-            items: {
-                type: "object",
-                properties: {
-                    feedback: { type: "string" },
-                    score: { type: "number", minimum: 0, maximum: 3 }
+    const allContents = [systemInstructionContent, ...contents];
+
+    const model = "gemini-2.5-flash-lite";
+    const config: MyConfig = {
+        generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: "array",
+                items: {
+                    type: "object",
+                    properties: {
+                        feedback: { type: "string" },
+                        score: { type: "number", minimum: 0, maximum: 3 }
+                    },
+                    required: ["feedback", "score"]
                 },
-                required: ["feedback", "score"]
+                minItems: frqList.length,
+                maxItems: frqList.length
             },
-            minItems: frqList.length,
-            maxItems: frqList.length
-        }
+        },
     };
 
-    const body = {
-        contents,
-        systemInstruction: gradeFRQsSystemInstruction(),
-        generationConfig
+    const params: MyGenerateContentParameters = {
+        model,
+        contents: allContents as Content[],
+        config,
     };
 
     try {
-        const response = await callGeminiApi(body);
-        const jsonString = response?.candidates?.[0]?.content?.parts?.[0]?.text;
+        let jsonString: string;
+        try {
+            const result = await genAI.models.generateContent(params);
+            jsonString = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        } catch (err) {
+            const error = err as { status?: number };
+            if (error.status === 503) {
+                const streamingResp = await genAI.models.generateContentStream(params);
+                let accumulated = "";
+                for await (const chunk of streamingResp) {
+                    const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                    accumulated += partText;
+                }
+                jsonString = accumulated;
+            } else {
+                throw err;
+            }
+        }
+
         if (!jsonString) {
             console.error("No JSON content found in API response for FRQ grading.");
             return frqList.map(() => ({ feedback: "Error grading response.", score: 0 }));
         }
+        // Clean the response to extract JSON
+        jsonString = jsonString.replace(/```json\s*/, '').replace(/\s*```$/, '').trim();
         const results = JSON.parse(jsonString);
         return results;
     } catch (err) {
