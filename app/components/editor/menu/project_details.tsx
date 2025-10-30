@@ -60,6 +60,20 @@ const ProjectDetailsPanel = ({ project, quizzes }: ProjectDetailsPanelProps) => 
         return `${years} year${years > 1 ? 's' : ''} ago`;
     };
 
+    const formatQuestionCounts = (quiz: Quiz): string => {
+        const mcqCount = quiz.questions.filter(q => q.type === 'MCQ').length;
+        const frqCount = quiz.questions.filter(q => q.type === 'FRQ').length;
+
+        if (mcqCount > 0 && frqCount > 0) {
+            return `${mcqCount} multiple choice + ${frqCount} short answer`;
+        } else if (mcqCount > 0) {
+            return `${mcqCount} multiple choice`;
+        } else if (frqCount > 0) {
+            return `${frqCount} short answer`;
+        }
+        return '';
+    };
+
     return (
         <div className="mb-4">
             <h1 className="text-3xl mb-8 font-bold underline">
@@ -124,20 +138,20 @@ const ProjectDetailsPanel = ({ project, quizzes }: ProjectDetailsPanelProps) => 
                                              date = quiz.createdAt.toDate();
                                          }
                                      }
-                                     if (!quiz.id) return (
-                                         <div key={quiz.title} className="flex flex-col">
-                                             <p>{quiz.title}</p>
-                                             {date && <p className="italic text-[var(--neutral-500)]">created {timeAgo(date)}</p>}
-                                         </div>
-                                     )
-                                     return (
-                                         <div key={quiz.id} className="flex flex-col">
-                                             <a className="underline" href={`/quiz/${quiz.id}`} target="_blank" rel="noopener noreferrer">
-                                                 {quiz.title.length > 45 ? quiz.title.slice(0, 45) + "..." : quiz.title}
-                                             </a>
-                                             {date && <p className="italic text-[var(--neutral-500)]">created {timeAgo(date)}</p>}
-                                         </div>
-                                     )
+                                      if (!quiz.id) return (
+                                          <div key={quiz.title} className="flex flex-col">
+                                              <p>{quiz.title}</p>
+                                              {date && <p className="italic text-[var(--neutral-500)]">created {timeAgo(date)} • {formatQuestionCounts(quiz)}</p>}
+                                          </div>
+                                      )
+                                      return (
+                                          <div key={quiz.id} className="flex flex-col">
+                                              <a className="underline" href={`/quiz/${quiz.id}`} target="_blank" rel="noopener noreferrer">
+                                                  {quiz.title.length > 45 ? quiz.title.slice(0, 45) + "..." : quiz.title}
+                                              </a>
+                                              {date && <p className="italic text-[var(--neutral-500)]">created {timeAgo(date)} • {formatQuestionCounts(quiz)}</p>}
+                                          </div>
+                                      )
                                  })}
                              </>
                          ) : (

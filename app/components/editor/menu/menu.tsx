@@ -58,6 +58,20 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
         return `${years} year${years > 1 ? 's' : ''} ago`;
     };
 
+    const formatQuestionCounts = (quiz: Quiz): string => {
+        const mcqCount = quiz.questions.filter(q => q.type === 'MCQ').length;
+        const frqCount = quiz.questions.filter(q => q.type === 'FRQ').length;
+
+        if (mcqCount > 0 && frqCount > 0) {
+            return `${mcqCount} multiple choice + ${frqCount} short answer`;
+        } else if (mcqCount > 0) {
+            return `${mcqCount} multiple choice`;
+        } else if (frqCount > 0) {
+            return `${frqCount} short answer`;
+        }
+        return '';
+    };
+
     useEffect(() => {
         const fetchQuizzes = async () => {
             if (!project.quizIds) return;
@@ -180,14 +194,14 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                                                     date = quiz.createdAt.toDate();
                                                 }
                                             }
-                                            return (
-                                                <div key={quiz.id} className="flex flex-col">
-                                                    <a className="underline" href={`/quiz/${quiz.id}`} target="_blank" rel="noopener noreferrer">
-                                                        {quiz.title.length > 45 ? quiz.title.slice(0, 45) + "..." : quiz.title}
-                                                    </a>
-                                                    {date && <p className="italic text-[var(--neutral-500)]">created {timeAgo(date)}</p>}
-                                                </div>
-                                            )
+                                             return (
+                                                 <div key={quiz.id} className="flex flex-col">
+                                                     <a className="underline" href={`/quiz/${quiz.id}`} target="_blank" rel="noopener noreferrer">
+                                                         {quiz.title.length > 45 ? quiz.title.slice(0, 45) + "..." : quiz.title}
+                                                     </a>
+                                                     {date && <p className="italic text-[var(--neutral-500)]">created {timeAgo(date)} • {formatQuestionCounts(quiz)}</p>}
+                                                 </div>
+                                             )
                                         })
                                     ) : (
                                         <p className="italic">No quizzes found.</p>
