@@ -15,6 +15,15 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
         },
     });
 
-    if (!res.ok) throw new Error(`API request failed: ${res.status}`);
+    if (!res.ok) {
+        let errorMessage = `API request failed: ${res.status}`;
+        try {
+            const errorData = await res.json();
+            if (errorData.error) {
+                errorMessage = errorData.error;
+            }
+        } catch (e) { console.error("Failed to parse API error response body:", e); }
+        throw new Error(errorMessage);
+    }
     return res.json() as Promise<T>;
 }
