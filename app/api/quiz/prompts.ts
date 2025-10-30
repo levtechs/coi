@@ -102,6 +102,8 @@ ${typesSummary}
 ${typeInstructions.join("\n\n")}
 
 Use standard Markdown or LaTeX formatting in questions and answers where appropriate.
+
+Return only a valid JSON object with the following properties: title (string), description (string), questions (array of objects, each with type ("MCQ" or "FRQ"), question (string), content (object with options array and correctOptionIndex for MCQ, or gradingCriteria and exampleAnswer for FRQ)). Do not include any additional text, explanations, or formatting outside of the JSON.
 `,
             },
         ],

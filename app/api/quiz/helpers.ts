@@ -5,7 +5,8 @@ import { defaultGeneralConfig, llmModel, genAI } from "../gemini/config";
 import { createQuizFromCardsSystemInstruction } from "./prompts";
 
 import { NewCard, QuizSettings } from "@/lib/types";
-import { SchemaType, ObjectSchema } from "@google/generative-ai";
+import { Content, GenerationConfig, ThinkingConfig, Tool, Type, Schema } from "@google/genai";
+import { MyConfig, MyGenerateContentParameters } from "../gemini/types";
 
 /**
  * Writes a new quiz entry to the project's quizes collection.
@@ -48,36 +49,41 @@ export const createQuizFromCards = async (cards: NewCard[], quizSettings: QuizSe
         throw new Error("Must have at least one card to create a quiz.");
     }
 
-    const contents = (cards)
-        .filter((card) => card.details && card.title.trim() !== "")
-        .map((card) => ({
-            role: "user",
-            parts: [{ text: (`Title: ${card.title}, Details: ${card.details}`) }]
-        }));
+    const filteredCards = cards.filter((card) => !card.url && card.details && card.title.trim() !== "");
 
-    // Define the schema for the expected JSON response.
-    const generationConfig = {
-        ...defaultGeneralConfig,
-        responseMimeType: "application/json",
-        responseSchema: buildQuizSchema(quizSettings),
+    const cardText = filteredCards.map((card) => `Title: ${card.title}\nDetails: ${card.details!.join('\n')}`).join('\n\n---\n\n');
+
+    const systemInstruction = { role: "user", parts: createQuizFromCardsSystemInstruction(quizSettings).parts };
+
+    const contents = [
+        { role: "user", parts: [{ text: cardText }] }
+    ];
+
+    const allContents = [systemInstruction, ...contents];
+
+    const model = "gemini-2.5-flash-lite";
+    const config: MyConfig = {
+        generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: buildQuizSchema(quizSettings),
+        },
     };
 
-    const body = {
-        model: llmModel,
-        contents,
-        systemInstruction: { role: "system", parts: createQuizFromCardsSystemInstruction(quizSettings).parts },
-        generationConfig: generationConfig,
+    const params: MyGenerateContentParameters = {
+        model,
+        contents: allContents as Content[],
+        config,
     };
 
     try {
         let jsonString: string;
         try {
-            const result = await genAI.models.generateContent(body);
+            const result = await genAI.models.generateContent(params);
             jsonString = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
         } catch (err) {
             const error = err as { status?: number };
             if (error.status === 503) {
-                const streamingResp = await genAI.models.generateContentStream(body);
+                const streamingResp = await genAI.models.generateContentStream(params);
                 let accumulated = "";
                 for await (const chunk of streamingResp) {
                     const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -89,11 +95,19 @@ export const createQuizFromCards = async (cards: NewCard[], quizSettings: QuizSe
             }
         }
 
+        // Clean the response to extract JSON
+        jsonString = jsonString.replace(/```json\s*/, '').replace(/\s*```$/, '').trim();
+
         const parsedJson = JSON.parse(jsonString);
 
         if (!parsedJson) {
             console.error("No JSON content found in API response.");
             return null;
+        }
+
+        // Ensure description is set
+        if (!parsedJson.description) {
+            parsedJson.description = "Quiz generated from cards";
         }
 
         // Return the structured object directly.
@@ -104,40 +118,17 @@ export const createQuizFromCards = async (cards: NewCard[], quizSettings: QuizSe
     }
 };
 
-export const buildQuizSchema = (settings: QuizSettings = { includeMCQ: true, includeFRQ: true }): ObjectSchema => {
+export const buildQuizSchema = (settings: QuizSettings = { includeMCQ: true, includeFRQ: true }): object => {
     const { minNumQuestions, maxNumQuestions, includeMCQ, includeFRQ } = settings;
 
     const allowedTypes: string[] = [];
-    const contentSchemas: object[] = [];
 
-    // Add MCQ branch if enabled
+    // Add types
     if (includeMCQ) {
         allowedTypes.push("MCQ");
-        contentSchemas.push({
-            type: SchemaType.OBJECT,
-            properties: {
-                options: {
-                    type: SchemaType.ARRAY,
-                    items: { type: SchemaType.STRING },
-                    minItems: 2,
-                },
-                correctOptionIndex: { type: SchemaType.NUMBER },
-            },
-            required: ["options", "correctOptionIndex"],
-        });
     }
-
-    // Add FRQ branch if enabled
     if (includeFRQ) {
         allowedTypes.push("FRQ");
-        contentSchemas.push({
-            type: SchemaType.OBJECT,
-            properties: {
-                gradingCriteria: { type: SchemaType.STRING },
-                exampleAnswer: { type: SchemaType.STRING },
-            },
-            required: ["gradingCriteria", "exampleAnswer"],
-        });
     }
 
     // Safety check: if no types enabled, throw clear error
@@ -145,14 +136,40 @@ export const buildQuizSchema = (settings: QuizSettings = { includeMCQ: true, inc
         throw new Error("At least one of includeMCQ or includeFRQ must be true in QuizSettings.");
     }
 
+    const mcqContentSchema: Schema = {
+        type: Type.OBJECT,
+        properties: {
+            options: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                minItems: "2",
+            } as Schema,
+            correctOptionIndex: { type: Type.NUMBER } as Schema,
+        },
+        required: ["options", "correctOptionIndex"],
+    } as Schema;
+
+    const frqContentSchema: Schema = {
+        type: Type.OBJECT,
+        properties: {
+            gradingCriteria: { type: Type.STRING } as Schema,
+            exampleAnswer: { type: Type.STRING } as Schema,
+        },
+        required: ["gradingCriteria", "exampleAnswer"],
+    } as Schema;
+
+    const contentSchemas: Schema[] = [];
+    if (includeMCQ) contentSchemas.push(mcqContentSchema);
+    if (includeFRQ) contentSchemas.push(frqContentSchema);
+
     const questionSchema = {
-        type: SchemaType.OBJECT,
+        type: Type.OBJECT,
         properties: {
             type: {
-                type: SchemaType.STRING,
+                type: Type.STRING,
                 enum: allowedTypes,
             },
-            question: { type: SchemaType.STRING },
+            question: { type: Type.STRING },
             content: {
                 oneOf: contentSchemas,
             },
@@ -161,21 +178,21 @@ export const buildQuizSchema = (settings: QuizSettings = { includeMCQ: true, inc
     };
 
     const quizSchema = {
-        type: SchemaType.OBJECT,
+        type: Type.OBJECT,
         properties: {
-            id: { type: SchemaType.STRING },
-            createdAt: { type: SchemaType.STRING },
-            description: { type: SchemaType.STRING },
-            title: { type: SchemaType.STRING },
+            id: { type: Type.STRING },
+            createdAt: { type: Type.STRING },
+            description: { type: Type.STRING },
+            title: { type: Type.STRING },
             questions: {
-                type: SchemaType.ARRAY,
+                type: Type.ARRAY,
                 items: questionSchema,
-                ...(minNumQuestions ? { minItems: minNumQuestions } : {}),
-                ...(maxNumQuestions ? { maxItems: maxNumQuestions } : {}),
+                ...(minNumQuestions ? { minItems: minNumQuestions.toString() } : {}),
+                ...(maxNumQuestions ? { maxItems: maxNumQuestions.toString() } : {}),
             },
         },
         required: ["description", "title", "questions"],
     };
 
-    return quizSchema as ObjectSchema;
+    return quizSchema;
 };
