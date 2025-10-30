@@ -22,7 +22,7 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
             if (errorData.error) {
                 errorMessage = errorData.error;
             }
-        } catch {}
+        } catch (e) { console.error("Failed to parse API error response body:", e); }
         throw new Error(errorMessage);
     }
     return res.json() as Promise<T>;
