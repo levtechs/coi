@@ -4,19 +4,8 @@ import { db } from "@/lib/firebase";
 import { Quiz, QuizQuestion } from "@/lib/types";
 import { genAI } from "../../gemini/config";
 import { gradeFRQsSystemInstruction } from "../prompts";
-import { Content, GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
-
-type MyConfig = {
-  generationConfig: GenerationConfig;
-  thinkingConfig?: ThinkingConfig;
-  tools?: Tool[];
-};
-
-type MyGenerateContentParameters = {
-  model: string;
-  contents: Content[];
-  config: MyConfig;
-};
+import { Content, GenerationConfig, ThinkingConfig, Tool, Type } from "@google/genai";
+import { MyConfig, MyGenerateContentParameters } from "../../gemini/types";
 
 export async function fetchQuiz(quizId: string) {
     const quizDocRef = doc(db, "quizzes", quizId);
@@ -55,17 +44,17 @@ export const gradeFRQs = async (
         generationConfig: {
             responseMimeType: "application/json",
             responseSchema: {
-                type: "array",
+                type: Type.ARRAY,
                 items: {
-                    type: "object",
+                    type: Type.OBJECT,
                     properties: {
-                        feedback: { type: "string" },
-                        score: { type: "number", minimum: 0, maximum: 3 }
+                        feedback: { type: Type.STRING },
+                        score: { type: Type.NUMBER, minimum: 0, maximum: 3 }
                     },
                     required: ["feedback", "score"]
                 },
-                minItems: frqList.length,
-                maxItems: frqList.length
+                minItems: frqList.length.toString(),
+                maxItems: frqList.length.toString()
             },
         },
     };
