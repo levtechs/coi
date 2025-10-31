@@ -29,7 +29,7 @@ Be fair and consistent. Base the score strictly on how well the response meets t
 }
 
 export function createQuizFromCardsSystemInstruction(quizSettings: QuizSettings) {
-    const { minNumQuestions, maxNumQuestions, includeMCQ, includeFRQ } = quizSettings;
+    const { minNumQuestions, maxNumQuestions, includeMCQ, includeFRQ, quizStyle, length, difficulty } = quizSettings;
 
     // Build constraints text dynamically
     const numQuestionText = (() => {
@@ -87,6 +87,42 @@ d) answer 4`
         return "";
     })();
 
+    const styleInstructions = (() => {
+        switch (quizStyle) {
+            case "practice":
+                return "Focus on creating practice problems that help reinforce learning. Questions should be designed to build understanding and allow students to apply concepts in different ways.";
+            case "knowledge_test":
+                return "Create questions that test deep knowledge and understanding. Focus on comprehensive assessment of the material rather than simple recall.";
+            case "mixed":
+            default:
+                return "Create a balanced mix of practice problems and knowledge-testing questions.";
+        }
+    })();
+
+    const lengthInstructions = (() => {
+        switch (length) {
+            case "short":
+                return "Keep the quiz brief with fewer questions. Focus on the most important concepts.";
+            case "long":
+                return "Make the quiz comprehensive, covering all aspects of the material in detail.";
+            case "normal":
+            default:
+                return "Create a quiz of normal length that adequately covers the material.";
+        }
+    })();
+
+    const difficultyInstructions = difficulty ? (() => {
+        switch (difficulty) {
+            case "easy":
+                return "Make questions relatively straightforward and accessible.";
+            case "hard":
+                return "Create challenging questions that require deep understanding.";
+            case "normal":
+            default:
+                return "Use normal difficulty appropriate for the material.";
+        }
+    })() : "";
+
     return {
         parts: [
             {
@@ -100,6 +136,12 @@ ${numQuestionText}
 ${typesSummary}
 
 ${typeInstructions.join("\n\n")}
+
+${styleInstructions}
+
+${lengthInstructions}
+
+${difficultyInstructions}
 
 Use standard Markdown or LaTeX formatting in questions and answers where appropriate.
 

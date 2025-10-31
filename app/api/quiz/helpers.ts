@@ -118,7 +118,7 @@ export const createQuizFromCards = async (cards: NewCard[], quizSettings: QuizSe
     }
 };
 
-export const buildQuizSchema = (settings: QuizSettings = { includeMCQ: true, includeFRQ: true }): object => {
+export const buildQuizSchema = (settings: QuizSettings = { includeMCQ: true, includeFRQ: true, quizStyle: "mixed", length: "normal" }): object => {
     const { minNumQuestions, maxNumQuestions, includeMCQ, includeFRQ } = settings;
 
     const allowedTypes: string[] = [];

@@ -26,7 +26,12 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
     const [isLoadingCards, setIsLoadingCards] = useState(false)
     const [isLoadingQuiz, setIsLoadingQuiz] = useState<boolean | string>(false)
 
-    const [quizSettings, setQuizSettings] = useState<QuizSettings>({includeMCQ: true, includeFRQ: false});
+    const [quizSettings, setQuizSettings] = useState<QuizSettings>({
+        includeMCQ: true,
+        includeFRQ: false,
+        quizStyle: "mixed",
+        length: "normal"
+    });
 
     const [cards, setCards] = useState<Card[]>();
     const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(new Set());
@@ -112,20 +117,70 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
                                     Quiz settings:
                                 </h2>
 
-                                <div className="flex flex-row gap-2">
-                                     <button
-                                        className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${quizSettings.includeMCQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
-                                        onClick={() => {setQuizSettings({...quizSettings, includeMCQ: !quizSettings.includeMCQ}); setError(null);}}
-                                    >
-                                        Include multiple choice questions
-                                    </button>
+                                 <div className="flex flex-col gap-4">
+                                     <div className="flex flex-row gap-2">
+                                         <button
+                                             className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${quizSettings.includeMCQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
+                                             onClick={() => {setQuizSettings({...quizSettings, includeMCQ: !quizSettings.includeMCQ}); setError(null);}}
+                                         >
+                                             Include multiple choice questions
+                                         </button>
 
-                                    <button
-                                        className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${quizSettings.includeFRQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
-                                        onClick={() => {setQuizSettings({...quizSettings, includeFRQ: !quizSettings.includeFRQ}); setError(null);}}
-                                    >
-                                        Include free response questions
-                                    </button>
+                                         <button
+                                             className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${quizSettings.includeFRQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
+                                             onClick={() => {setQuizSettings({...quizSettings, includeFRQ: !quizSettings.includeFRQ}); setError(null);}}
+                                         >
+                                             Include free response questions
+                                         </button>
+                                     </div>
+
+                                     <div>
+                                         <h3 className="text-sm font-medium mb-2">Quiz Style:</h3>
+                                         <div className="flex flex-row gap-2">
+                                             <button
+                                                 className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${quizSettings.quizStyle === 'practice' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
+                                                 onClick={() => {setQuizSettings({...quizSettings, quizStyle: 'practice'}); setError(null);}}
+                                             >
+                                                 Make all practice problems
+                                             </button>
+                                             <button
+                                                 className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${quizSettings.quizStyle === 'knowledge_test' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
+                                                 onClick={() => {setQuizSettings({...quizSettings, quizStyle: 'knowledge_test'}); setError(null);}}
+                                             >
+                                                 Test me on my knowledge
+                                             </button>
+                                             <button
+                                                 className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${quizSettings.quizStyle === 'mixed' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
+                                                 onClick={() => {setQuizSettings({...quizSettings, quizStyle: 'mixed'}); setError(null);}}
+                                             >
+                                                 Mixed practice and testing
+                                             </button>
+                                         </div>
+                                     </div>
+
+                                     <div>
+                                         <h3 className="text-sm font-medium mb-2">Length:</h3>
+                                         <div className="flex flex-row gap-2">
+                                             <button
+                                                 className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${quizSettings.length === 'short' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
+                                                 onClick={() => {setQuizSettings({...quizSettings, length: 'short'}); setError(null);}}
+                                             >
+                                                 Make it short and quick
+                                             </button>
+                                             <button
+                                                 className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${quizSettings.length === 'normal' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
+                                                 onClick={() => {setQuizSettings({...quizSettings, length: 'normal'}); setError(null);}}
+                                             >
+                                                 Normal length
+                                             </button>
+                                             <button
+                                                 className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${quizSettings.length === 'long' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
+                                                 onClick={() => {setQuizSettings({...quizSettings, length: 'long'}); setError(null);}}
+                                             >
+                                                 Make it comprehensive
+                                             </button>
+                                         </div>
+                                     </div>
                                  </div>
                                  {error && <p className="text-[var(--error)] mt-2">{error}</p>}
                              </div>

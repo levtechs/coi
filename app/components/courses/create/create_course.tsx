@@ -33,7 +33,7 @@ export default function CreateCourse() {
     const [courseQuizIds, setCourseQuizIds] = useState<string[]>([]);
     const [courseQuizzes, setCourseQuizzes] = useState<{id?: string, status: 'creating' | 'created', title?: string}[]>([]);
     const [showCourseQuizSettings, setShowCourseQuizSettings] = useState(false);
-    const [courseQuizSettings, setCourseQuizSettings] = useState<QuizSettings>({includeMCQ: true, includeFRQ: false});
+    const [courseQuizSettings, setCourseQuizSettings] = useState<QuizSettings>({includeMCQ: true, includeFRQ: false, quizStyle: "mixed", length: "normal"});
     const [selectedCards, setSelectedCards] = useState<boolean[]>([]);
     const [courseQuizError, setCourseQuizError] = useState<string | null>(null);
     const [courseCategory, setCourseCategory] = useState<CourseCategory | "">("");
