@@ -59,7 +59,7 @@ export async function getMoreUsers(lastId: string): Promise<User[]> {
     try {
         const token = await auth.currentUser?.getIdToken();
         if (!token) throw new Error("No auth token");
-        const response = await fetch(`/api/admin/users?limit=10&lastId=${lastId}`, {
+        const response = await fetch(`/api/admin/users?limit=50&lastId=${lastId}`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -71,6 +71,30 @@ export async function getMoreUsers(lastId: string): Promise<User[]> {
         return data.users;
     } catch (err) {
         console.error("Error fetching more users:", err);
+        throw err;
+    }
+}
+
+/**
+ * Get admin stats.
+ * @returns Stats object.
+ */
+export async function getAdminStats(): Promise<{ totalUsers: number; totalProjects: number; totalActions: number; usersWithSignUp: number }> {
+    try {
+        const token = await auth.currentUser?.getIdToken();
+        if (!token) throw new Error("No auth token");
+        const response = await fetch("/api/admin/stats", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`,
+            },
+        });
+        if (!response.ok) throw new Error("Unauthorized");
+        const data = await response.json();
+        return data;
+    } catch (err) {
+        console.error("Error fetching admin stats:", err);
         throw err;
     }
 }
