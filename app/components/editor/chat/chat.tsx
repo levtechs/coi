@@ -175,23 +175,28 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, set
                     </div>
 
 
-                     {/* Follow-up Questions */}
-                     {followUpQuestions.length > 0 && (
-                         <div className="bg-[var(--neutral-100)] rounded-md px-2 py-2 mb-2">
-                             <p className="text-sm text-[var(--neutral-600)] mb-2">Suggested follow-ups:</p>
-                             <div className="flex flex-col gap-2">
-                                  {followUpQuestions.map((question, index) => (
-                                       <button
-                                           key={index}
-                                           onClick={() => setInput(question)}
-                                           className="bg-[var(--neutral-200)] hover:bg-[var(--neutral-300)] text-[var(--foreground)] border border-[var(--neutral-300)] px-3 py-1 rounded-md text-sm transition-colors cursor-pointer text-left"
-                                       >
-                                          <MarkdownArticle markdown={question} singleLine={true} />
-                                      </button>
-                                  ))}
-                             </div>
-                         </div>
-                     )}
+                      {/* Follow-up Questions */}
+                      {followUpQuestions.length > 0 && (
+                          <div className="bg-[var(--neutral-100)] rounded-md px-2 py-2 mb-2 relative">
+                              <FiX
+                                  size={16}
+                                  className="absolute top-2 right-2 text-[var(--neutral-500)] cursor-pointer hover:text-[var(--foreground)]"
+                                  onClick={() => setFollowUpQuestions([])}
+                              />
+                              <p className="text-sm text-[var(--neutral-600)] mb-2">Suggested follow-ups:</p>
+                              <div className="flex flex-col gap-2">
+                                   {followUpQuestions.map((question, index) => (
+                                        <button
+                                            key={index}
+                                            onClick={() => setInput(question)}
+                                            className="bg-[var(--neutral-200)] hover:bg-[var(--neutral-300)] text-[var(--foreground)] border border-[var(--neutral-300)] px-3 py-1 rounded-md text-sm transition-colors cursor-pointer text-left"
+                                        >
+                                           <MarkdownArticle markdown={question} singleLine={true} />
+                                       </button>
+                                   ))}
+                              </div>
+                          </div>
+                      )}
 
                      {/* Input box */}
                      <div className="flex flex-col bg-[var(--neutral-100)] rounded-md px-2 py-2">
