@@ -8,7 +8,7 @@ import { getUsers } from "../helpers";
  */
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const limit = parseInt(searchParams.get("limit") || "50");
     const lastId = searchParams.get("lastId") || undefined;
 
     try {

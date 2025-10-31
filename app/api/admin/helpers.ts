@@ -42,6 +42,8 @@ export async function getUsers(limitNum: number, lastId?: string): Promise<User[
                 actions: data.actions,
                 dailyActions: data.dailyActions,
                 weeklyActions: data.weeklyActions ?? 0,
+                signUpResponses: data.signUpResponses,
+                starUser: data.starUser,
             } as User;
         });
         // Sort by weeklyActions desc
@@ -56,6 +58,30 @@ export async function getUsers(limitNum: number, lastId?: string): Promise<User[
         }
     } catch (err) {
         console.error("Error fetching users:", err);
+        throw err;
+    }
+}
+
+/**
+ * Get admin stats: total users, projects, actions, users with sign up.
+ * @returns Stats object.
+ */
+export async function getAdminStats(): Promise<{ totalUsers: number; totalProjects: number; totalActions: number; usersWithSignUp: number }> {
+    try {
+        // Fetch all users
+        const usersSnap = await getDocs(collection(db, "users"));
+        const users = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+        const totalUsers = users.length;
+        const totalActions = users.reduce((sum, user) => sum + (user.actions || 0), 0);
+        const usersWithSignUp = users.filter(user => user.signUpResponses).length;
+
+        // Fetch all projects
+        const projectsSnap = await getDocs(collection(db, "projects"));
+        const totalProjects = projectsSnap.size;
+
+        return { totalUsers, totalProjects, totalActions, usersWithSignUp };
+    } catch (err) {
+        console.error("Error fetching admin stats:", err);
         throw err;
     }
 }

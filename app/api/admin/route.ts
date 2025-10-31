@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
         await getVerifiedAdminUid(req);
         const [projects, users] = await Promise.all([
             getProjects(1000), // Fetch more projects for accurate counts
-            getUsers(10),
+            getUsers(50),
         ]);
         return NextResponse.json({ projects, users });
     } catch (err) {
