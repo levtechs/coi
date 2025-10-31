@@ -187,6 +187,9 @@ export interface QuizSettings {
     maxNumQuestions?: number;
     includeMCQ: boolean;
     includeFRQ: boolean;
+    quizStyle: "practice" | "knowledge_test" | "mixed";
+    length: "short" | "normal" | "long";
+    difficulty?: "easy" | "normal" | "hard";
 }
 
 // Course
