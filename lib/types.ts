@@ -190,6 +190,7 @@ export interface QuizSettings {
     quizStyle: "practice" | "knowledge_test" | "mixed";
     length: "short" | "normal" | "long";
     difficulty?: "easy" | "normal" | "hard";
+    customPrompt?: string;
 }
 
 // Course

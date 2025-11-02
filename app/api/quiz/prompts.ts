@@ -29,7 +29,7 @@ Be fair and consistent. Base the score strictly on how well the response meets t
 }
 
 export function createQuizFromCardsSystemInstruction(quizSettings: QuizSettings) {
-    const { minNumQuestions, maxNumQuestions, includeMCQ, includeFRQ, quizStyle, length, difficulty } = quizSettings;
+    const { minNumQuestions, maxNumQuestions, includeMCQ, includeFRQ, quizStyle, length, difficulty, customPrompt } = quizSettings;
 
     // Build constraints text dynamically
     const numQuestionText = (() => {
@@ -123,6 +123,8 @@ d) answer 4`
         }
     })() : "";
 
+    const customPromptInstructions = customPrompt ? `Additional instructions: ${customPrompt}` : "";
+
     return {
         parts: [
             {
@@ -142,6 +144,8 @@ ${styleInstructions}
 ${lengthInstructions}
 
 ${difficultyInstructions}
+
+${customPromptInstructions}
 
 Use standard Markdown or LaTeX formatting in questions and answers where appropriate.
 
