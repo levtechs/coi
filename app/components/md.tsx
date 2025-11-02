@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
+import { Card } from "@/lib/types";
 
 
 /**
@@ -48,6 +49,29 @@ export function normalizeMathMarkdown(md: string) {
 
 
 /**
+ * Replace card references with clickable underlined titles
+ */
+export function processCardReferences(markdown: string, cards?: Card[], onCardClick?: (card: Card) => void): string {
+    if (!cards || cards.length === 0) {
+        return markdown;
+    }
+
+    const cardMap = new Map(cards.map(card => [card.id, card]));
+    
+    return markdown.replace(/\(card:\s*([^)]+)\)/g, (match, cardId) => {
+        const trimmedCardId = cardId.trim();
+        const card = cardMap.get(trimmedCardId);
+        if (card) {
+            if (onCardClick) {
+                return `<span class="card-reference cursor-pointer hover:text-[var(--accent-500)] transition-colors" data-card-id="${trimmedCardId}"><u>${card.title}</u></span>`;
+            }
+            return `<u>${card.title}</u>`;
+        }
+        return match; // Keep original if card not found
+    });
+}
+
+/**
  * Sanity check for unmatched delimiters
  */
 export function checkMathBalance(md: string) {
@@ -66,10 +90,15 @@ export function checkMathBalance(md: string) {
 type Props = {
     markdown: string;
     singleLine?: boolean;
+    cards?: Card[];
+    onCardClick?: (card: Card) => void;
 };
 
-export default function MarkdownArticle({ markdown, singleLine = false }: Props) {
-    const processedMarkdown = useMemo(() => normalizeMathMarkdown(markdown), [markdown]);
+export default function MarkdownArticle({ markdown, singleLine = false, cards, onCardClick }: Props) {
+    const processedMarkdown = useMemo(() => {
+        const withCardReferences = processCardReferences(markdown, cards, onCardClick);
+        return normalizeMathMarkdown(withCardReferences);
+    }, [markdown, cards, onCardClick]);
 
     const balance = useMemo(() => checkMathBalance(processedMarkdown), [processedMarkdown]);
     if (!balance.ok) {
@@ -93,6 +122,23 @@ export default function MarkdownArticle({ markdown, singleLine = false }: Props)
                 remarkPlugins={[remarkMath]}
                 rehypePlugins={[rehypeRaw, rehypeKatex]}
                 components={{
+                    span: ({ className, children, ...props }) => {
+                        if (className?.includes('card-reference')) {
+                            const cardId = (props as Record<string, unknown>)['data-card-id'] as string;
+                            const card = cards?.find(c => c.id === cardId);
+                            if (card && onCardClick) {
+                                return (
+                                    <span 
+                                        className="card-reference cursor-pointer hover:text-[var(--accent-500)] transition-colors"
+                                        onClick={() => onCardClick(card)}
+                                    >
+                                        <u>{children}</u>
+                                    </span>
+                                );
+                            }
+                        }
+                        return <span className={className} {...props}>{children}</span>;
+                    },
                     h1: ({ ...props }) => (
                         <h1
                             className={`${headingBase} text-4xl ${headingSpacing} ${

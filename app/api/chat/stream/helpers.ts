@@ -106,6 +106,7 @@ export async function streamChatResponse(
         // accumulate whole returned text so we can parse JSON at the end
         let accumulated = "";
         const chatAttachments: ChatAttachment[] = [];
+        const referencedCardIds: Set<string> = new Set();
 
         const thoughtSummaries: string[] = [];
         let totalThoughtTime = 0;
@@ -187,6 +188,20 @@ export async function streamChatResponse(
                 // Update responseMessage to only contain the main response
                 responseMessage = mainResponse;
             }
+        }
+
+        // Parse card references and add them as chat attachments
+        const cardRefRegex = /\(card:\s*([^)]+)\)/g;
+        let match;
+        while ((match = cardRefRegex.exec(responseMessage)) !== null) {
+            const cardId = match[1].trim();
+            referencedCardIds.add(cardId);
+        }
+
+        // Find referenced cards from previousCards and add them to chatAttachments
+        if (previousCards && referencedCardIds.size > 0) {
+            const referencedCards = previousCards.filter(card => referencedCardIds.has(card.id));
+            chatAttachments.push(...referencedCards);
         }
 
         return {

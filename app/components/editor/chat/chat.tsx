@@ -171,6 +171,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, set
                             stream={stream}
                             isLoading={isLoading}
                             phase={streamPhase}
+                            cards={project.cards}
                         />
                     </div>
 
