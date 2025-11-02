@@ -78,6 +78,12 @@ Essentially, the user is asking about the information in the attachments.\
 Even though the attachments include metadata (such as ID), do not reffer to it in the response. The user doesn't need to see this information 
 `
 
+const cardReferencesChunk = `
+When referencing existing cards from the provided notes or hierarchy, use the format (card: {cardId}) where {cardId} is the actual ID of the card.
+This allows the system to properly link to the referenced cards in the response.
+Only reference cards when they are directly relevant to what you're explaining.
+`
+
 const newInfoChunk = `
 By new information, we mean any facts, explanations, or concepts that you or the user have not previously mentioned in the conversation or in the existing notes. This includes:
 - New definitions or explanations of terms
@@ -186,6 +192,8 @@ ${newInfoChunk}
 ${userPasteChunk}
 
 ${chatAttachmentsChunk}
+
+${cardReferencesChunk}
 
 In the responseMessage
 ${markdownChunk}

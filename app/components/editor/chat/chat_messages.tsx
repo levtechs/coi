@@ -1,19 +1,22 @@
-import React from "react"
+import React, { useState } from "react"
 
 import { FiLoader } from "react-icons/fi";
 
-import { Message, StreamPhase, ChatAttachment } from "@/lib/types";
+import { Message, StreamPhase, ChatAttachment, Card } from "@/lib/types";
 
 import MarkdownArticle from "../../md";
+import CardPopup from "../cards/card_popup";
 
 interface ChatMessagesProps {
     messages: Message[];
     stream: string | null;
     isLoading: boolean;
     phase: null | StreamPhase;
+    cards?: Card[];
 }
 
-const ChatMessages = ({ messages, stream, isLoading, phase}: ChatMessagesProps) => {
+const ChatMessages = ({ messages, stream, isLoading, phase, cards}: ChatMessagesProps) => {
+    const [selectedCard, setSelectedCard] = useState<Card | null>(null);
     
     const phaseMessages: Record<string, string> = {
         starting: "Starting...",
@@ -24,18 +27,18 @@ const ChatMessages = ({ messages, stream, isLoading, phase}: ChatMessagesProps) 
         "generating cards": "Making cards...",
     };
 
-    return (
+    const content = (
         <>
             {messages.length === 0 ? (
                 <p className="text-[var(--neutral-500)] text-sm">No messages yet</p>
             ) : (
-                messages.map((msg) => (
-                    <ChatMessage key={msg.id} message={msg} />
-                ))
+                 messages.map((msg) => (
+                     <ChatMessage key={msg.id} message={msg} cards={cards} onCardClick={setSelectedCard} />
+                 ))
             )}
             {/* Partial / stream message */}
             {stream && (
-                 <ChatMessage stream={stream} />
+                 <ChatMessage stream={stream} cards={cards} onCardClick={setSelectedCard} />
             )}
             {/* Loading / thinking message */}
             {isLoading && (
@@ -46,16 +49,30 @@ const ChatMessages = ({ messages, stream, isLoading, phase}: ChatMessagesProps) 
             )}
         </>
     );
+
+    return (
+        <>
+            {content}
+            {selectedCard && (
+                <CardPopup 
+                    card={selectedCard} 
+                    onClose={() => setSelectedCard(null)} 
+                />
+            )}
+        </>
+    );
 }
 
 export default React.memo(ChatMessages);
 
 interface ChatMessageParams {
     message?: Message;
-    stream?: string
+    stream?: string;
+    cards?: Card[];
+    onCardClick?: (card: Card) => void;
 }
 
-const ChatMessage = ({ message, stream }: ChatMessageParams) => {
+const ChatMessage = ({ message, stream, cards, onCardClick }: ChatMessageParams) => {
     return (
         <div className="flex flex-col">
             {/* Attachments of user-sent message*/}
@@ -87,16 +104,30 @@ const ChatMessage = ({ message, stream }: ChatMessageParams) => {
 
                          if (!text) return null;
 
-                         return (
-                             <div
-                                 key={"id" in attachment ? attachment.id : crypto.randomUUID()}
-                                 className={`flex items-center justify-between ${'time' in attachment ? 'px-2 w-auto min-w-32 max-w-full' : 'w-32'} h-8 bg-[var(--neutral-300)] rounded flex-shrink-0 ${url ? 'cursor-pointer hover:bg-[var(--neutral-400)]' : ''}`}
-                                 onClick={url ? () => window.open(url, '_blank') : undefined}
-                                 title={'summary' in attachment ? attachment.summary : undefined}
-                             >
-                                 <p className={`text-sm ${'time' in attachment ? '' : 'ml-2 truncate'}`}>{text}</p>
-                             </div>
-                         );
+                          // Handle card attachments
+                          if ('title' in attachment && 'details' in attachment && onCardClick) {
+                              return (
+                                  <div
+                                      key={attachment.id}
+                                      className="flex items-center justify-between w-32 h-8 bg-[var(--neutral-300)] rounded flex-shrink-0 cursor-pointer hover:bg-[var(--neutral-400)] transition-colors"
+                                      onClick={() => onCardClick(attachment as Card)}
+                                      title={attachment.title}
+                                  >
+                                      <p className="text-sm ml-2 truncate">{text}</p>
+                                  </div>
+                              );
+                          }
+
+                          return (
+                              <div
+                                  key={"id" in attachment ? attachment.id : crypto.randomUUID()}
+                                  className={`flex items-center justify-between ${'time' in attachment ? 'px-2 w-auto min-w-32 max-w-full' : 'w-32'} h-8 bg-[var(--neutral-300)] rounded flex-shrink-0 ${url ? 'cursor-pointer hover:bg-[var(--neutral-400)]' : ''}`}
+                                  onClick={url ? () => window.open(url, '_blank') : undefined}
+                                  title={'summary' in attachment ? attachment.summary : undefined}
+                              >
+                                  <p className={`text-sm ${'time' in attachment ? '' : 'ml-2 truncate'}`}>{text}</p>
+                              </div>
+                          );
                      })}
                 </div>
             )}
@@ -109,7 +140,7 @@ const ChatMessage = ({ message, stream }: ChatMessageParams) => {
             >
                 {message && message.isResponse || stream ? (
                     <div className="p-4">
-                        <MarkdownArticle markdown={message?.content ?? stream ?? ""} />
+                        <MarkdownArticle markdown={message?.content ?? stream ?? ""} cards={cards} onCardClick={onCardClick} />
                     </div>
                 ) : (message?.content)}
             </div>
