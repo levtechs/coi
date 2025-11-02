@@ -9,7 +9,7 @@ interface FastCreatePopupProps {
     onClose: () => void;
     title: string;
     placeholder: string;
-    onGenerate: (text: string, options: { generateFinalQuiz: boolean; generateLessonQuizzes: boolean; finalQuizSettings: { includeMCQ: boolean; includeFRQ: boolean; quizStyle: "practice" | "knowledge_test" | "mixed"; length: "short" | "normal" | "long" }; lessonQuizSettings: { includeMCQ: boolean; includeFRQ: boolean; quizStyle: "practice" | "knowledge_test" | "mixed"; length: "short" | "normal" | "long" } }, onUpdate: (message: string) => void) => Promise<void>;
+    onGenerate: (text: string, options: { generateFinalQuiz: boolean; generateLessonQuizzes: boolean; finalQuizSettings: { includeMCQ: boolean; includeFRQ: boolean; quizStyle: "practice" | "knowledge_test" | "mixed"; length: "short" | "normal" | "long"; customPrompt?: string }; lessonQuizSettings: { includeMCQ: boolean; includeFRQ: boolean; quizStyle: "practice" | "knowledge_test" | "mixed"; length: "short" | "normal" | "long"; customPrompt?: string } }, onUpdate: (message: string) => void) => Promise<void>;
     isGenerating: boolean;
     mode: 'course' | 'lesson';
 }
@@ -29,8 +29,8 @@ export default function FastCreatePopup({
     const [hasError, setHasError] = useState(false);
     const [generateFinalQuiz, setGenerateFinalQuiz] = useState(false);
     const [generateLessonQuizzes, setGenerateLessonQuizzes] = useState(false);
-    const [finalQuizSettings, setFinalQuizSettings] = useState<{ includeMCQ: boolean; includeFRQ: boolean; quizStyle: "practice" | "knowledge_test" | "mixed"; length: "short" | "normal" | "long" }>({ includeMCQ: true, includeFRQ: false, quizStyle: "mixed", length: "normal" });
-    const [lessonQuizSettings, setLessonQuizSettings] = useState<{ includeMCQ: boolean; includeFRQ: boolean; quizStyle: "practice" | "knowledge_test" | "mixed"; length: "short" | "normal" | "long" }>({ includeMCQ: true, includeFRQ: false, quizStyle: "mixed", length: "normal" });
+    const [finalQuizSettings, setFinalQuizSettings] = useState<{ includeMCQ: boolean; includeFRQ: boolean; quizStyle: "practice" | "knowledge_test" | "mixed"; length: "short" | "normal" | "long"; customPrompt?: string }>({ includeMCQ: true, includeFRQ: false, quizStyle: "mixed", length: "normal" });
+    const [lessonQuizSettings, setLessonQuizSettings] = useState<{ includeMCQ: boolean; includeFRQ: boolean; quizStyle: "practice" | "knowledge_test" | "mixed"; length: "short" | "normal" | "long"; customPrompt?: string }>({ includeMCQ: true, includeFRQ: false, quizStyle: "mixed", length: "normal" });
     const messagesRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -193,12 +193,20 @@ export default function FastCreatePopup({
                                                           >
                                                               Short
                                                           </button>
-                                                      </div>
-                                                  </div>
-                                              </>
-                                          )}
-                                     </div>
-                                 )}
+                                                       </div>
+                                                       <div className="mt-2">
+                                                           <textarea
+                                                               className="w-full p-2 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] h-12 resize-y text-xs"
+                                                               placeholder="Custom instructions for final quiz..."
+                                                               value={finalQuizSettings.customPrompt || ''}
+                                                               onChange={(e) => setFinalQuizSettings(prev => ({ ...prev, customPrompt: e.target.value }))}
+                                                           />
+                                                       </div>
+                                                   </div>
+                                               </>
+                                           )}
+                                      </div>
+                                  )}
                                  <div className="flex items-center gap-2">
                                      <button
                                          className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${generateLessonQuizzes ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
@@ -248,12 +256,20 @@ export default function FastCreatePopup({
                                                       >
                                                           Short
                                                       </button>
-                                                  </div>
-                                              </div>
-                                          </>
-                                      )}
-                                 </div>
-                             </div>
+                                                   </div>
+                                                   <div className="mt-2">
+                                                       <textarea
+                                                           className="w-full p-2 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] h-12 resize-y text-xs"
+                                                           placeholder="Custom instructions for lesson quizzes..."
+                                                           value={lessonQuizSettings.customPrompt || ''}
+                                                           onChange={(e) => setLessonQuizSettings(prev => ({ ...prev, customPrompt: e.target.value }))}
+                                                       />
+                                                   </div>
+                                               </div>
+                                           </>
+                                       )}
+                                  </div>
+                              </div>
                          </div>
                          <div className="mt-4 flex justify-end gap-2">
                             <Button color="var(--neutral-400)" onClick={handleClose}>

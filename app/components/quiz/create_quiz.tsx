@@ -181,6 +181,16 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
                                              </button>
                                          </div>
                                      </div>
+
+                                     <div>
+                                         <h3 className="text-sm font-medium mb-2">Custom Instructions (Optional):</h3>
+                                         <textarea
+                                             className="w-full p-2 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] h-16 resize-y text-sm"
+                                             placeholder="Add any specific instructions for quiz generation..."
+                                             value={quizSettings.customPrompt || ''}
+                                             onChange={(e) => {setQuizSettings({...quizSettings, customPrompt: e.target.value}); setError(null);}}
+                                         />
+                                     </div>
                                  </div>
                                  {error && <p className="text-[var(--error)] mt-2">{error}</p>}
                              </div>
