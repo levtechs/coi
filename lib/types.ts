@@ -117,6 +117,8 @@ export interface GroundingChunk {
 
 // Cards 
 
+export type Label = "important" | "ignore" | "exclude from quiz" | "exclude from hierarchy" | "investigate further" | "duplicate";
+
 export interface Card {
     id: string;
     title: string;
@@ -124,13 +126,27 @@ export interface Card {
     details?: string[];
     refImageUrls?: string[];
     iconUrl?: string;
-    exclude?: boolean;
+    exclude?: boolean; // Keep for backward compatibility
     isUnlocked?: boolean;
+    labels?: Label[];
 }
 
-export type NewCard = Omit<Card, "id">;
+export type NewCard = Omit<Card, "id"> & {
+    labels?: Label[];
+};
 
-export type CardFilter = "00" | "01" | "10" | "11";
+export interface CardFilter {
+    knowledge: boolean;
+    resource: boolean;
+    important: boolean;
+}
+
+// Helper for default "show all" state
+export const DEFAULT_CARD_FILTER: CardFilter = {
+    knowledge: true,
+    resource: true,
+    important: true
+};
 
 // Content 
 

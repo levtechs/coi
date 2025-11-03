@@ -49,7 +49,13 @@ export const createQuizFromCards = async (cards: NewCard[], quizSettings: QuizSe
         throw new Error("Must have at least one card to create a quiz.");
     }
 
-    const filteredCards = cards.filter((card) => !card.url && card.details && card.title.trim() !== "");
+    const filteredCards = cards.filter((card) => 
+        !card.url && 
+        card.details && 
+        card.title.trim() !== "" &&
+        !card.labels?.includes("exclude from quiz") &&
+        !(card.exclude && !card.labels?.includes("exclude from hierarchy")) // Keep backward compatibility
+    );
 
     const cardText = filteredCards.map((card) => `Title: ${card.title}\nDetails: ${card.details!.join('\n')}`).join('\n\n---\n\n');
 

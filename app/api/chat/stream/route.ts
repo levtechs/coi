@@ -43,7 +43,9 @@ export async function POST(req: NextRequest) {
 
         const previousContentHierarchy = project.hierarchy;
         const previousCards: Card[] = await fetchCardsFromProject(projectId);
-        const effectivePreviousCards = previousCards.filter((card: Card) => !card.exclude); // cards that are not excluded
+        const effectivePreviousCards = previousCards.filter((card: Card) => 
+            !card.exclude && !card.labels?.includes("exclude from hierarchy")
+        ); // cards that are not excluded (backward compatibility + new label system)
 
         const encoder = new TextEncoder();
 

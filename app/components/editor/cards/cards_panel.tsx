@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 
-import { Card, Project, CardFilter } from "@/lib/types";
+import { Card, Project, CardFilter, Label } from "@/lib/types";
+import { LABEL_DEFINITIONS } from "@/lib/labels";
 
 import { postCard } from "@/app/views/cards";
 
@@ -18,10 +19,11 @@ type CardsPanelProps = {
 
 export default function CardsPanel({ project, onCardClick, hidden, cardFilters }: CardsPanelProps) {
     const [isNewCardPopupOpen, setNewCardPopupOpen] = useState(false);
+    const [selectedLabels, setSelectedLabels] = useState<Label[]>([]);
 
-    const onAddCard = async (title: string, details: string[], exclude: boolean) => {
-        // Post the new card to the backend
-        await postCard(project.id, { title, details, exclude });
+    const onAddCard = async (title: string, details: string[], exclude: boolean, labels: Label[]) => {
+        // Post new card to backend
+        await postCard(project.id, { title, details, exclude, labels });
     };
 
         
@@ -35,13 +37,77 @@ export default function CardsPanel({ project, onCardClick, hidden, cardFilters }
 
     const filteredCards = project.cards ? project.cards.filter(card => {
         const isResource = !!card.url;
-        const hideKnowledge = cardFilters[0] === '0';
-        const hideResource = cardFilters[1] === '0';
-        return !((isResource && hideResource) || (!isResource && hideKnowledge));
+        const hasImportantLabel = card.labels?.includes("important");
+        
+        // Filter by selected labels
+        const hasSelectedLabel = selectedLabels.length === 0 || 
+            (card.labels && selectedLabels.some(label => card.labels!.includes(label)));
+        
+        return (
+            (isResource ? cardFilters.resource : cardFilters.knowledge) &&
+            (!hasImportantLabel || cardFilters.important) &&
+            hasSelectedLabel
+        );
     }) : [];
+
+    const toggleLabel = (label: Label) => {
+        if (selectedLabels.includes(label)) {
+            setSelectedLabels(selectedLabels.filter(l => l !== label));
+        } else {
+            setSelectedLabels([...selectedLabels, label]);
+        }
+    };
 
     return (
         <div className={`${hidden ? 'hidden' : ''}`}>
+            {/* Label Filter */}
+            {project.cards && project.cards.length > 0 && (
+                <div className="p-4 border-b border-[var(--neutral-300)]">
+                    <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-[var(--neutral-400)]">Filter by Labels:</label>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                className={`px-3 py-2 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${
+                                    selectedLabels.length === 0
+                                        ? 'bg-[var(--neutral-400)] text-[var(--foreground)]'
+                                        : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'
+                                }`}
+                                onClick={() => setSelectedLabels([])}
+                            >
+                                All Cards
+                            </button>
+                            {LABEL_DEFINITIONS.map((labelDef) => {
+                                const Icon = labelDef.icon;
+                                const isSelected = selectedLabels.includes(labelDef.id);
+                                const count = project.cards!.filter(card => 
+                                    card.labels?.includes(labelDef.id)
+                                ).length;
+                                
+                                return (
+                                    <button
+                                        key={labelDef.id}
+                                        className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${
+                                            isSelected
+                                                ? 'bg-[var(--neutral-400)] text-[var(--foreground)]'
+                                                : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'
+                                        }`}
+                                        onClick={() => toggleLabel(labelDef.id)}
+                                        title={`${labelDef.name} (${count} cards)`}
+                                    >
+                                        <Icon size={16} />
+                                        <span>{labelDef.name}</span>
+                                        {count > 0 && (
+                                            <span className="ml-1 text-xs bg-[var(--neutral-300)] px-1 rounded">
+                                                {count}
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
             {filteredCards.length === 0 ? (
                 <>
                     <p className="text-[var(--neutral-500)] text-center p-4">Blank project, start using chat to see the cards populate, or create a card manually.</p>

@@ -46,7 +46,14 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
         const fetchCards = async () => {
             const cards = await getCards(projectId);
             setCards(cards);
-            setSelectedCardIds(new Set(cards.map(c => c.id)));
+            // Select all knowledge cards by default, except those with "exclude from quiz" label
+            const knowledgeCards = cards.filter(card => !card.url);
+            const defaultSelected = new Set(
+                knowledgeCards
+                    .filter(card => !card.labels?.includes("exclude from quiz"))
+                    .map(c => c.id)
+            );
+            setSelectedCardIds(defaultSelected);
             setIsLoadingCards(false);
         }
         
@@ -66,30 +73,56 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
                         <h2>
                             Cards:
                         </h2>
+                        <div className="flex flex-wrap gap-4 mb-4 text-xs text-[var(--neutral-600)]">
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-[var(--accent-500)] rounded flex items-center justify-center text-white text-xs">✓</div>
+                                <span>Selected for quiz</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-[var(--warning)] rounded flex items-center justify-center text-white text-xs">!</div>
+                                <span>Excluded from quiz (unselected by default)</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-[var(--neutral-200)] border border-[var(--neutral-300)] rounded flex items-center justify-center text-[var(--neutral-700)] text-xs">○</div>
+                                <span>Not selected</span>
+                            </div>
+                        </div>
                         <div className="flex flex-row gap-8 p-4 w-full overflow-x-auto">
-                            {cards.filter(card => !card.url).map((card) => (
-                                <div key={card.id} className="shrink-0 relative">
-                                    <button
-                                        className={`absolute top-2 right-2 px-2 py-1 rounded-md transition-colors duration-200 text-xs whitespace-nowrap z-10 ${selectedCardIds.has(card.id) ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            const newSelected = new Set(selectedCardIds);
-                                            if (newSelected.has(card.id)) {
-                                                newSelected.delete(card.id);
-                                            } else {
-                                                newSelected.add(card.id);
-                                            }
-                                            setSelectedCardIds(newSelected);
-                                        }}
-                                    >
-                                        ✓
-                                    </button>
-                                    <DetailCard
-                                        card={card}
-                                        onClick={() => {setClickedCard(card)}}
-                                    />
-                                </div>
-                            ))}
+                            {cards.filter(card => !card.url).map((card) => {
+                                const isSelected = selectedCardIds.has(card.id);
+                                const isExcludedFromQuiz = card.labels?.includes("exclude from quiz");
+                                
+                                return (
+                                    <div key={card.id} className="shrink-0 relative">
+                                        <button
+                                            className={`absolute top-2 right-2 px-2 py-1 rounded-md transition-colors duration-200 text-xs whitespace-nowrap z-10 ${
+                                                isSelected 
+                                                    ? 'bg-[var(--accent-500)] text-white' 
+                                                    : isExcludedFromQuiz
+                                                        ? 'bg-[var(--warning)] text-white'
+                                                        : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'
+                                            }`}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                const newSelected = new Set(selectedCardIds);
+                                                if (newSelected.has(card.id)) {
+                                                    newSelected.delete(card.id);
+                                                } else {
+                                                    newSelected.add(card.id);
+                                                }
+                                                setSelectedCardIds(newSelected);
+                                            }}
+                                            title={isExcludedFromQuiz && !isSelected ? "This card is excluded from quiz by default" : isSelected ? "Selected for quiz" : "Not selected for quiz"}
+                                        >
+                                            {isSelected ? '✓' : isExcludedFromQuiz ? '!' : '○'}
+                                        </button>
+                                        <DetailCard
+                                            card={card}
+                                            onClick={() => {setClickedCard(card)}}
+                                        />
+                                    </div>
+                                );
+                            })}
                         </div>
                         {clickedCard && (
                             <CardPopup 

@@ -4,12 +4,13 @@ import React, { useState, useEffect } from "react";
 
 import { FiX, FiPlus, FiTrash2 } from "react-icons/fi";
 import Button from "../../button";
-import { Card } from "@/lib/types";
+import { Card, Label } from "@/lib/types";
+import LabelSelector from "./label_selector";
 
 
 type EditCardPopupProps = {
     onCancel: () => void;
-    onSubmit: (title: string, details: string[], exclude: boolean, cardId?: string) => void;
+    onSubmit: (title: string, details: string[], exclude: boolean, labels: Label[], cardId?: string) => void;
     card?: Card | null;
 };
 
@@ -17,12 +18,14 @@ export default function EditCardPopup({ onSubmit, onCancel, card }: EditCardPopu
     const [title, setTitle] = useState(card?.title || "");
     const [details, setDetails] = useState<string[]>(card?.details && card.details.length > 0 ? card.details : [""]);
     const [exclude, setExclude] = useState(card?.exclude ?? false);
+    const [labels, setLabels] = useState<Label[]>(card?.labels || []);
 
     useEffect(() => {
         if (card) {
             setTitle(card.title);
             setDetails(card.details && card.details.length > 0 ? card.details : [""]);
             setExclude(card.exclude ?? false);
+            setLabels(card.labels || []);
         }
     }, [card]);
 
@@ -42,7 +45,7 @@ export default function EditCardPopup({ onSubmit, onCancel, card }: EditCardPopu
 
     const handleSubmit = () => {
         if (!title.trim()) return; // require title
-        onSubmit(title, details, exclude, card?.id);
+        onSubmit(title, details, exclude, labels, card?.id);
         onCancel();
     };
 
@@ -106,17 +109,10 @@ export default function EditCardPopup({ onSubmit, onCancel, card }: EditCardPopu
                     )}
                 </div>
 
-                <h2 className="mt-4 italic">
-                    Options:
-                </h2>
-                <div className="flex flex-row gap-2">
-                    <button
-                        className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${exclude ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
-                        onClick={() => setExclude(!exclude)}
-                    >
-                        Exclude from hierarchy
-                    </button>
-                </div>
+                <LabelSelector
+                    selectedLabels={labels}
+                    onLabelsChangeAction={setLabels}
+                />
 
 
                 {/* Action buttons */}

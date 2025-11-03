@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Project, Card, ChatAttachment, CardFilter } from "@/lib/types";
+import { Project, Card, ChatAttachment, CardFilter, DEFAULT_CARD_FILTER } from "@/lib/types";
 import Modal from "../modal";
 import MenuBar from "./menu/menu";
 import ContentPanel from "./content";
@@ -27,20 +27,19 @@ const Editor = ({
 }: EditorProps) => {
     const [tab, setTab] = useState<"content" | "cards">("content"); // "content" or "cards"
 
-    const [cardFilters, setCardFilters] = useState<CardFilter>("11");
+    const [cardFilters, setCardFilters] = useState<CardFilter>(DEFAULT_CARD_FILTER);
     const [filtersExpanded, setFiltersExpanded] = useState(false);
 
-    const knowledgeShown = cardFilters[0] === '1';
-    const resourceShown = cardFilters[1] === '1';
-
     const toggleKnowledge = () => {
-        const newKnowledge = knowledgeShown ? '0' : '1';
-        setCardFilters((newKnowledge + cardFilters[1]) as CardFilter);
+        setCardFilters(prev => ({ ...prev, knowledge: !prev.knowledge }));
     };
 
     const toggleResource = () => {
-        const newResource = resourceShown ? '0' : '1';
-        setCardFilters((cardFilters[0] + newResource) as CardFilter);
+        setCardFilters(prev => ({ ...prev, resource: !prev.resource }));
+    };
+
+    const toggleImportant = () => {
+        setCardFilters(prev => ({ ...prev, important: !prev.important }));
     };
 
     const [modalContents, setModalContents] = useState(noModal);
@@ -70,6 +69,7 @@ const Editor = ({
                     setFiltersExpanded={setFiltersExpanded}
                     toggleKnowledge={toggleKnowledge}
                     toggleResource={toggleResource}
+                    toggleImportant={toggleImportant}
                 />
 
                 {/* Main Content Area */}
