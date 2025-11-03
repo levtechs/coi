@@ -29,9 +29,10 @@ interface MenuBarProps {
     setFiltersExpanded: (expanded: boolean) => void;
     toggleKnowledge: () => void;
     toggleResource: () => void;
+    toggleImportant: () => void;
 }
 
-const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, tab, setTab, cardFilters, filtersExpanded, setFiltersExpanded, toggleKnowledge, toggleResource} : MenuBarProps) => {
+const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, tab, setTab, cardFilters, filtersExpanded, setFiltersExpanded, toggleKnowledge, toggleResource, toggleImportant} : MenuBarProps) => {
     const [quizzes, setQuizzes] = useState<Quiz[] | null>(null);
     const [lessonProgress, setLessonProgress] = useState<number | null>(null);
 
@@ -148,18 +149,24 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                     />
                 </div>
                 <div className="relative inline-block ml-2">
-                    <div className={`absolute right-0 top-full mt-2 flex space-x-4 transition-opacity duration-300 bg-[var(--neutral-100)] border border-[var(--neutral-300)] rounded-md p-2 shadow-md ${filtersExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                    <div className={`absolute left-0 top-full mt-2 flex flex-wrap gap-2 transition-opacity duration-300 bg-[var(--neutral-100)] border border-[var(--neutral-300)] rounded-md p-2 shadow-md z-50 min-w-fit ${filtersExpanded ? 'opacity-100' : 'opacity-0'}`}>
                         <button
-                            className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${cardFilters[0] === '1' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
+                            className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${cardFilters.knowledge ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
                             onClick={toggleKnowledge}
                         >
                             Show Knowledge Cards
                         </button>
                         <button
-                            className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${cardFilters[1] === '1' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
+                            className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${cardFilters.resource ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
                             onClick={toggleResource}
                         >
                             Show Resource Cards
+                        </button>
+                        <button
+                            className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${cardFilters.important ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
+                            onClick={toggleImportant}
+                        >
+                            Show Important Cards
                         </button>
                     </div>
                     <button

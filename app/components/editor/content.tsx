@@ -114,9 +114,10 @@ const HierarchicalNode = ({
                     const card = cards.find((c) => c.id === child.cardId);
                     if (card) {
                         const isResource = !!card.url;
-                        const hideKnowledge = cardFilters[0] === '0';
-                        const hideResource = cardFilters[1] === '0';
-                        const shouldShow = !((isResource && hideResource) || (!isResource && hideKnowledge));
+                        const hasImportantLabel = card.labels?.includes("important");
+                        const shouldShow = 
+                            (isResource ? cardFilters.resource : cardFilters.knowledge) &&
+                            (!hasImportantLabel || cardFilters.important);
                         if (shouldShow) {
                             cardBuffer.push(card);
                         }

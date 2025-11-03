@@ -1,4 +1,4 @@
-import { Card, NewCard } from "@/lib/types";
+import { Card, NewCard, Label } from "@/lib/types";
 import { apiFetch } from "./helpers";
 
 /**
@@ -40,10 +40,10 @@ export async function postCard(projectId: string, cardData: NewCard): Promise<Ca
  * Updates an existing card in the API for a specific project.
  * @param projectId The ID of the project.
  * @param cardId The ID of the card to update.
- * @param updates The fields to update (title, details, exclude).
+ * @param updates The fields to update (title, details, exclude, labels).
  * @returns A promise that resolves to the updated Card or null on failure.
  */
-export async function updateCard(projectId: string, cardId: string, updates: { title?: string; details?: string[]; exclude?: boolean }): Promise<Card | null> {
+export async function updateCard(projectId: string, cardId: string, updates: { title?: string; details?: string[]; exclude?: boolean; labels?: Label[] }): Promise<Card | null> {
     try {
         const payload = { cardId, ...updates };
         const updatedCard = await apiFetch<Card>(`/api/cards/${projectId}`, {

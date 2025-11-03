@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Card } from "@/lib/types";
+import { Card, Label } from "@/lib/types";
 import MarkdownArticle from "../../md";
 
 import { FaYoutube } from "react-icons/fa";
 import { FiEdit2, FiMoreVertical, FiTrash2, FiStar } from "react-icons/fi";
 import { deleteCard, updateCard } from "@/app/views/cards";
 import EditCardPopup from "./edit_card_popup";
+import { getLabelDefinition, LABEL_DEFINITIONS } from "@/lib/labels";
 
 type DetailCardProps = {
     card: Card;
@@ -22,6 +23,17 @@ export default function DetailCard({ card, onClick, projectId }: DetailCardProps
     const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLDivElement>(null);
+
+    const toggleLabel = async (labelId: Label) => {
+        if (!projectId) return;
+        
+        const currentLabels = card.labels || [];
+        const newLabels = currentLabels.includes(labelId)
+            ? currentLabels.filter(l => l !== labelId)
+            : [...currentLabels, labelId];
+        
+        await updateCard(projectId, card.id, { labels: newLabels });
+    };
 
     const displayTitle = card.title.length > 20 ? card.title.slice(0, 27) + "..." : card.title;
 
@@ -69,6 +81,51 @@ export default function DetailCard({ card, onClick, projectId }: DetailCardProps
                  <MarkdownArticle markdown={displayTitle} singleLine={true} />
              </h3>
 
+            {/* Label Badges - Show all on hover */}
+            <div className="absolute bottom-2 left-2 flex gap-1">
+                {/* Always show selected labels */}
+                {card.labels && card.labels.map((labelId) => {
+                    const labelDef = getLabelDefinition(labelId);
+                    if (!labelDef) return null;
+                    const Icon = labelDef.icon;
+                    
+                    return (
+                        <div
+                            key={labelId}
+                            className="rounded-full p-1.5 bg-[var(--neutral-200)] border border-[var(--neutral-300)] cursor-pointer hover:bg-[var(--neutral-300)] transition-colors duration-200"
+                            title={labelDef.name}
+                            onClick={async (e) => {
+                                e.stopPropagation();
+                                await toggleLabel(labelId);
+                            }}
+                        >
+                            <Icon size={12} className="text-[var(--neutral-700)]" />
+                        </div>
+                    );
+                })}
+                
+                {/* Show unselected labels on hover */}
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    {LABEL_DEFINITIONS.filter(labelDef => !card.labels?.includes(labelDef.id)).map((labelDef) => {
+                        const Icon = labelDef.icon;
+                        
+                        return (
+                            <div
+                                key={labelDef.id}
+                                className="rounded-full p-1.5 bg-[var(--neutral-100)] border border-[var(--neutral-200)] cursor-pointer hover:bg-[var(--neutral-200)] transition-colors duration-200"
+                                title={labelDef.name}
+                                onClick={async (e) => {
+                                    e.stopPropagation();
+                                    await toggleLabel(labelDef.id);
+                                }}
+                            >
+                                <Icon size={12} className="text-[var(--neutral-500)]" />
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
             {/* Three Dots Icon */}
             {showMenu && (
                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition" ref={buttonRef}>
@@ -94,9 +151,9 @@ export default function DetailCard({ card, onClick, projectId }: DetailCardProps
                 {isEditPopupOpen && (
                     <EditCardPopup
                         card={card}
-                        onSubmit={async (title, details, exclude, cardId) => {
+                        onSubmit={async (title, details, exclude, labels, cardId) => {
                             if (cardId) {
-                                await updateCard(projectId, cardId, { title, details, exclude });
+                                await updateCard(projectId, cardId, { title, details, exclude, labels });
                             }
                         }}
                         onCancel={() => setIsEditPopupOpen(false)}
