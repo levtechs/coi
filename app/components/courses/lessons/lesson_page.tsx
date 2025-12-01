@@ -26,7 +26,6 @@ const LessonPage = ({ lesson, courseId, lessonIdx, projects }: LessonPageProps) 
     const [clickedCard, setClickedCard] = useState<Card | null>(null);
     const [lessonProgress, setLessonProgress] = useState<string | null>(null);
     const [lessonQuizzes, setLessonQuizzes] = useState<Quiz[]>([]);
-    const [unlockedCardIds, setUnlockedCardIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         if (projects.length === 0) {
@@ -44,7 +43,7 @@ const LessonPage = ({ lesson, courseId, lessonIdx, projects }: LessonPageProps) 
                     for (const project of projects) {
                         try {
                             const cards = await fetchCardsFromProject(project.id);
-                            const unlockedCards = cards.filter((card) => card.isUnlocked);
+                            const unlockedCards = cards.filter((card) => lesson.cardsToUnlock.some(lc => lc.id === card.id));
                             unlockedCards.forEach(card => allUnlockedIds.add(card.id));
                             const unlockedCount = unlockedCards.length;
                             progresses.push(Math.round((unlockedCount / totalCards) * 100));
@@ -55,14 +54,11 @@ const LessonPage = ({ lesson, courseId, lessonIdx, projects }: LessonPageProps) 
                     }
                     const maxProgress = Math.max(...progresses);
                     setLessonProgress(`${maxProgress}%`);
-                    setUnlockedCardIds(allUnlockedIds);
                 } else {
                     setLessonProgress("0%");
-                    setUnlockedCardIds(new Set());
                 }
             } else {
                 setLessonProgress("0%");
-                setUnlockedCardIds(new Set());
             }
         };
 
@@ -135,8 +131,10 @@ const LessonPage = ({ lesson, courseId, lessonIdx, projects }: LessonPageProps) 
                         {lesson.cardsToUnlock.map((card, index) => (
                             <div key={index} className="shrink-0">
                                 <DetailCard
-                                    card={{ id: index.toString(), title: card.title, details: card.details, isUnlocked: unlockedCardIds.has(card.id) }}
-                                    onClick={() => setClickedCard({ id: index.toString(), title: card.title, details: card.details, isUnlocked: unlockedCardIds.has(card.id) })}
+                                    card={{ id: index.toString(), title: card.title, details: card.details }}
+                                    onClick={() => setClickedCard({ id: index.toString(), title: card.title, details: card.details })}
+                                    showLabelsOnHover={false}
+                                    isLessonCard={true} 
                                 />
                             </div>
                         ))}
@@ -272,6 +270,7 @@ const LessonPage = ({ lesson, courseId, lessonIdx, projects }: LessonPageProps) 
                 <CardPopup
                     card={clickedCard}
                     onClose={() => setClickedCard(null)}
+                    isLessonCard={true}
                 />
             )}
         </div>

@@ -127,7 +127,6 @@ export interface Card {
     refImageUrls?: string[];
     iconUrl?: string;
     exclude?: boolean; // Keep for backward compatibility
-    isUnlocked?: boolean;
     labels?: Label[];
 }
 
@@ -223,6 +222,7 @@ export interface Course {
     sharedWith?: string[]; // ids
     category?: CourseCategory;
     ownerId?: string;
+    admins?: string[]; // emails
 }
 
 export interface CourseLesson {
@@ -237,7 +237,7 @@ export interface CourseLesson {
 }
 
 export type NewLesson = Omit<CourseLesson, "id" | "courseId" | "cardsToUnlock"> & { cardsToUnlock: NewCard[]; content: string };
-export type NewCourse = Omit<Course, "id" | "lessons"> & { lessons: NewLesson[] };
+export type NewCourse = Omit<Course, "id" | "lessons" | "admins"> & { lessons: NewLesson[]; admins?: string[] };
 
 // Comments
 

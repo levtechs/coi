@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { getVerifiedUid } from "../../helpers";
+import { getUserById } from "../../users/helpers";
 import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc, setDoc, addDoc, query, where, or, and, orderBy } from "firebase/firestore";
 import { Course, CourseLesson, Project, Card } from "@/lib/types";
 
@@ -25,11 +26,18 @@ export async function GET(
 
         const courseData = courseSnap.data();
 
-        // Check access: owner, shared, or public
+        const user = await getUserById(uid);
+        if (!user) {
+            return NextResponse.json({ error: "User not found" }, { status: 401 });
+        }
+
+        // Check access: owner, shared, public, or admin
+        const isAdmin = courseData.admins?.includes(user.email) || false;
         const hasAccess =
             courseData.ownerId === uid ||
             (courseData.sharedWith && courseData.sharedWith.includes(uid)) ||
-            courseData.public === true;
+            courseData.public === true ||
+            isAdmin;
 
         if (!hasAccess) {
             return NextResponse.json({ error: "Access denied" }, { status: 403 });
@@ -99,6 +107,7 @@ export async function GET(
             sharedWith: courseData.sharedWith || [],
             category: courseData.category,
             ownerId: courseData.ownerId,
+            admins: courseData.admins || []
         };
 
         return NextResponse.json({ course, lessonProjects });
@@ -136,8 +145,15 @@ export async function PUT(
 
         const existingData = courseSnap.data();
 
-        // Check if user is the owner
-        if (existingData.ownerId !== uid) {
+        const user = await getUserById(uid);
+        if (!user) {
+            return NextResponse.json({ error: "User not found" }, { status: 401 });
+        }
+
+        const isOwner = existingData.ownerId === uid;
+        const isAdmin = existingData.admins?.includes(user.email) || false;
+
+        if (!isOwner && !isAdmin) {
             return NextResponse.json({ error: "Access denied" }, { status: 403 });
         }
 
@@ -149,6 +165,7 @@ export async function PUT(
             sharedWith: courseData.sharedWith || [],
             quizIds: courseData.quizIds || [],
             category: courseData.category || "",
+            admins: courseData.admins || []
         });
 
         // Handle lessons: update existing, create new, delete removed

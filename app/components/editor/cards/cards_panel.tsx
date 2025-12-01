@@ -18,6 +18,7 @@ type CardsPanelProps = {
 };
 
 export default function CardsPanel({ project, onCardClick, hidden, cardFilters }: CardsPanelProps) {
+    const lessonCardIds = new Set(project.courseLesson?.cardsToUnlock.map(c => c.id) || []);
     const [isNewCardPopupOpen, setNewCardPopupOpen] = useState(false);
     const [selectedLabels, setSelectedLabels] = useState<Label[]>([]);
 
@@ -134,7 +135,7 @@ export default function CardsPanel({ project, onCardClick, hidden, cardFilters }
                         <span className="text-[var(--accent-500)] font-semibold text-lg">+ Create Card</span>
                     </div>
                     {filteredCards.map((card) => (
-                        <DetailCard key={card.id} card={card} onClick={onCardClick} projectId={project.id} />
+                        <DetailCard key={card.id} card={card} onClick={onCardClick} projectId={project.id} isLessonCard={lessonCardIds.has(card.id)} />
                     ))}
                 </div>
             )}

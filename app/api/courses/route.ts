@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { getVerifiedUid } from "../helpers";
+import { getUserById } from "../users/helpers";
 import { collection, getDocs, query, where, or } from "firebase/firestore";
 import { Course, CourseLesson } from "@/lib/types";
 
@@ -14,6 +15,11 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
     }
 
+    const user = await getUserById(uid);
+    if (!user) {
+        return NextResponse.json({ error: "User not found" }, { status: 401 });
+    }
+
     try {
         const coursesRef = collection(db, 'courses');
         const q = query(
@@ -21,7 +27,8 @@ export async function GET(req: NextRequest) {
             or(
                 where('ownerId', '==', uid),
                 where('sharedWith', 'array-contains', uid),
-                where('public', '==', true)
+                where('public', '==', true),
+                where('admins', 'array-contains', user.email)
             )
         );
         const snapshot = await getDocs(q);
@@ -47,6 +54,7 @@ export async function GET(req: NextRequest) {
                     sharedWith: data.sharedWith,
                     category: data.category,
                     ownerId: data.ownerId,
+                    admins: data.admins || [],
                 } as Course;
             })
         );

@@ -55,6 +55,17 @@ export async function getTitleByToken(token: string): Promise<{ title: string; t
 }
 
 /**
+ * Deletes an invitation by token.
+ * @param token The invitation token to delete.
+ * @returns A promise that resolves when the invitation is deleted.
+ */
+export async function deleteInvitation(token: string): Promise<void> {
+    await apiFetch(`/api/invite?token=${token}`, {
+        method: "DELETE",
+    });
+}
+
+/**
  * Retrieves the invitations for a project.
  * @param projectId The project ID.
  * @returns A promise that resolves to the list of invitations.

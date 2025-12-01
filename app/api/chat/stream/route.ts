@@ -12,6 +12,8 @@ import { streamChatResponse } from "./helpers";
 import { getProjectById } from "@/app/api/projects/helpers";
 import { fetchCardsFromProject, copyCardsToDb } from "@/app/api/cards/helpers";
 import { Card, ContentHierarchy, ChatAttachment, StreamPhase, GroundingChunk, ChatPreferences } from "@/lib/types";
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 export async function POST(req: NextRequest) {
     const uid = await getVerifiedUid(req);
@@ -43,9 +45,28 @@ export async function POST(req: NextRequest) {
 
         const previousContentHierarchy = project.hierarchy;
         const previousCards: Card[] = await fetchCardsFromProject(projectId);
-        const effectivePreviousCards = previousCards.filter((card: Card) => 
+        const effectivePreviousCards = previousCards.filter((card: Card) =>
             !card.exclude && !card.labels?.includes("exclude from hierarchy")
         ); // cards that are not excluded (backward compatibility + new label system)
+
+        // Fetch course cards if project belongs to a course
+        let courseCards: Card[] = [];
+        if (project.courseId) {
+            const courseRef = doc(db, "courses", project.courseId);
+            const courseSnap = await getDoc(courseRef);
+            if (courseSnap.exists()) {
+                const courseData = courseSnap.data();
+                const lessons = courseData?.lessons || [];
+                courseCards = lessons.flatMap((lesson: { id: string; cardsToUnlock?: { title: string; details: string }[] }) =>
+                    (lesson.cardsToUnlock || []).map((c: { title: string; details: string }, idx: number) => ({
+                        id: `${lesson.id}-${idx}`,
+                        title: c.title,
+                        details: c.details,
+
+                    }))
+                );
+            }
+        }
 
         const encoder = new TextEncoder();
 
@@ -73,37 +94,38 @@ export async function POST(req: NextRequest) {
                     let followUpDetected = false;
                     const startTime = Date.now();
 
-                    const result = await streamChatResponse(
-                        message,
-                        messageHistory,
-                        effectivePreviousCards,
-                        previousContentHierarchy,
-                        attachments,
-                        preferences,
-                        startTime,
-                        (token: string) => {
-                            if (phase === "starting") updatePhase("streaming");
+                     const result = await streamChatResponse(
+                         message,
+                         messageHistory,
+                         effectivePreviousCards,
+                         previousContentHierarchy,
+                         attachments,
+                         preferences,
+                         startTime,
+                         (token: string) => {
+                             if (phase === "starting") updatePhase("streaming");
 
-                            // Check if this token contains [FOLLOW_UP]
-                            if (token.includes('[FOLLOW_UP]')) {
-                                followUpDetected = true;
-                                // Send only the part before [FOLLOW_UP]
-                                const cleanToken = token.split('[FOLLOW_UP]')[0];
-                                if (cleanToken) {
-                                    controller.enqueue(encoder.encode(cleanToken));
-                                }
-                                return; // Don't send the rest
-                            }
+                             // Check if this token contains [FOLLOW_UP]
+                             if (token.includes('[FOLLOW_UP]')) {
+                                 followUpDetected = true;
+                                 // Send only the part before [FOLLOW_UP]
+                                 const cleanToken = token.split('[FOLLOW_UP]')[0];
+                                 if (cleanToken) {
+                                     controller.enqueue(encoder.encode(cleanToken));
+                                 }
+                                 return; // Don't send the rest
+                             }
 
-                            // If follow-up has been detected, don't send subsequent tokens
-                            if (followUpDetected) {
-                                return;
-                            }
+                             // If follow-up has been detected, don't send subsequent tokens
+                             if (followUpDetected) {
+                                 return;
+                             }
 
-                            // Send tokens directly without \n
-                            controller.enqueue(encoder.encode(token));
-                        }
-                    );
+                             // Send tokens directly without \n
+                             controller.enqueue(encoder.encode(token));
+                         },
+                         courseCards
+                     );
 
                     const { responseMessage, hasNewInfo, chatAttachments, followUpQuestions } = result!;
 
@@ -165,10 +187,9 @@ export async function POST(req: NextRequest) {
                             finalResponseMessage += "\n\n*Note: Card generation failed. Some information may not be properly organized.*";
                         }
 
-                        if (unlockedCards.length > 0) {
-                            unlockedCards = unlockedCards.map(c => ({ ...c, isUnlocked: true }));
-                            await copyCardsToDb(projectId, unlockedCards);
-                        }
+                         if (unlockedCards.length > 0) {
+                             await copyCardsToDb(projectId, unlockedCards);
+                         }
 
                         if (newCards.length > 0 || unlockedCards.length > 0) {
                             sendUpdate("newCards", JSON.stringify([...newCards, ...unlockedCards]));

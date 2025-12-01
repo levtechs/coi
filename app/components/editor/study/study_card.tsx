@@ -10,9 +10,10 @@ import { FiEdit2, FiMoreVertical, FiTrash2, FiStar } from "react-icons/fi";
 type StudyCardProps = {
     card: Card;
     onClick: (card: Card) => void;
+    isLessonCard?: boolean;
 };
 
-export default function StudyCard({ card, onClick }: StudyCardProps) {
+export default function StudyCard({ card, onClick, isLessonCard = false }: StudyCardProps) {
     const displayTitle = card.title;
 
     return (
@@ -20,9 +21,7 @@ export default function StudyCard({ card, onClick }: StudyCardProps) {
             className="flex items-center justify-center text-center relative border border-[var(--neutral-300)] rounded-lg p-6 bg-[var(--neutral-200)] h-32 shadow hover:shadow-md transition cursor-pointer group"
             onClick={() => onClick(card)}
         >
-            {card.isUnlocked && (
-                <FiStar className="absolute top-2 left-2 text-[var(--accent-500)] w-5 h-5" />
-            )}
+            {isLessonCard && <FiStar className="absolute top-2 left-2 text-[var(--accent-500)] w-5 h-5" />}
             {card.url && (card.url.includes("youtube.com") || card.url.includes("youtu.be")) ? (
                 <FaYoutube className="w-6 h-6 mr-2 text-[var(--error)] flex-shrink-0" />
             ) : (

@@ -6,7 +6,7 @@ import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import StudyCard from './study_card';
 import CardPopup from '../cards/card_popup';
 
-const StudyPanel = ({ cards }: { cards: Card[] }) => {
+const StudyPanel = ({ cards, lessonCardIds = new Set<string>() }: { cards: Card[]; lessonCardIds?: Set<string> }) => {
     const [visibleCards, setVisibleCards] = useState<Card[]>(() => {
         const shuffled = [...cards].sort(() => Math.random() - 0.5);
         return shuffled.slice(0, 3);
@@ -81,7 +81,7 @@ const StudyPanel = ({ cards }: { cards: Card[] }) => {
                                         else if (position === 1) next();
                                     }}
                                 >
-                                    <StudyCard card={card} onClick={() => {}} />
+                                     <StudyCard card={card} onClick={() => {}} isLessonCard={lessonCardIds.has(card.id)} />
                                 </div>
                             );
                         })}
@@ -93,7 +93,15 @@ const StudyPanel = ({ cards }: { cards: Card[] }) => {
             ) : (
                 <p className="text-[var(--foreground)]">No cards available.</p>
             )}
-            {selectedCard && <CardPopup card={selectedCard} onClose={() => setSelectedCard(null)} />}
+
+            {selectedCard && (
+                <CardPopup
+                    card={selectedCard}
+                    onClose={() => setSelectedCard(null)}
+                    isLessonCard={lessonCardIds.has(selectedCard.id)}
+                />
+            )}
+
         </div>
     );
 };

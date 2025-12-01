@@ -37,6 +37,8 @@ export default function CreateCourse() {
     const [selectedCards, setSelectedCards] = useState<boolean[]>([]);
     const [courseQuizError, setCourseQuizError] = useState<string | null>(null);
     const [courseCategory, setCourseCategory] = useState<CourseCategory | "">("");
+    const [admins, setAdmins] = useState<string[]>([]);
+    const [newAdminEmail, setNewAdminEmail] = useState("");
 
     const searchParams = useSearchParams();
 
@@ -58,6 +60,7 @@ export default function CreateCourse() {
                     setCourseDescription(course.description || "");
                     setIsPublic(course.public || false);
                     setCourseCategory(course.category || "");
+                    setAdmins(course.admins || []);
                     const loadedLessons: CourseLessonForm[] = course.lessons.map((lesson) => ({
                         id: lesson.id,
                         title: lesson.title,
@@ -225,6 +228,7 @@ export default function CreateCourse() {
                     public: isPublic,
                     category: courseCategory === "" ? undefined : courseCategory,
                     sharedWith: [],
+                    admins,
                 };
                 const success = await updateCourse(editCourseId, courseData);
                 if (success) {
@@ -246,6 +250,7 @@ export default function CreateCourse() {
                     public: isPublic,
                     category: courseCategory === "" ? undefined : courseCategory,
                     sharedWith: [],
+                    admins,
                 };
                 const data = await createCourse(courseData);
                 if (data) {
@@ -484,27 +489,65 @@ export default function CreateCourse() {
                             Make course public
                         </button>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
-                            Category
-                        </label>
-                        <select
-                            value={courseCategory}
-                            onChange={(e) => setCourseCategory(e.target.value as CourseCategory)}
-                            className="w-full p-3 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-200)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)]"
-                        >
-                            <option value="">Select a category</option>
-                            <option value="math">Math</option>
-                            <option value="science">Science</option>
-                            <option value="history">History</option>
-                            <option value="health">Health</option>
-                            <option value="business">Business</option>
-                            <option value="life skills">Life Skills</option>
-                            <option value="social studies">Social Studies</option>
-                            <option value="computer science">Computer Science</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
+                     <div>
+                         <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
+                             Category
+                         </label>
+                         <select
+                             value={courseCategory}
+                             onChange={(e) => setCourseCategory(e.target.value as CourseCategory)}
+                             className="w-full p-3 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-200)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)]"
+                         >
+                             <option value="">Select a category</option>
+                             <option value="math">Math</option>
+                             <option value="science">Science</option>
+                             <option value="history">History</option>
+                             <option value="health">Health</option>
+                             <option value="business">Business</option>
+                             <option value="life skills">Life Skills</option>
+                             <option value="social studies">Social Studies</option>
+                             <option value="computer science">Computer Science</option>
+                             <option value="other">Other</option>
+                         </select>
+                     </div>
+                     <div>
+                         <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
+                             Admins
+                         </label>
+                         <div className="mb-2">
+                             {admins.map((email: string, index: number) => (
+                                 <div key={index} className="flex items-center gap-2 mb-1">
+                                     <span>{email}</span>
+                                     <button
+                                         onClick={() => setAdmins(admins.filter((_: string, i: number) => i !== index))}
+                                         className="text-red-500 hover:text-red-700"
+                                     >
+                                         Delete
+                                     </button>
+                                 </div>
+                             ))}
+                         </div>
+                         <div className="flex gap-2">
+                             <input
+                                 type="email"
+                                 value={newAdminEmail}
+                                 onChange={(e) => setNewAdminEmail(e.target.value)}
+                                 className="flex-1 p-2 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-200)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)]"
+                                 placeholder="Enter admin email"
+                             />
+                             <Button
+                                 color="var(--accent-500)"
+                                 onClick={() => {
+                                     if (newAdminEmail && !admins.includes(newAdminEmail)) {
+                                         setAdmins([...admins, newAdminEmail]);
+                                         setNewAdminEmail('');
+                                     }
+                                 }}
+                             >
+                                 Add
+                             </Button>
+                         </div>
+                     </div>
                 </div>
             </div>
 

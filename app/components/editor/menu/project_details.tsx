@@ -32,7 +32,7 @@ const ProjectDetailsPanel = ({ project, quizzes }: ProjectDetailsPanelProps) => 
             if (project.courseLesson?.cardsToUnlock) {
                 try {
                     const cards = await fetchCardsFromProject(project.id);
-                    const unlocked = cards.filter(card => card.isUnlocked).length;
+                    const unlocked = cards.filter(card => project.courseLesson!.cardsToUnlock.some(lc => lc.id === card.id)).length;
                     setUnlockedCards(unlocked);
                 } catch (error) {
                     console.error("Error fetching unlocked cards:", error);

@@ -13,17 +13,17 @@ import CardPopup from "./cards/card_popup";
 interface EditorProps {
     project: Project;
     user: { uid: string } | null;
-    addCollaborator: (projectId: string, email: string) => Promise<void>;
-    setTitle: (projectId: string, newTitle: string) => Promise<void>;
-    setProject: (project: Project) => void;
+    addCollaborator?: (projectId: string, email: string) => Promise<void>;
+    setTitle?: (projectId: string, newTitle: string) => Promise<void>;
+    setProject?: (project: Project) => void;
 }
 
 const Editor = ({
     project,
     user,
-    addCollaborator,
-    setTitle,
-    setProject,
+    addCollaborator = async () => {},
+    setTitle = async () => {},
+    setProject = () => {},
 }: EditorProps) => {
     const [tab, setTab] = useState<"content" | "cards">("content"); // "content" or "cards"
 
@@ -138,6 +138,7 @@ const Editor = ({
                 <CardPopup
                     card={cardPopup}
                     onClose={() => setCardPopup(null)}
+                    isLessonCard={project.courseLesson?.cardsToUnlock.some(card => card.id === cardPopup.id)}
                 />
             )}
         </div>
