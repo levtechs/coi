@@ -39,7 +39,8 @@ export async function POST(req: NextRequest) {
             sharedWith: courseData.sharedWith || [],
             quizIds: courseData.quizIds || [],
             category: courseData.category || "",
-            ownerId: uid
+            ownerId: uid,
+            admins: courseData.admins || []
         });
 
         const courseId = courseRef.id;
@@ -82,7 +83,8 @@ export async function POST(req: NextRequest) {
             quizIds: courseData.quizIds || [],
             public: courseData.public,
             sharedWith: courseData.sharedWith,
-            category: courseData.category
+            category: courseData.category,
+            admins: courseData.admins || []
         };
 
         return NextResponse.json(fullCourse);

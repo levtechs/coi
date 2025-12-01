@@ -10,9 +10,10 @@ import MarkdownArticle from "../../md";
 type CardPopupProps = {
     card: Card;
     onClose: () => void;
+    isLessonCard?: boolean;
 };
 
-export default function CardPopup({ card, onClose }: CardPopupProps) {
+export default function CardPopup({ card, onClose, isLessonCard }: CardPopupProps) {
     const truncatedTitle = card.title.length > 50 ? card.title.slice(0, 47) + '...' : card.title;
 
     const isYoutube = card.url && (card.url.includes('youtube.com') || card.url.includes('youtu.be'));
@@ -112,10 +113,10 @@ export default function CardPopup({ card, onClose }: CardPopupProps) {
                  </div>
 
                  {/* Unlocking notice */}
-                 {card.isUnlocked === false && (
+                  {isLessonCard && (
                      <div className="flex items-center justify-center mt-4 text-sm text-[var(--neutral-600)]">
                          <FiStar className="w-4 h-4 mr-2 text-[var(--accent-500)]" />
-                         Unlocking the card is necessary for completing the course
+                         Unlocking the card is necessary to complete the lesson 
                      </div>
                  )}
              </div>

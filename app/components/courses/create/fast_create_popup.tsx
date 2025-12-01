@@ -141,136 +141,196 @@ export default function FastCreatePopup({
                              className="w-full p-3 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] h-48 resize-y"
                              placeholder={placeholder}
                          />
-                         <div className="mt-4">
-                             <div className="flex flex-col gap-2">
-                                 {mode === 'course' && (
-                                     <div className="flex items-center gap-2">
-                                         <button
-                                             className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${generateFinalQuiz ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
-                                             onClick={() => setGenerateFinalQuiz(!generateFinalQuiz)}
-                                         >
-                                             Generate final quiz
-                                         </button>
-                                          {generateFinalQuiz && (
-                                              <>
-                                                  <div className="flex flex-col gap-1 mt-2">
-                                                      <div className="flex gap-1">
-                                                          <button
-                                                              className={`px-2 py-1 rounded-md transition-colors duration-200 text-xs whitespace-nowrap ${finalQuizSettings.includeMCQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
-                                                              onClick={() => {
-                                                                  if (!finalQuizSettings.includeFRQ && finalQuizSettings.includeMCQ) return;
-                                                                  setFinalQuizSettings(prev => ({ ...prev, includeMCQ: !prev.includeMCQ }));
-                                                              }}
-                                                          >
-                                                              MCQ
-                                                          </button>
-                                                          <button
-                                                              className={`px-2 py-1 rounded-md transition-colors duration-200 text-xs whitespace-nowrap ${finalQuizSettings.includeFRQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
-                                                              onClick={() => {
-                                                                  if (!finalQuizSettings.includeMCQ && finalQuizSettings.includeFRQ) return;
-                                                                  setFinalQuizSettings(prev => ({ ...prev, includeFRQ: !prev.includeFRQ }));
-                                                              }}
-                                                          >
-                                                              FRQ
-                                                          </button>
-                                                      </div>
-                                                      <div className="flex gap-1">
-                                                          <button
-                                                              className={`px-2 py-1 rounded-md transition-colors duration-200 text-xs whitespace-nowrap ${finalQuizSettings.quizStyle === 'practice' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
-                                                              onClick={() => setFinalQuizSettings(prev => ({ ...prev, quizStyle: 'practice' }))}
-                                                          >
-                                                              Practice
-                                                          </button>
-                                                          <button
-                                                              className={`px-2 py-1 rounded-md transition-colors duration-200 text-xs whitespace-nowrap ${finalQuizSettings.quizStyle === 'knowledge_test' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
-                                                              onClick={() => setFinalQuizSettings(prev => ({ ...prev, quizStyle: 'knowledge_test' }))}
-                                                          >
-                                                              Test
-                                                          </button>
-                                                          <button
-                                                              className={`px-2 py-1 rounded-md transition-colors duration-200 text-xs whitespace-nowrap ${finalQuizSettings.length === 'short' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
-                                                              onClick={() => setFinalQuizSettings(prev => ({ ...prev, length: 'short' }))}
-                                                          >
-                                                              Short
-                                                          </button>
+                          <div className="mt-4">
+                              <div className="flex flex-col gap-4">
+                                  {mode === 'course' && (
+                                      <div className="flex flex-col gap-2">
+                                          <button
+                                              className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap self-start ${generateFinalQuiz ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                              onClick={() => setGenerateFinalQuiz(!generateFinalQuiz)}
+                                          >
+                                              Generate final quiz
+                                          </button>
+                                           {generateFinalQuiz && (
+                                               <div className="ml-4 p-3 bg-[var(--neutral-100)] rounded-md">
+                                                   <div className="flex flex-col gap-3">
+                                                       <div>
+                                                           <h4 className="text-sm font-medium mb-2">Question Types:</h4>
+                                                           <div className="flex gap-2">
+                                                               <button
+                                                                   className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${finalQuizSettings.includeMCQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                                   onClick={() => {
+                                                                       if (!finalQuizSettings.includeFRQ && finalQuizSettings.includeMCQ) return;
+                                                                       setFinalQuizSettings(prev => ({ ...prev, includeMCQ: !prev.includeMCQ }));
+                                                                   }}
+                                                               >
+                                                                   Multiple Choice
+                                                               </button>
+                                                               <button
+                                                                   className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${finalQuizSettings.includeFRQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                                   onClick={() => {
+                                                                       if (!finalQuizSettings.includeMCQ && finalQuizSettings.includeFRQ) return;
+                                                                       setFinalQuizSettings(prev => ({ ...prev, includeFRQ: !prev.includeFRQ }));
+                                                                   }}
+                                                               >
+                                                                   Free Response
+                                                               </button>
+                                                           </div>
                                                        </div>
-                                                       <div className="mt-2">
+                                                       <div>
+                                                           <h4 className="text-sm font-medium mb-2">Style:</h4>
+                                                           <div className="flex gap-2">
+                                                               <button
+                                                                   className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${finalQuizSettings.quizStyle === 'practice' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                                   onClick={() => setFinalQuizSettings(prev => ({ ...prev, quizStyle: 'practice' }))}
+                                                               >
+                                                                   Practice Problems
+                                                               </button>
+                                                               <button
+                                                                   className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${finalQuizSettings.quizStyle === 'knowledge_test' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                                   onClick={() => setFinalQuizSettings(prev => ({ ...prev, quizStyle: 'knowledge_test' }))}
+                                                               >
+                                                                   Knowledge Test
+                                                               </button>
+                                                               <button
+                                                                   className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${finalQuizSettings.quizStyle === 'mixed' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                                   onClick={() => setFinalQuizSettings(prev => ({ ...prev, quizStyle: 'mixed' }))}
+                                                               >
+                                                                   Mixed
+                                                               </button>
+                                                           </div>
+                                                       </div>
+                                                       <div>
+                                                           <h4 className="text-sm font-medium mb-2">Length:</h4>
+                                                           <div className="flex gap-2">
+                                                               <button
+                                                                   className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${finalQuizSettings.length === 'short' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                                   onClick={() => setFinalQuizSettings(prev => ({ ...prev, length: 'short' }))}
+                                                               >
+                                                                   Short & Quick
+                                                               </button>
+                                                               <button
+                                                                   className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${finalQuizSettings.length === 'normal' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                                   onClick={() => setFinalQuizSettings(prev => ({ ...prev, length: 'normal' }))}
+                                                               >
+                                                                   Normal
+                                                               </button>
+                                                               <button
+                                                                   className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${finalQuizSettings.length === 'long' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                                   onClick={() => setFinalQuizSettings(prev => ({ ...prev, length: 'long' }))}
+                                                               >
+                                                                   Comprehensive
+                                                               </button>
+                                                           </div>
+                                                       </div>
+                                                       <div>
+                                                           <h4 className="text-sm font-medium mb-2">Custom Instructions (Optional):</h4>
                                                            <textarea
-                                                               className="w-full p-2 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] h-12 resize-y text-xs"
-                                                               placeholder="Custom instructions for final quiz..."
+                                                               className="w-full p-2 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] h-20 resize-y text-sm"
+                                                               placeholder="Add any specific instructions for quiz generation..."
                                                                value={finalQuizSettings.customPrompt || ''}
                                                                onChange={(e) => setFinalQuizSettings(prev => ({ ...prev, customPrompt: e.target.value }))}
                                                            />
                                                        </div>
                                                    </div>
-                                               </>
+                                               </div>
                                            )}
-                                      </div>
-                                  )}
-                                 <div className="flex items-center gap-2">
-                                     <button
-                                         className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${generateLessonQuizzes ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
-                                         onClick={() => setGenerateLessonQuizzes(!generateLessonQuizzes)}
-                                     >
-                                         {mode === 'course' ? 'Generate quiz for each lesson' : 'Generate quiz for lesson'}
-                                     </button>
-                                      {generateLessonQuizzes && (
-                                          <>
-                                              <div className="flex flex-col gap-1 mt-2">
-                                                  <div className="flex gap-1">
-                                                      <button
-                                                          className={`px-2 py-1 rounded-md transition-colors duration-200 text-xs whitespace-nowrap ${lessonQuizSettings.includeMCQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
-                                                          onClick={() => {
-                                                              if (!lessonQuizSettings.includeFRQ && lessonQuizSettings.includeMCQ) return;
-                                                              setLessonQuizSettings(prev => ({ ...prev, includeMCQ: !prev.includeMCQ }));
-                                                          }}
-                                                      >
-                                                          MCQ
-                                                      </button>
-                                                      <button
-                                                          className={`px-2 py-1 rounded-md transition-colors duration-200 text-xs whitespace-nowrap ${lessonQuizSettings.includeFRQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
-                                                          onClick={() => {
-                                                              if (!lessonQuizSettings.includeMCQ && lessonQuizSettings.includeFRQ) return;
-                                                              setLessonQuizSettings(prev => ({ ...prev, includeFRQ: !prev.includeFRQ }));
-                                                          }}
-                                                      >
-                                                          FRQ
-                                                      </button>
-                                                  </div>
-                                                  <div className="flex gap-1">
-                                                      <button
-                                                          className={`px-2 py-1 rounded-md transition-colors duration-200 text-xs whitespace-nowrap ${lessonQuizSettings.quizStyle === 'practice' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
-                                                          onClick={() => setLessonQuizSettings(prev => ({ ...prev, quizStyle: 'practice' }))}
-                                                      >
-                                                          Practice
-                                                      </button>
-                                                      <button
-                                                          className={`px-2 py-1 rounded-md transition-colors duration-200 text-xs whitespace-nowrap ${lessonQuizSettings.quizStyle === 'knowledge_test' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
-                                                          onClick={() => setLessonQuizSettings(prev => ({ ...prev, quizStyle: 'knowledge_test' }))}
-                                                      >
-                                                          Test
-                                                      </button>
-                                                      <button
-                                                          className={`px-2 py-1 rounded-md transition-colors duration-200 text-xs whitespace-nowrap ${lessonQuizSettings.length === 'short' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
-                                                          onClick={() => setLessonQuizSettings(prev => ({ ...prev, length: 'short' }))}
-                                                      >
-                                                          Short
-                                                      </button>
+                                       </div>
+                                   )}
+                                  <div className="flex flex-col gap-2">
+                                      <button
+                                          className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap self-start ${generateLessonQuizzes ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                          onClick={() => setGenerateLessonQuizzes(!generateLessonQuizzes)}
+                                      >
+                                          {mode === 'course' ? 'Generate quiz for each lesson' : 'Generate quiz for lesson'}
+                                      </button>
+                                       {generateLessonQuizzes && (
+                                           <div className="ml-4 p-3 bg-[var(--neutral-100)] rounded-md">
+                                               <div className="flex flex-col gap-3">
+                                                   <div>
+                                                       <h4 className="text-sm font-medium mb-2">Question Types:</h4>
+                                                       <div className="flex gap-2">
+                                                           <button
+                                                               className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${lessonQuizSettings.includeMCQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                               onClick={() => {
+                                                                   if (!lessonQuizSettings.includeFRQ && lessonQuizSettings.includeMCQ) return;
+                                                                   setLessonQuizSettings(prev => ({ ...prev, includeMCQ: !prev.includeMCQ }));
+                                                               }}
+                                                           >
+                                                               Multiple Choice
+                                                           </button>
+                                                           <button
+                                                               className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${lessonQuizSettings.includeFRQ ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                               onClick={() => {
+                                                                   if (!lessonQuizSettings.includeMCQ && lessonQuizSettings.includeFRQ) return;
+                                                                   setLessonQuizSettings(prev => ({ ...prev, includeFRQ: !prev.includeFRQ }));
+                                                               }}
+                                                           >
+                                                               Free Response
+                                                           </button>
+                                                       </div>
                                                    </div>
-                                                   <div className="mt-2">
+                                                   <div>
+                                                       <h4 className="text-sm font-medium mb-2">Style:</h4>
+                                                       <div className="flex gap-2">
+                                                           <button
+                                                               className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${lessonQuizSettings.quizStyle === 'practice' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                               onClick={() => setLessonQuizSettings(prev => ({ ...prev, quizStyle: 'practice' }))}
+                                                           >
+                                                               Practice Problems
+                                                           </button>
+                                                           <button
+                                                               className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${lessonQuizSettings.quizStyle === 'knowledge_test' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                               onClick={() => setLessonQuizSettings(prev => ({ ...prev, quizStyle: 'knowledge_test' }))}
+                                                           >
+                                                               Knowledge Test
+                                                           </button>
+                                                           <button
+                                                               className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${lessonQuizSettings.quizStyle === 'mixed' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                               onClick={() => setLessonQuizSettings(prev => ({ ...prev, quizStyle: 'mixed' }))}
+                                                           >
+                                                               Mixed
+                                                           </button>
+                                                       </div>
+                                                   </div>
+                                                   <div>
+                                                       <h4 className="text-sm font-medium mb-2">Length:</h4>
+                                                       <div className="flex gap-2">
+                                                           <button
+                                                               className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${lessonQuizSettings.length === 'short' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                               onClick={() => setLessonQuizSettings(prev => ({ ...prev, length: 'short' }))}
+                                                           >
+                                                               Short & Quick
+                                                           </button>
+                                                           <button
+                                                               className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${lessonQuizSettings.length === 'normal' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                               onClick={() => setLessonQuizSettings(prev => ({ ...prev, length: 'normal' }))}
+                                                           >
+                                                               Normal
+                                                           </button>
+                                                           <button
+                                                               className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${lessonQuizSettings.length === 'long' ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-300)] text-[var(--neutral-700)] hover:bg-[var(--neutral-400)]'}`}
+                                                               onClick={() => setLessonQuizSettings(prev => ({ ...prev, length: 'long' }))}
+                                                           >
+                                                               Comprehensive
+                                                           </button>
+                                                       </div>
+                                                   </div>
+                                                   <div>
+                                                       <h4 className="text-sm font-medium mb-2">Custom Instructions (Optional):</h4>
                                                        <textarea
-                                                           className="w-full p-2 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] h-12 resize-y text-xs"
-                                                           placeholder="Custom instructions for lesson quizzes..."
+                                                           className="w-full p-2 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] h-20 resize-y text-sm"
+                                                           placeholder="Add any specific instructions for quiz generation..."
                                                            value={lessonQuizSettings.customPrompt || ''}
                                                            onChange={(e) => setLessonQuizSettings(prev => ({ ...prev, customPrompt: e.target.value }))}
                                                        />
                                                    </div>
                                                </div>
-                                           </>
+                                           </div>
                                        )}
                                   </div>
                               </div>
-                         </div>
+                          </div>
                          <div className="mt-4 flex justify-end gap-2">
                             <Button color="var(--neutral-400)" onClick={handleClose}>
                                 Cancel

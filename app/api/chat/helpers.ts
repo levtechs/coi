@@ -217,6 +217,8 @@ export const generateAndWriteNewCards = async (
     let newCardsRaw: NewCard[] = [];
     let unlockedCardIds: string[] = [];
 
+    console.log("Raw card gen response:", jsonString);
+
     try {
         jsonString = jsonString.replace(/```json\s*/, '').replace(/\s*```$/, '').trim();
         const parsed = JSON.parse(jsonString);
@@ -233,12 +235,18 @@ export const generateAndWriteNewCards = async (
         return { newCards: oldCards || [], unlockedCards: [] };
     }
 
+
+
     // Write new cards to DB
     const newCards = await writeCardsToDb(projectId, newCardsRaw);
 
     // Determine unlocked cards
     const existingCardIds = new Set((oldCards || []).map(c => c.id));
     const unlockedCards = (cardsToUnlock || []).filter(card => unlockedCardIds.includes(card.id) && !existingCardIds.has(card.id));
+
+
+
+
 
     return { newCards, unlockedCards };
 };

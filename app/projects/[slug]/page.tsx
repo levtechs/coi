@@ -23,6 +23,7 @@ export default function ProjectPage() {
     const [project, setProject] = useState<Project | null>(null);
     const [isLoading, setLoading] = useState<boolean | "error">(true);
 
+
     useEffect(() => {
         document.title = `${project?.title || 'Project'} - coi`;
     }, [project]);
@@ -114,7 +115,7 @@ export default function ProjectPage() {
     }
 
     return (
-        <Editor
+                <Editor
             project={project}
             user={user}
             addCollaborator={addCollaborator}

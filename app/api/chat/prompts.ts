@@ -147,6 +147,7 @@ export const getSearchChunk = (googleSearch: string): string => {
 const followUpChunk = `
 FOLLOW-UP QUESTIONS:
 Aim to include 1-3 follow-up questions to encourage deeper learning and exploration.
+If COURSE CARDS are provided, prioritize asking questions about cards that haven't been unlocked (i.e., not present in the existing cards) or whose topics haven't been discussed yet in the conversation.
 To include follow-up questions, append them at the very end of your response using this exact format:
 [FOLLOW_UP] Your question here? [FOLLOW_UP] Another question here?
 
@@ -305,15 +306,15 @@ const unlockingFormatChunk = `
      \`\`\`
 `
 
-const unlockingAdditionalChunk = `
+ const unlockingAdditionalChunk = `
 4. **Additional Guidance**
     - Make titles short but descriptive.
     - Include only meaningful details; do not copy entire paragraphs.
     - Do not make cards purely about resources discussed in the conversation, those will be automatically done for you.
     - If the content contains multiple examples, group them under the same card when they illustrate the same concept.
     - Do not include IDs; the system will assign them after writing to the database.
-    - Do not unlock cards unless all of the information in the card has been discussed in the conversation.
-    - Do not create cards with the exact same information as the cards you are unlocking. 
+    - Only unlock cards if at least most of the information in the card has been discussed in the conversation.
+    - Do not create cards with similar information to any of the cardsToUnlock.
 `
 
 const jsonChunk = `

@@ -74,7 +74,7 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
                                     projects.map(async (project) => {
                                         try {
                                             const cards = await getCards(project.id);
-                                            const unlockedCount = cards.filter((card) => card.isUnlocked).length;
+                                            const unlockedCount = cards.length;
                                             return Math.round((unlockedCount / totalCards) * 100);
                                         } catch (error) {
                                             console.error(`Failed to fetch cards for project ${project.id}:`, error);
@@ -128,8 +128,10 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
     }
 
     const isOwner = user && course.ownerId === user.uid;
+    const isAdmin = user.email && course.admins?.includes(user.email) || false;
+    const canEdit = isOwner || isAdmin;
 
-    if (isAnalytics && isOwner) {
+    if (isAnalytics && canEdit) {
         return <Analytics courseId={courseId} />;
     }
 
@@ -246,22 +248,22 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
                                 onClick={() => window.location.href = `/courses/${courseId}/${nextLesson.index}`}
                             />
                         )}
-                        {isOwner && (
-                            <>
-                                <FiSettings
-                                    title="Edit Course"
-                                    size={32}
-                                    className="text-[var(--neutral-600)] hover:text-[var(--neutral-700)] cursor-pointer"
-                                    onClick={() => window.location.href = `/courses?edit=${course.id}`}
-                                />
-                                <FiBarChart
-                                    title="Analytics"
-                                    size={32}
-                                    className="text-[var(--neutral-600)] hover:text-[var(--neutral-700)] cursor-pointer"
-                                    onClick={() => window.location.href = `/courses/${courseId}?analytics`}
-                                />
-                            </>
-                        )}
+                         {canEdit && (
+                             <>
+                                 <FiSettings
+                                     title="Edit Course"
+                                     size={32}
+                                     className="text-[var(--neutral-600)] hover:text-[var(--neutral-700)] cursor-pointer"
+                                     onClick={() => window.location.href = `/courses?edit=${course.id}`}
+                                 />
+                                 <FiBarChart
+                                     title="Analytics"
+                                     size={32}
+                                     className="text-[var(--neutral-600)] hover:text-[var(--neutral-700)] cursor-pointer"
+                                     onClick={() => window.location.href = `/courses/${courseId}?analytics`}
+                                 />
+                             </>
+                         )}
                     </div>
 
                     <CommentSection courseId={courseId} isCourseOwner={isOwner} />

@@ -14,10 +14,13 @@ type DetailCardProps = {
     card: Card;
     onClick: (card: Card) => void;
     projectId?: string;
+    showMenu?: boolean;
+    showLabelsOnHover?: boolean;
+    isLessonCard?: boolean;
 };
 
-export default function DetailCard({ card, onClick, projectId }: DetailCardProps) {
-    const showMenu = !!projectId && !card.isUnlocked;
+export default function DetailCard({ card, onClick, projectId, showMenu: showMenuProp, showLabelsOnHover = true, isLessonCard = false }: DetailCardProps) {
+    const showMenu = showMenuProp !== undefined ? showMenuProp : !!projectId;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
     const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
@@ -60,9 +63,7 @@ export default function DetailCard({ card, onClick, projectId }: DetailCardProps
             className="flex items-center justify-center text-center relative border border-[var(--neutral-300)] rounded-lg p-6 bg-[var(--neutral-200)] h-24 shadow hover:shadow-md transition cursor-pointer group"
             onClick={() => onClick(card)}
         >
-            {card.isUnlocked && (
-                <FiStar className="absolute top-2 left-2 text-[var(--accent-500)] w-5 h-5" />
-            )}
+            {isLessonCard && <FiStar className="absolute top-2 left-2 text-[var(--accent-500)] w-5 h-5" />}
             {card.url && (card.url.includes("youtube.com") || card.url.includes("youtu.be")) ? (
                 <FaYoutube className="w-6 h-6 mr-2 text-[var(--error)] flex-shrink-0" />
             ) : (
@@ -104,26 +105,28 @@ export default function DetailCard({ card, onClick, projectId }: DetailCardProps
                     );
                 })}
                 
-                {/* Show unselected labels on hover */}
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    {LABEL_DEFINITIONS.filter(labelDef => !card.labels?.includes(labelDef.id)).map((labelDef) => {
-                        const Icon = labelDef.icon;
-                        
-                        return (
-                            <div
-                                key={labelDef.id}
-                                className="rounded-full p-1.5 bg-[var(--neutral-100)] border border-[var(--neutral-200)] cursor-pointer hover:bg-[var(--neutral-200)] transition-colors duration-200"
-                                title={labelDef.name}
-                                onClick={async (e) => {
-                                    e.stopPropagation();
-                                    await toggleLabel(labelDef.id);
-                                }}
-                            >
-                                <Icon size={12} className="text-[var(--neutral-500)]" />
-                            </div>
-                        );
-                    })}
-                </div>
+                 {/* Show unselected labels on hover */}
+                 {showLabelsOnHover && (
+                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                         {LABEL_DEFINITIONS.filter(labelDef => !card.labels?.includes(labelDef.id)).map((labelDef) => {
+                             const Icon = labelDef.icon;
+
+                             return (
+                                 <div
+                                     key={labelDef.id}
+                                     className="rounded-full p-1.5 bg-[var(--neutral-100)] border border-[var(--neutral-200)] cursor-pointer hover:bg-[var(--neutral-200)] transition-colors duration-200"
+                                     title={labelDef.name}
+                                     onClick={async (e) => {
+                                         e.stopPropagation();
+                                         await toggleLabel(labelDef.id);
+                                     }}
+                                 >
+                                     <Icon size={12} className="text-[var(--neutral-500)]" />
+                                 </div>
+                             );
+                         })}
+                     </div>
+                 )}
             </div>
 
             {/* Three Dots Icon */}

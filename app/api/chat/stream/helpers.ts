@@ -39,7 +39,8 @@ export async function streamChatResponse(
     attachments: null | ChatAttachment[],
     preferences: ChatPreferences,
     startTime: number,
-    onToken: (token: string) => Promise<void> | void
+    onToken: (token: string) => Promise<void> | void,
+    courseCards?: Card[]
 ): Promise<{ responseMessage: string; hasNewInfo: boolean; chatAttachments: ChatAttachment[]; followUpQuestions: string[] } | null> {
     if (!message || message.trim() === "") throw new Error("Message is required.");
 
@@ -61,6 +62,27 @@ export async function streamChatResponse(
         contents.push({
             role: "user",
             parts: [{text: `EXISTING NOTES: ${JSON.stringify(prevContent)}`}]
+        })
+    }
+
+    if (courseCards && courseCards.length > 0) {
+        contents.push({
+            role: "user",
+            parts: [{text: `COURSE CARDS: ${JSON.stringify(courseCards)}`}]
+        })
+    }
+
+    if (attachments) {
+        contents.push({
+            role: "user",
+            parts: [{text: `CHAT ATTACHMENTS: ${JSON.stringify(attachments)}`}]
+        })
+    }
+
+    if (courseCards && courseCards.length > 0) {
+        contents.push({
+            role: "user",
+            parts: [{text: `COURSE CARDS: ${JSON.stringify(courseCards)}`}]
         })
     }
 

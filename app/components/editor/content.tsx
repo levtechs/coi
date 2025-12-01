@@ -56,12 +56,13 @@ const HierarchicalNode = ({
     level,
     addAttachment,
     cardFilters,
-    path, // Use path for unique identification
+    path,
     collapsedState,
     toggleCollapse,
     projectId,
-    project
+    project,
 }: ContentHierarchyRendererProps) => {
+    const lessonCardIds = new Set(project.courseLesson?.cardsToUnlock.map(c => c.id) || []);
     
     const isCollapsed = !!collapsedState[path];
     
@@ -82,7 +83,7 @@ const HierarchicalNode = ({
                     <div key={`row-${rowKey}`} className="flex flex-row gap-4 p-2 overflow-x-auto">
                         {cardBuffer.map((card) => (
                             <div key={card.id} className="group shrink-0 relative">
-                                <DetailCard card={card} onClick={() => setClickedCard(card)} projectId={projectId} />
+                                <DetailCard card={card} onClick={() => setClickedCard(card)} projectId={projectId} isLessonCard={lessonCardIds.has(card.id)} />
                                 <AddIcon onClick={(e) => { e.stopPropagation(); addAttachment(card) }} position="bottom" />
                             </div>
                         ))}

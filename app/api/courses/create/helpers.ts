@@ -1,6 +1,7 @@
 import { NewCard, NewCourse, NewLesson, QuizSettings } from "@/lib/types";
-import { llmModel, limitedGeneralConfig, genAI } from "@/app/api/gemini/config";
-import { SchemaType, ObjectSchema } from "@google/generative-ai";
+import { genAI } from "@/app/api/gemini/config";
+import { Type, Schema, Content } from "@google/genai";
+import { MyConfig, MyGenerateContentParameters } from "../../gemini/types";
 import {
     createLessonFromTextSystemInstruction,
     createLessonFromDescriptionSystemInstruction,
@@ -11,71 +12,71 @@ import {
 } from "./prompts";
 import { createQuizFromCards, writeQuizToDb } from "../../quiz/helpers";
 
-const fullLessonSchema: ObjectSchema = {
-    type: SchemaType.OBJECT,
+const fullLessonSchema: Schema = {
+    type: Type.OBJECT,
     properties: {
-        title: { type: SchemaType.STRING },
-        description: { type: SchemaType.STRING },
-        content: { type: SchemaType.STRING },
+        title: { type: Type.STRING } as Schema,
+        description: { type: Type.STRING } as Schema,
+        content: { type: Type.STRING } as Schema,
         cards: {
-            type: SchemaType.ARRAY,
+            type: Type.ARRAY,
             items: {
-                type: SchemaType.OBJECT,
+                type: Type.OBJECT,
                 properties: {
-                    title: { type: SchemaType.STRING },
+                    title: { type: Type.STRING } as Schema,
                     details: {
-                        type: SchemaType.ARRAY,
-                        items: { type: SchemaType.STRING }
-                    }
+                        type: Type.ARRAY,
+                        items: { type: Type.STRING } as Schema
+                    } as Schema
                 },
                 required: ["title", "details"]
-            }
-        }
+            } as Schema
+        } as Schema
     },
     required: ["title", "description", "content", "cards"]
-};
+} as Schema;
 
-const courseStructureSchema: ObjectSchema = {
-    type: SchemaType.OBJECT,
+const courseStructureSchema: Schema = {
+    type: Type.OBJECT,
     properties: {
-        courseTitle: { type: SchemaType.STRING },
-        courseDescription: { type: SchemaType.STRING },
+        courseTitle: { type: Type.STRING } as Schema,
+        courseDescription: { type: Type.STRING } as Schema,
         lessons: {
-            type: SchemaType.ARRAY,
+            type: Type.ARRAY,
             items: {
-                type: SchemaType.OBJECT,
+                type: Type.OBJECT,
                 properties: {
-                    title: { type: SchemaType.STRING },
-                    description: { type: SchemaType.STRING }
+                    title: { type: Type.STRING } as Schema,
+                    description: { type: Type.STRING } as Schema
                 },
                 required: ["title", "description"]
-            }
-        }
+            } as Schema
+        } as Schema
     },
     required: ["courseTitle", "courseDescription", "lessons"]
-};
+} as Schema;
 
-const lessonContentSchema: ObjectSchema = {
-    type: SchemaType.OBJECT,
+const lessonContentSchema: Schema = {
+    type: Type.OBJECT,
     properties: {
-        content: { type: SchemaType.STRING },
+        content: { type: Type.STRING } as Schema,
         cards: {
-            type: SchemaType.ARRAY,
+            type: Type.ARRAY,
             items: {
-                type: SchemaType.OBJECT,
+                type: Type.OBJECT,
                 properties: {
-                    title: { type: SchemaType.STRING },
+                    title: { type: Type.STRING } as Schema,
                     details: {
-                        type: SchemaType.ARRAY,
-                        items: { type: SchemaType.STRING }
-                    }
+                        type: Type.ARRAY,
+                        items: { type: Type.STRING } as Schema
+                    } as Schema
                 },
                 required: ["title", "details"]
-            }
-        }
+            } as Schema
+        } as Schema
     },
     required: ["content", "cards"]
-};
+} as Schema;
 
 export const createCourseFromText = async (text: string, enqueue?: (data: string) => void, lessonQuizSettings?: QuizSettings): Promise<NewCourse> => {
     enqueue?.(JSON.stringify({ type: "status", message: "Analyzing input text and creating course structure..." }));
@@ -83,25 +84,33 @@ export const createCourseFromText = async (text: string, enqueue?: (data: string
     const prompt = createCourseStructurePrompt(text);
 
     try {
-        const requestBody = {
-            model: llmModel,
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            systemInstruction: { role: "system", parts: createLessonDescriptionsFromTextSystemInstruction.parts },
+        const model = "gemini-2.5-flash-lite";
+        const config: MyConfig = {
             generationConfig: {
-                ...limitedGeneralConfig,
                 responseMimeType: "application/json",
                 responseSchema: courseStructureSchema,
             },
         };
 
+        const systemInstructionContent = { role: "user", parts: createLessonDescriptionsFromTextSystemInstruction.parts };
+        const contents = [{ role: "user", parts: [{ text: prompt }] }];
+
+        const allContents = [systemInstructionContent, ...contents];
+
+        const params: MyGenerateContentParameters = {
+            model,
+            contents: allContents as Content[],
+            config,
+        };
+
         let jsonString: string;
         try {
-            const result = await genAI.models.generateContent(requestBody);
+            const result = await genAI.models.generateContent(params);
             jsonString = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
         } catch (err) {
             const error = err as { status?: number };
             if (error.status === 503) {
-                const streamingResp = await genAI.models.generateContentStream(requestBody);
+                const streamingResp = await genAI.models.generateContentStream(params);
                 let accumulated = "";
                 for await (const chunk of streamingResp) {
                     const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -115,6 +124,8 @@ export const createCourseFromText = async (text: string, enqueue?: (data: string
         if (!jsonString || jsonString.trim() === "") {
             throw new Error("Empty response from Gemini API for course structure");
         }
+        // Clean the response to extract JSON
+        jsonString = jsonString.replace(/```json\s*/, '').replace(/\s*```$/, '').trim();
         let courseStructure;
         try {
             courseStructure = JSON.parse(jsonString) as {
@@ -152,38 +163,55 @@ export const createCourseFromText = async (text: string, enqueue?: (data: string
                         previousLesson: i > 0 ? { content: lessons[i-1].content, cards: lessons[i-1].cardsToUnlock.map(c => ({ title: c.title, details: c.details || [] })) } : undefined
                     });
 
-                    const lessonRequestBody = {
-                        model: llmModel,
-                        contents: [{ role: "user", parts: [{ text: lessonPrompt }] }],
-                        systemInstruction: { role: "system", parts: createLessonFromDescriptionSystemInstruction.parts },
+                    const systemInstructionContent = { role: "user", parts: createLessonFromDescriptionSystemInstruction.parts };
+                    const contents = [{ role: "user", parts: [{ text: lessonPrompt }] }];
+
+                    const allContents = [systemInstructionContent, ...contents];
+
+                    const model = "gemini-2.5-flash-lite";
+                    const config: MyConfig = {
                         generationConfig: {
-                            ...limitedGeneralConfig,
                             responseMimeType: "application/json",
                             responseSchema: lessonContentSchema,
                         },
                     };
 
+                    const lessonParams: MyGenerateContentParameters = {
+                        model,
+                        contents: allContents as Content[],
+                        config,
+                    };
+
                     let lessonJsonString: string;
                     try {
-                        const result = await genAI.models.generateContent(lessonRequestBody);
+                        const result = await genAI.models.generateContent(lessonParams);
                         lessonJsonString = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
                     } catch (err) {
                         const error = err as { status?: number };
                         if (error.status === 503) {
-                            const streamingResp = await genAI.models.generateContentStream(lessonRequestBody);
+                            // For overload (503), try streaming API
+                            const streamingResp = await genAI.models.generateContentStream(lessonParams);
                             let accumulated = "";
                             for await (const chunk of streamingResp) {
                                 const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
                                 accumulated += partText;
                             }
                             lessonJsonString = accumulated;
-                        } else {
+                        } else if (error.status === 429) {
+                            // For quota exceeded (429), don't retry with streaming, just re-throw
+                            // The lesson retry loop will handle it with longer delay
                             throw err;
-                        }
+            } else if (error.status === 429) {
+                throw err;
+            } else {
+                throw err;
+            }
                     }
                     if (!lessonJsonString || lessonJsonString.trim() === "") {
                         throw new Error("Empty response from Gemini API for lesson content");
                     }
+                    // Clean the response to extract JSON
+                    lessonJsonString = lessonJsonString.replace(/```json\s*/, '').replace(/\s*```$/, '').trim();
                     let lessonData;
                     try {
                         lessonData = JSON.parse(lessonJsonString) as {
@@ -229,8 +257,10 @@ export const createCourseFromText = async (text: string, enqueue?: (data: string
                         const errorMessage = error instanceof Error ? error.message : String(error);
                         throw new Error(`Failed to generate lesson ${i + 1} after ${maxRetries} attempts: ${errorMessage}`);
                     }
-                    // Wait a bit before retrying
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    // Wait before retrying - longer delay for quota errors
+                    const isQuotaError = error && typeof error === 'object' && 'status' in error && (error as { status?: number }).status === 429;
+                    const retryDelay = isQuotaError ? 35000 : 1000; // 35 seconds for quota, 1 second for others
+                    await new Promise(resolve => setTimeout(resolve, retryDelay));
                 }
             }
 
@@ -261,31 +291,41 @@ export const createLessonFromText = async (text: string): Promise<NewLesson> => 
     const prompt = createLessonFromTextPrompt(text);
 
     try {
-        const requestBody = {
-            model: llmModel,
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            systemInstruction: { role: "system", parts: createLessonFromTextSystemInstruction.parts },
+        const systemInstructionContent = { role: "user", parts: createLessonFromTextSystemInstruction.parts };
+        const contents = [{ role: "user", parts: [{ text: prompt }] }];
+
+        const allContents = [systemInstructionContent, ...contents];
+
+        const model = "gemini-2.5-flash-lite";
+        const config: MyConfig = {
             generationConfig: {
-                ...limitedGeneralConfig,
                 responseMimeType: "application/json",
-                responseSchema: fullLessonSchema,
+                responseSchema: courseStructureSchema,
             },
+        };
+
+        const params: MyGenerateContentParameters = {
+            model,
+            contents: allContents as Content[],
+            config,
         };
 
         let jsonString: string;
         try {
-            const result = await genAI.models.generateContent(requestBody);
+            const result = await genAI.models.generateContent(params);
             jsonString = result?.candidates?.[0]?.content?.parts?.[0]?.text || "";
         } catch (err) {
             const error = err as { status?: number };
             if (error.status === 503) {
-                const streamingResp = await genAI.models.generateContentStream(requestBody);
+                const streamingResp = await genAI.models.generateContentStream(params);
                 let accumulated = "";
                 for await (const chunk of streamingResp) {
                     const partText = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || "";
                     accumulated += partText;
                 }
                 jsonString = accumulated;
+            } else if (error.status === 429) {
+                throw err;
             } else {
                 throw err;
             }
@@ -293,6 +333,8 @@ export const createLessonFromText = async (text: string): Promise<NewLesson> => 
         if (!jsonString || jsonString.trim() === "") {
             throw new Error("Empty response from Gemini API for lesson content");
         }
+        // Clean the response to extract JSON
+        jsonString = jsonString.replace(/```json\s*/, '').replace(/\s*```$/, '').trim();
         let lessonData;
         try {
             lessonData = JSON.parse(jsonString) as {

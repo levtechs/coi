@@ -97,7 +97,7 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
 
             try {
                 const cards = await fetchCardsFromProject(project.id);
-                const unlockedCount = cards.filter(card => card.isUnlocked).length;
+                const unlockedCount = cards.filter(card => project.courseLesson!.cardsToUnlock.some(lc => lc.id === card.id)).length;
                 const totalCount = project.courseLesson.cardsToUnlock.length;
                 const progress = totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 100;
                 setLessonProgress(progress);
@@ -243,7 +243,7 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                              isOpen: true,
                              type: "info",
                              width: "4xl",
-                             children: <StudyPanel cards={project.cards.filter(card => !card.url)} />
+                              children: <StudyPanel cards={project.cards.filter(card => !card.url)} lessonCardIds={new Set(project.courseLesson?.cardsToUnlock.map(c => c.id) || [])} />
                          });
                      }}
                 >

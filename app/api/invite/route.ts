@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, addDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, addDoc, deleteDoc, deleteField } from "firebase/firestore";
 
 import { getVerifiedUid } from "@/app/api/helpers";
 import { getUserById } from "@/app/api/users/helpers";
@@ -196,6 +196,90 @@ export async function PUT(req: NextRequest) {
 }
 
 /**
+ * Deletes an invitation.
+ * The requester must be the creator or owner/admin of the project/course.
+ */
+export async function DELETE(req: NextRequest) {
+    const uid = await getVerifiedUid(req);
+    if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
+
+    const { searchParams } = new URL(req.url);
+    const token = searchParams.get("token");
+
+    if (!token) return NextResponse.json({ error: "No token provided" }, { status: 400 });
+
+    try {
+        // Find the invitation document by the token
+        const invitationsQuery = query(collection(db, "invitations"), where("token", "==", token));
+        const invitationSnaps = await getDocs(invitationsQuery);
+
+        if (invitationSnaps.empty) {
+            return NextResponse.json({ error: "Invalid token" }, { status: 404 });
+        }
+
+        const invitationSnap = invitationSnaps.docs[0];
+        const invitationData = invitationSnap.data();
+        const projectId = invitationData.projectId;
+        const courseId = invitationData.courseId;
+        const createdBy = invitationData.createdBy;
+
+        // Check permissions: creator or owner/admin
+        let hasPermission = createdBy === uid;
+
+        if (!hasPermission) {
+            if (projectId) {
+                const projectRef = doc(db, "projects", projectId);
+                const projectSnap = await getDoc(projectRef);
+                if (projectSnap.exists()) {
+                    const projectData = projectSnap.data();
+                    const ownerId = projectData?.ownerId;
+                    const userRef = doc(db, "users", uid);
+                    const userSnap = await getDoc(userRef);
+                    const userEmail = userSnap.exists() ? userSnap.data()?.email : null;
+
+                    if (ownerId === uid || (userEmail && projectData?.collaborators?.includes(userEmail))) {
+                        hasPermission = true;
+                    }
+                }
+            } else if (courseId) {
+                const courseRef = doc(db, "courses", courseId);
+                const courseSnap = await getDoc(courseRef);
+                if (courseSnap.exists()) {
+                    const courseData = courseSnap.data();
+                    const ownerId = courseData?.ownerId;
+                    const userRef = doc(db, "users", uid);
+                    const userSnap = await getDoc(userRef);
+                    const userEmail = userSnap.exists() ? userSnap.data()?.email : null;
+
+                    if (ownerId === uid || (userEmail && courseData?.admins?.includes(userEmail))) {
+                        hasPermission = true;
+                    }
+                }
+            }
+        }
+
+        if (!hasPermission) {
+            return NextResponse.json({ error: "Access denied" }, { status: 403 });
+        }
+
+        // Delete the invitation
+        await deleteDoc(doc(db, "invitations", invitationSnap.id));
+
+        // Cleanup: for projects, remove inviteIds entry
+        if (projectId) {
+            const projectRef = doc(db, "projects", projectId);
+            await updateDoc(projectRef, {
+                [`inviteIds.${uid}`]: deleteField(),
+            });
+        }
+
+        return NextResponse.json({ success: true });
+    } catch (err) {
+        return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+    }
+}
+
+/**
  * Returns the project title associated with a token.
  * This route does not require authentication.
  */
@@ -208,7 +292,7 @@ export async function GET(req: NextRequest) {
     try {
         const invitationsQuery = query(collection(db, "invitations"), where("token", "==", token));
         const invitationSnaps = await getDocs(invitationsQuery);
-        
+
         if (invitationSnaps.empty) return NextResponse.json({ error: "Invalid token" }, { status: 404 });
 
         const invitationData = invitationSnaps.docs[0].data();

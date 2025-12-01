@@ -241,7 +241,7 @@ const CreateQuizPage = ({projectId} : CreateQuizPageProps) => {
                                     setError(null);
                                     setIsLoadingQuiz(true);
                                      try {
-                                         const selectedCards = cards.filter(c => selectedCardIds.has(c.id)).map(({id: _, ...rest}) => rest); // eslint-disable-line @typescript-eslint/no-unused-vars
+                                         const selectedCards = cards.filter(c => selectedCardIds.has(c.id)).map(({id: _, ...rest}) => rest);
                                          const quizId = await createQuiz(selectedCards, quizSettings, projectId);
                                          setIsLoadingQuiz(quizId);
                                      } catch (err) {
