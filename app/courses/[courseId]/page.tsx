@@ -1,13 +1,11 @@
 "use client";
 
 import { useAuth } from "@/lib/AuthContext";
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import LoginPrompt from "../../components/login_prompt";
 import LessonCard from "@/app/components/courses/lesson_card"
-import { FiLogOut, FiUser, FiStar, FiBookOpen, FiArrowLeft, FiShare, FiPlay, FiSettings, FiBarChart } from "react-icons/fi";
-import { FaPaintbrush } from "react-icons/fa6";
 import { FlickeringGrid } from "@/app/components/flickering-grid";
+import Sidebar from "@/app/components/sidebar";
+import { FiArrowLeft, FiShare, FiPlay, FiSettings, FiBarChart, FiCopy } from "react-icons/fi";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
@@ -20,11 +18,9 @@ import LoadingComponent from "../../components/loading";
 import Button from "../../components/button";
 import Analytics from "../../components/courses/analytics/analytics";
 import CommentSection from "../../components/courses/comments/comment_section";
-import { useTheme } from "@/lib/ThemeContext";
 
 export default function CoursePage({ params }: { params: Promise<{ courseId: string }> }) {
     const { user, loading: authLoading } = useAuth();
-    const { setTheme } = useTheme();
     const searchParams = useSearchParams();
     const isAnalytics = searchParams.get("analytics") !== null;
     const [course, setCourse] = useState<Course | null>(null);
@@ -39,7 +35,6 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
     const [panelMessage, setPanelMessage] = useState("");
     const [panelUrl, setPanelUrl] = useState("");
     const [copied, setCopied] = useState(false);
-    const [showThemeMenu, setShowThemeMenu] = useState(false);
 
     useEffect(() => {
         const fetchParams = async () => {
@@ -146,45 +141,7 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
         <div className="min-h-screen text-[var(--foreground)]">
             <div className="fixed inset-0 bg-[var(--neutral-100)] pointer-events-none"></div>
             <FlickeringGrid className="fixed inset-0 z-0 pointer-events-none" />
-            <div className="fixed left-0 top-0 h-screen w-16 hover:w-48 transition-all duration-300 bg-[var(--neutral-100)] shadow-lg flex flex-col py-4 group z-10" onMouseLeave={() => setShowThemeMenu(false)}>
-                <div className="flex items-center w-full px-4 py-2 hover:bg-[var(--neutral-200)] cursor-pointer" onClick={() => window.location.href = "/profile"}>
-                    <FiUser className="h-6 w-6 flex-shrink-0 text-[var(--accent-400)] hover:text-[var(--accent-500)]" />
-                    <span className="ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Profile</span>
-                </div>
-                <div className="flex items-center w-full px-4 py-2 hover:bg-[var(--neutral-200)] cursor-pointer" onClick={() => window.location.href = "/courses"}>
-                    <FiBookOpen className="h-6 w-6 flex-shrink-0 text-[var(--accent-400)] hover:text-[var(--accent-500)]" />
-                    <span className="ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Courses</span>
-                </div>
-                <div className="flex items-center w-full px-4 py-2 hover:bg-[var(--neutral-200)] cursor-pointer" onClick={() => window.location.href = "/dashboard"}>
-                    <FiStar className="h-6 w-6 flex-shrink-0 text-[var(--neutral-600)] hover:text-[var(--neutral-700)]" />
-                    <span className="ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Dashboard</span>
-                </div>
-                <div className="mt-auto">
-                    <div className="relative w-full">
-                        <div className="flex items-center w-full px-4 py-2 hover:bg-[var(--neutral-200)] cursor-pointer" onClick={() => setShowThemeMenu(!showThemeMenu)}>
-                            <FaPaintbrush className="h-6 w-6 flex-shrink-0 text-[var(--neutral-600)] hover:text-[var(--neutral-700)]" />
-                            <span className="ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Theme</span>
-                        </div>
-                        {showThemeMenu && (
-                            <div className="absolute left-full bottom-0 mb-2 w-32 bg-[var(--neutral-100)] border border-[var(--neutral-300)] rounded shadow-lg z-20">
-                                {["light", "dark", "device", "pink"].map((t) => (
-                                    <button
-                                        key={t}
-                                        className="block w-full text-left px-4 py-2 hover:bg-[var(--neutral-200)] capitalize text-[var(--foreground)]"
-                                        onClick={() => { setTheme(t as "light" | "dark" | "device" | "pink"); setShowThemeMenu(false); }}
-                                    >
-                                        {t}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex items-center w-full px-4 py-2 hover:bg-[var(--neutral-200)] cursor-pointer" onClick={() => signOut(auth)}>
-                        <FiLogOut className="h-6 w-6 flex-shrink-0 text-[var(--error)] hover:text-[var(--error)]" />
-                        <span className="ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Logout</span>
-                    </div>
-                </div>
-            </div>
+            <Sidebar current="courses" />
             <div className="ml-16 p-6 relative z-5">
                 <div className="flex items-center gap-4 mb-8">
                     <Button color="var(--neutral-300)" onClick={() => window.location.href = '/courses'}>
