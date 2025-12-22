@@ -96,7 +96,7 @@ export default function AuthPage({ signUpDefault, forward}: AuthPageParams) {
     }
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen bg-[var(--background)] text-[var(--foreground)]">
+        <div className="flex flex-col items-center justify-center h-screen text-[var(--foreground)]">
             <form
                 onSubmit={handleSubmit}
                 className="flex flex-col space-y-3 w-72"
@@ -141,7 +141,7 @@ export default function AuthPage({ signUpDefault, forward}: AuthPageParams) {
                         {isSignup ? "Already have an account? Log in" : "Need an account? Sign up"}
                     </button>
 
-            <Button onClick={handleGoogleLogin} color="var(--error)" className="flex items-center justify-center gap-2 mt-4 text-[var(--background)]">
+            <Button onClick={handleGoogleLogin} color="var(--neutral-600)" className="flex items-center justify-center gap-2 mt-4 text-[var(--foreground)]">
                 <FcGoogle className="text-xl" />
                 Sign in with Google
             </Button>

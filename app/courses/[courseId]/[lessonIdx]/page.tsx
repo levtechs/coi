@@ -1,14 +1,14 @@
 "use client";
 
 import { useAuth } from "@/lib/AuthContext";
-import { signOut } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
 import LoginPrompt from "../../../components/login_prompt";
-import { useParams } from "next/navigation";
-import { FiHome, FiLogOut, FiUser } from "react-icons/fi";
+import { FlickeringGrid } from "@/app/components/flickering-grid";
+import Sidebar from "@/app/components/sidebar";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { getLesson } from "../../../views/lessons";
 import { CourseLesson, Project } from "@/lib/types";
 import LoadingComponent from "../../../components/loading";
@@ -95,42 +95,20 @@ export default function LessonDetailPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] p-6">
-            <div className="max-w-5xl mx-auto bg-[var(--neutral-100)] shadow-lg rounded-lg p-8">
-                 <div className="flex justify-between items-center mb-8 gap-4">
-                     <div className="flex items-center gap-4">
-                         <Link href="/dashboard">
-                             <FiHome
-                                 size={32}
-                                 className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
-                             />
-                         </Link>
-                         <Button color="var(--neutral-300)" onClick={() => window.location.href = `/courses/${courseId}`}>
-                             Back to Course
-                         </Button>
-                     </div>
-                        <div className="flex flex-row gap-4 items-center">
-                            <FiUser
-                                title="Profile"
-                                className="h-[25px] w-[25px] text-[var(--accent-400)] hover:text-[var(--accent-500)] cursor-pointer"
-                                onClick={() => window.location.href = "/profile"}
-                            />
-                            <FiLogOut
-                                title="Logout"
-                                className="h-[25px] w-[25px] text-[var(--error)] hover:text-[var(--error)] cursor-pointer"
-                                onClick={() => signOut(auth)}
-                            />
-                        </div>
-                 </div>
-
-                 <hr />
-
-                 <div className="mt-8">
-                      <h1 className="text-3xl font-extrabold text-[var(--foreground)] mb-4">
-                          Lesson {lessonIdx + 1}: {lesson.title}
-                      </h1>
-                      <LessonPage lesson={lesson} courseId={courseId} lessonIdx={lessonIdx} projects={projects} />
-                 </div>
+        <div className="min-h-screen text-[var(--foreground)]">
+            <div className="fixed inset-0 bg-[var(--neutral-100)] pointer-events-none"></div>
+            <FlickeringGrid className="fixed inset-0 z-0 pointer-events-none" />
+            <Sidebar current="courses" />
+            <div className="ml-16 p-6 relative z-5">
+                <div className="flex items-center gap-4 mb-8">
+                    <Button color="var(--neutral-300)" onClick={() => window.location.href = `/courses/${courseId}`}>
+                        Back to Course
+                    </Button>
+                    <h1 className="text-3xl font-extrabold text-[var(--foreground)]">
+                        Lesson {lessonIdx + 1}: {lesson.title}
+                    </h1>
+                </div>
+                <LessonPage lesson={lesson} courseId={courseId} lessonIdx={lessonIdx} projects={projects} />
             </div>
         </div>
     );

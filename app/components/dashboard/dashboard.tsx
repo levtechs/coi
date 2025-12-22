@@ -106,7 +106,7 @@ const Dashboard = ({ user }: DashboardProps) => {
     return (
         <>
             {/* Create Project Card - Always shown */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6 mt-6">
+            <div className="flex flex-wrap gap-6 mb-6 mt-6">
                 <div
                     className="flex items-center justify-center border border-[var(--neutral-300)] rounded-lg p-6 cursor-pointer
                             bg-[var(--neutral-100)]
@@ -124,7 +124,7 @@ const Dashboard = ({ user }: DashboardProps) => {
                     <p className="text-[var(--foreground)] text-lg mb-4 font-bold">
                         Your projects
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div className="flex flex-wrap gap-6">
                         {regularProjects.map((project) => (
                             <ProjectCard
                                 key={project.id}
@@ -153,7 +153,7 @@ const Dashboard = ({ user }: DashboardProps) => {
                                       {course.title}
                                   </Link>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="flex flex-wrap gap-6">
                                     {courseProjects.map((project) => (
                                         <ProjectCard
                                             key={project.id}
