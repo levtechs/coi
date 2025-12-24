@@ -112,14 +112,25 @@ export async function streamChat(
                         const trailing = buffer.slice(pos);
                         if (trailing.length > 0) onToken(trailing);
                     }
-                    
-                     return {
-                          responseMessage: obj.responseMessage,
-                          chatAttachments: obj.chatAttachments ?? [],
-                          newHierarchy: obj.newHierarchy ?? null,
-                          allCards: obj.allCards ?? null,
-                          followUpQuestions: obj.followUpQuestions ?? [],
-                      };
+
+                     const result = {
+                           responseMessage: obj.responseMessage,
+                           chatAttachments: obj.chatAttachments ?? [],
+                           newHierarchy: obj.newHierarchy ?? null,
+                           allCards: obj.allCards ?? null,
+                           followUpQuestions: obj.followUpQuestions ?? [],
+                       };
+
+                     // Call the callback with a Message object
+                     const messageObj: Message = {
+                         content: result.responseMessage,
+                         isResponse: true,
+                         attachments: result.chatAttachments.length > 0 ? result.chatAttachments : undefined,
+                         followUpQuestions: result.followUpQuestions.length > 0 ? result.followUpQuestions : undefined
+                     };
+                     setFinalResponseMessage(messageObj);
+
+                     return result;
                 }
             } catch (err) {
                 console.warn("Failed to parse JSON update:", jsonStr, err);

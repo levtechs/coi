@@ -105,11 +105,11 @@ export async function POST(req: NextRequest) {
                         }
                     );
 
-                    const { responseMessage, hasNewInfo, chatAttachments, followUpQuestions } = result!;
+                    const { responseMessage: chatResponseMessage, hasNewInfo, chatAttachments, followUpQuestions } = result!;
 
                     updatePhase("processing"); // phase 2
 
-                    let finalResponseMessage = responseMessage;
+                    let finalResponseMessage = chatResponseMessage;
                     // Remove citation markers
                     finalResponseMessage = finalResponseMessage.replace(/\[cite:[^\]]*\]/g, '');
 
@@ -117,12 +117,13 @@ export async function POST(req: NextRequest) {
                     sendUpdate("responseMessage", finalResponseMessage, chatAttachments);
 
                     // Send follow-up questions immediately after streaming
-                    if (followUpQuestions.length > 0) {
-                        sendUpdate("followUpQuestions", JSON.stringify(followUpQuestions));
-                    }
+                     console.log("API: Generated followUpQuestions:", followUpQuestions);
+                     if (followUpQuestions.length > 0) {
+                         sendUpdate("followUpQuestions", JSON.stringify(followUpQuestions));
+                     }
 
                     // Save the chat pair
-                    await writeChatPairToDb(message, attachments, finalResponseMessage, projectId, uid, chatAttachments);
+                    await writeChatPairToDb(message, attachments, finalResponseMessage, projectId, uid, chatAttachments, followUpQuestions);
 
                     // Generate/update content only if needed
                     let finalObj: {
@@ -132,14 +133,15 @@ export async function POST(req: NextRequest) {
                         newHierarchy: ContentHierarchy | null;
                         allCards: Card[] | null;
                         followUpQuestions: string[];
-                    } = {
-                        type: "final",
-                        responseMessage: finalResponseMessage,
-                        chatAttachments,
-                        newHierarchy: null,
-                        allCards: null,
-                        followUpQuestions
-                    };
+                     } = {
+                         type: "final",
+                         responseMessage: finalResponseMessage,
+                         chatAttachments,
+                         newHierarchy: null,
+                         allCards: null,
+                         followUpQuestions
+                     };
+                     console.log("API: Final message with followUpQuestions:", followUpQuestions);
 
                     if (hasNewInfo || chatAttachments.filter(a => !('time' in a)).length > 0) {
                         updatePhase("generating cards"); // phase 3
@@ -150,7 +152,7 @@ export async function POST(req: NextRequest) {
                             if (hasNewInfo) {
                                 const cardsToUnlock = project.courseLesson?.cardsToUnlock || [];
                                 const [resultFromChat, cardsFromGrounding] = await Promise.all([
-                                    generateAndWriteNewCards(projectId, effectivePreviousCards, message, responseMessage, cardsToUnlock, preferences.generationModel),
+                                    generateAndWriteNewCards(projectId, effectivePreviousCards, message, finalResponseMessage, cardsToUnlock, preferences.generationModel),
                                     groundingChunksToCardsAndWrite(projectId, previousCards, chatAttachments.filter((a): a is GroundingChunk => 'web' in a)),
                                 ]);
 
@@ -192,8 +194,8 @@ export async function POST(req: NextRequest) {
                             type: "final",
                             responseMessage: finalResponseMessage,
                             chatAttachments,
-                            newHierarchy,
-                            allCards,
+                            newHierarchy: null,
+                            allCards: null,
                             followUpQuestions
                         };
                     }

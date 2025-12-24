@@ -689,7 +689,8 @@ export const writeChatPairToDb = async (
     result: string,
     projectId: string,
     uid: string,
-    responseAttachments?: ChatAttachment[]
+    responseAttachments?: ChatAttachment[],
+    followUpQuestions?: string[]
 ) => {
     try {
         const chatRef = doc(db, "projects", projectId, "chats", uid);
@@ -711,7 +712,8 @@ export const writeChatPairToDb = async (
             {
                 content: result,
                 isResponse: true,
-                ...(responseAttachments && responseAttachments.length > 0 ? { attachments: responseAttachments } : {})
+                ...(responseAttachments && responseAttachments.length > 0 ? { attachments: responseAttachments } : {}),
+                ...(followUpQuestions && followUpQuestions.length > 0 ? { followUpQuestions } : {})
             }
         ];
 

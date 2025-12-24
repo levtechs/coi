@@ -86,6 +86,7 @@ export interface Message {
     content: string; //markdown
     attachments?: null | ChatAttachment[];
     isResponse: boolean;
+    followUpQuestions?: string[];
 }
 
 export type ThinkData = {
