@@ -9,19 +9,17 @@ export const sendMessage = async (
     project: Project,
     preferences: ChatPreferences,
     addMessage: (msg: Message) => void,
-    setStream: Dispatch<SetStateAction<string | null>>,
     setNewCards: (newCards: Card[]) => void,
     updatePhase: Dispatch<SetStateAction<null | StreamPhase>>,
     setInput: Dispatch<SetStateAction<string>>,
     setLoading: Dispatch<SetStateAction<boolean>>,
-    setFollowUpQuestions: Dispatch<SetStateAction<string[]>>
+    setMessages: Dispatch<SetStateAction<Message[]>>
 ) => {
     if (!input.trim()) return;
 
     const userInput = input.trim();
     const userMessage: Message = { content: userInput, attachments: attatchments, isResponse: false, id: crypto.randomUUID() };
     addMessage(userMessage)
-    setFollowUpQuestions([]); // Clear previous follow-ups with animation
     setInput("");
 
     try {
@@ -29,14 +27,17 @@ export const sendMessage = async (
         const MAX_HISTORY = 10;
         const recentMessages = [...messages, userMessage].slice(-MAX_HISTORY);
 
-        let streamedContent = "";
-        setStream(streamedContent);
+        // Add a streaming message placeholder
+        const streamingMessageId = crypto.randomUUID();
+        const streamingMessage: Message = {
+            id: streamingMessageId,
+            content: "",
+            isResponse: true,
+            attachments: []
+        };
+        addMessage(streamingMessage);
 
         const setPhase = (phase: null | StreamPhase) => {
-            if (phase == "processing") {
-                setStream(null);
-            }
-
             updatePhase(phase);
         }
 
@@ -47,22 +48,35 @@ export const sendMessage = async (
              project.id,
              preferences,
              setPhase,
-             (finalMessage: Message) => addMessage({...finalMessage, id: crypto.randomUUID()}),
+             (finalMessage: Message) => {
+                 // Replace the streaming message with the final message
+                 setMessages(prev => prev.map(msg =>
+                     msg.id === streamingMessageId
+                         ? {...finalMessage, id: streamingMessageId}
+                         : msg
+                 ));
+             },
              (newCards: Card[]) => setNewCards(newCards),
-             (questions: string[]) => setFollowUpQuestions(questions),
+             (questions: string[]) => {
+                 // Update the streaming message with follow-up questions
+                 setMessages(prev => prev.map(msg =>
+                     msg.id === streamingMessageId
+                         ? {...msg, followUpQuestions: questions}
+                         : msg
+                 ));
+             },
              (token) => {
-                 streamedContent += token;
-                 setStream(streamedContent);
+                 // Update the streaming message content
+                 setMessages(prev => prev.map(msg =>
+                     msg.id === streamingMessageId
+                         ? {...msg, content: msg.content + token}
+                         : msg
+                 ));
              },
           );
 
-         // Follow-up questions are now set via the update callback above
-
-         // Cards are updated via Firestore listener
-
-         setPhase(null);
-
-         setLoading(false);
+          setPhase(null);
+          setLoading(false);
     } catch (err) {
         console.error("Error streaming chat:", err);
         addMessage({ content: "I couldn't generate a response. Please try again later.", isResponse: true, id: crypto.randomUUID() } as Message)

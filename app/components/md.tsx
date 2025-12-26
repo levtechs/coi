@@ -35,15 +35,6 @@ export function normalizeMathMarkdown(md: string) {
         return `\n\n$$\n${inner.trim()}\n$$\n\n`;
     });
 
-    // Convert (math) → $math$ for inline math heuristics
-    md = md.replace(/\(\s*([^()]+?)\s*\)/g, (match, inner) => {
-        // Detect math-like content (operators, symbols, LaTeX commands)
-        if (/[\+\-\*\/=\^\{\}\[\]\|\\]/.test(inner)) {
-            return `$${inner.trim()}$`;
-        }
-        return match; // Leave non-math parentheses alone
-    });
-
     return md;
 }
 

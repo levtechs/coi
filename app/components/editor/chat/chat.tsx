@@ -6,7 +6,7 @@ import { BsFillChatRightTextFill } from "react-icons/bs";
 import ChatMessages from "./chat_messages";
 import NewCardsPopup from "./new_cards_popup";
 import ChatPreferencesPanel from "./chat_preferences_panel";
-import MarkdownArticle from "@/app/components/md";
+
 
 import { Project, Message, Card, StreamPhase, ChatAttachment, ChatPreferences } from "@/lib/types";
 import { ModalContents } from "../types";
@@ -30,12 +30,12 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, set
     const [input, setInput] = useState("");
 
     const [isLoading, setLoading] = useState(false);
-    const [stream, setStream] = useState<string | null>(null);
     const [streamPhase, setStreamPhase] = useState<null | StreamPhase>(null);
 
     const [showPreferences, setShowPreferences] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [followUpQuestions, setFollowUpQuestions] = useState<string[]>([]);
+
+
     const [preferences, setPreferences] = useState<ChatPreferences>({
         model: "normal",
         thinking: "auto",
@@ -55,7 +55,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, set
         children: <NewCardsPopup newCards={newCards} setClickedCard={setClickedCard} projectId={project.id}/>
     })
 
-    const onSend = () => sendMessage(input, messages, attachments, project, preferences, addMessage, setStream, setNewCards, setStreamPhase, setInput, setLoading, setFollowUpQuestions)
+    const onSend = () => sendMessage(input, messages, attachments, project, preferences, addMessage, setNewCards, setStreamPhase, setInput, setLoading, setMessages)
 
     const addMessage = (msg: Message) => {
         setMessages(prev => [
@@ -168,36 +168,13 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, set
                      <div ref={messagesEndRef} className="flex-1 overflow-y-auto bg-[var(--neutral-100)] rounded-md p-2 mb-2 flex flex-col min-h-0">
                         <ChatMessages
                             messages={messages}
-                            stream={stream}
                             isLoading={isLoading}
                             phase={streamPhase}
                             cards={project.cards}
+                            onFollowUpClick={setInput}
                         />
                     </div>
 
-
-                      {/* Follow-up Questions */}
-                      {followUpQuestions.length > 0 && (
-                          <div className="bg-[var(--neutral-100)] rounded-md px-2 py-2 mb-2 relative">
-                              <FiX
-                                  size={16}
-                                  className="absolute top-2 right-2 text-[var(--neutral-500)] cursor-pointer hover:text-[var(--foreground)]"
-                                  onClick={() => setFollowUpQuestions([])}
-                              />
-                              <p className="text-sm text-[var(--neutral-600)] mb-2">Suggested follow-ups:</p>
-                              <div className="flex flex-col gap-2">
-                                   {followUpQuestions.map((question, index) => (
-                                        <button
-                                            key={index}
-                                            onClick={() => setInput(question)}
-                                            className="bg-[var(--neutral-200)] hover:bg-[var(--neutral-300)] text-[var(--foreground)] border border-[var(--neutral-300)] px-3 py-1 rounded-md text-sm transition-colors cursor-pointer text-left"
-                                        >
-                                           <MarkdownArticle markdown={question} singleLine={true} />
-                                       </button>
-                                   ))}
-                              </div>
-                          </div>
-                      )}
 
                      {/* Input box */}
                      <div className="flex flex-col bg-[var(--neutral-100)] rounded-md px-2 py-2">
