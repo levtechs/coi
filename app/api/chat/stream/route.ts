@@ -117,10 +117,9 @@ export async function POST(req: NextRequest) {
                     sendUpdate("responseMessage", finalResponseMessage, chatAttachments);
 
                     // Send follow-up questions immediately after streaming
-                     console.log("API: Generated followUpQuestions:", followUpQuestions);
-                     if (followUpQuestions.length > 0) {
-                         sendUpdate("followUpQuestions", JSON.stringify(followUpQuestions));
-                     }
+                    if (followUpQuestions.length > 0) {
+                        sendUpdate("followUpQuestions", JSON.stringify(followUpQuestions));
+                    }
 
                     // Save the chat pair
                     await writeChatPairToDb(message, attachments, finalResponseMessage, projectId, uid, chatAttachments, followUpQuestions);
@@ -141,7 +140,6 @@ export async function POST(req: NextRequest) {
                          allCards: null,
                          followUpQuestions
                      };
-                     console.log("API: Final message with followUpQuestions:", followUpQuestions);
 
                     if (hasNewInfo || chatAttachments.filter(a => !('time' in a)).length > 0) {
                         updatePhase("generating cards"); // phase 3
