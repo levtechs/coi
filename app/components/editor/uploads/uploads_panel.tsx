@@ -30,7 +30,7 @@ const UploadsPanel = ({ addFileAttachment, projectId }: { addFileAttachment?: (a
         const file = event.target.files?.[0];
         if (!file) return;
 
-        if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+        if (!ALLOWED_MIME_TYPES.some(type => file.type.startsWith(type))) {
             alert(`File type ${file.type} is not allowed. Allowed types: ${ALLOWED_MIME_TYPES.join(', ')}`);
             return;
         }
