@@ -131,32 +131,45 @@ export default function Modal({
                                  </div>
                              </div>
                          ) : type === "empty" ? (
+                              <div className="flex flex-col">
+                                  {children}
+                              </div>
+                         ) : type === "error" ? (
                              <div className="flex flex-col">
-                                 {children}
+                                 <div className="flex flex-row w-[100%] gap-4">
+                                     <Button
+                                         className="flex-1"
+                                         color="var(--accent-300)"
+                                         type="button"
+                                         onClick={onClose}
+                                     >
+                                         Close
+                                     </Button>
+                                 </div>
                              </div>
-                        ) : (
-                            <>
+                         ) : (
+                             <>
 
-                                <div className="flex flex-row w-[100%] gap-4">
-                                    <Button
-                                        className="flex-1"
-                                        color="var(--neutral-300)"
-                                        type="button"
-                                        onClick={onClose}
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        className="flex-1"
-                                        color="var(--accent-300)"
-                                        type="button"
-                                        onClick={onProceed ? onProceed : () => {}}
-                                    >
-                                        {type === "confirm" ? "Ok" : "close"}
-                                    </Button>
-                                </div>
-                            </>
-                        )}
+                                 <div className="flex flex-row w-[100%] gap-4">
+                                     <Button
+                                         className="flex-1"
+                                         color="var(--neutral-300)"
+                                         type="button"
+                                         onClick={onClose}
+                                     >
+                                         Cancel
+                                     </Button>
+                                     <Button
+                                         className="flex-1"
+                                         color="var(--accent-300)"
+                                         type="button"
+                                         onClick={onProceed ? onProceed : () => {}}
+                                     >
+                                         {type === "confirm" ? "Ok" : "close"}
+                                     </Button>
+                                 </div>
+                             </>
+                         )}
 
                     </>
                 )}

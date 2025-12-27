@@ -2,6 +2,13 @@
 
 import { Content, GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
 
+type MyPart = { text: string } | { inlineData: { data: string; mimeType: string } };
+
+type MyContent = {
+  role: string;
+  parts: MyPart[];
+};
+
 type MyConfig = {
   generationConfig: GenerationConfig;
   thinkingConfig?: ThinkingConfig;
@@ -10,11 +17,11 @@ type MyConfig = {
 
 type MyGenerateContentParameters = {
   model: string;
-  contents: Content[];
+  contents: MyContent[];
   config: MyConfig;
 };
 
-import { ContentHierarchy, Card, Message, ChatAttachment, GroundingChunk, ChatPreferences } from "@/lib/types"; // { content: string; isResponse: boolean }
+import { ContentHierarchy, Card, Message, ChatAttachment, GroundingChunk, ChatPreferences, FileAttachment } from "@/lib/types"; // { content: string; isResponse: boolean }
 
 import { getStringFromHierarchyAndCards } from "../helpers"
 
@@ -43,17 +50,37 @@ export async function streamChatResponse(
 ): Promise<{ responseMessage: string; hasNewInfo: boolean; chatAttachments: ChatAttachment[]; followUpQuestions: string[] } | null> {
     if (!message || message.trim() === "") throw new Error("Message is required.");
 
+    // Process file attachments: fetch and add as inlineData
+    const fileParts: MyPart[] = [];
+    if (attachments) {
+        const fileAttachments = attachments.filter((att): att is FileAttachment => 'type' in att && att.type === 'file');
+        if (fileAttachments.length > 0) {
+            const fetchPromises = fileAttachments.map(async (att) => {
+                const response = await fetch(att.url);
+                const arrayBuffer = await response.arrayBuffer();
+                const base64 = Buffer.from(arrayBuffer).toString('base64');
+                return {
+                    inlineData: {
+                        data: base64,
+                        mimeType: att.mimeType,
+                    },
+                };
+            });
+            fileParts.push(...await Promise.all(fetchPromises));
+        }
+    }
+
     // Build contents array as Gemini expects: each content has role and parts (parts are objects with text)
     const contents = (messageHistory || [])
         .filter((m) => m.content && m.content.trim() !== "")
         .map((m) => ({
         role: m.isResponse ? "model" : "user",
-        parts: [{ text: m.content }],
+        parts: [{ text: m.content }] as MyPart[],
         }));
 
     contents.push({
         role: "user",
-        parts: [{ text: message }],
+        parts: [{ text: message }, ...fileParts] as MyPart[],
     });
     
     const prevContent = await ((previousContentHierarchy && previousCards) ? getStringFromHierarchyAndCards(previousCards, previousContentHierarchy) : null);
@@ -64,14 +91,9 @@ export async function streamChatResponse(
         })
     }
 
-    if (attachments) {
-        contents.push({
-            role: "user",
-            parts: [{text: `CHAT ATTACHMENTS: ${JSON.stringify(attachments)}`}]
-        })
-    }
+
     // systemInstruction as first content with role "user"
-    const systemInstruction = { role: "user", parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch, preferences.followUpQuestions).parts }
+    const systemInstruction = { role: "user", parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch, preferences.followUpQuestions).parts as MyPart[] }
 
     // Include systemInstruction at the beginning of contents
     const allContents = [systemInstruction, ...contents];
@@ -97,7 +119,7 @@ export async function streamChatResponse(
 
         const params: MyGenerateContentParameters = {
             model: selectedModel,
-            contents: allContents as Content[],
+            contents: allContents,
             config,
         };
 

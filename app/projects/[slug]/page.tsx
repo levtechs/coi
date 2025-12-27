@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
-import { Project, Card} from "@/lib/types";
+import { Project, Card, FileAttachment} from "@/lib/types";
 import { addCollaborator, setTitle } from "@/app/views/projects";
 import { db } from "@/lib/firebase"; // your Firestore instance
 import { doc, collection, onSnapshot, QuerySnapshot, CollectionReference, DocumentSnapshot, DocumentReference, FirestoreError} from "firebase/firestore";
@@ -34,6 +34,7 @@ export default function ProjectPage() {
 
         const projectRef: DocumentReference<Project> = doc(db, "projects", projectId) as DocumentReference<Project>;
         const cardsRef: CollectionReference<Card> = collection(db, "projects", projectId, "cards") as CollectionReference<Card>;
+        const uploadsRef: CollectionReference<FileAttachment> = collection(db, "projects", projectId, "uploads") as CollectionReference<FileAttachment>;
         
         // Subscribe to project document
         const unsubscribeProject = onSnapshot(
@@ -41,12 +42,12 @@ export default function ProjectPage() {
             (docSnap: DocumentSnapshot<Project>) => {
                 if (docSnap.exists()) {
                     const projectData = docSnap.data();
-                    // Exclude cards from document data, as cards are managed by subcollection
-                    const { cards: _, ...projectDataWithoutCards } = projectData as Project;
+                    // Exclude cards and uploads from document data, as they are managed by subcollections
+                    const { cards: _, uploads: __, ...projectDataWithoutCards } = projectData as Project;
                     const projectWithId = { ...projectDataWithoutCards, id: docSnap.id };
 
                     setProject((prev: Project | null) =>
-                        prev ? { ...prev, ...projectWithId } : { ...projectWithId, cards: [] } as Project
+                        prev ? { ...prev, ...projectWithId } : { ...projectWithId, cards: [], uploads: [] } as Project
                     );
                     setLoading(false);
                 } else {
@@ -75,9 +76,25 @@ export default function ProjectPage() {
             (err: FirestoreError) => console.error("Error fetching cards:", err)
         );
 
+        // Subscribe to uploads subcollection
+        const unsubscribeUploads = onSnapshot(
+            uploadsRef,
+            (querySnap: QuerySnapshot<FileAttachment>) => {
+                const uploads: FileAttachment[] = querySnap.docs.map((doc) => ({
+                    ...doc.data(),
+                    id: doc.id, // always overwrite any 'id' in doc.data()
+                }));
+                setProject((prev: Project | null) =>
+                    prev ? { ...prev, uploads } : ({ id: projectId, uploads } as Project)
+                );
+            },
+            (err: FirestoreError) => console.error("Error fetching uploads:", err)
+        );
+
         return () => {
             unsubscribeProject();
             unsubscribeCards();
+            unsubscribeUploads();
         };
     }, [user, projectId]);
 

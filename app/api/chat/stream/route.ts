@@ -29,6 +29,27 @@ export async function POST(req: NextRequest) {
         } = await req.json();
         const { message, messageHistory, projectId, attachments, preferences } = body;
 
+        // Validate attachments
+        if (attachments) {
+            const { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB, ALLOWED_MIME_TYPES } = await import('@/lib/uploadConstants');
+            const totalSize = attachments.reduce((sum, att) => {
+                if ('type' in att && att.type === 'file') {
+                    return sum + att.size;
+                }
+                return sum;
+            }, 0);
+            if (totalSize > MAX_UPLOAD_SIZE_BYTES) {
+                throw new Error(`Total attachment size exceeds ${MAX_UPLOAD_SIZE_MB}MB. Please remove some attachments.`);
+            }
+            for (const att of attachments) {
+                if ('type' in att && att.type === 'file') {
+                    if (!ALLOWED_MIME_TYPES.some(type => att.mimeType.startsWith(type))) {
+                        throw new Error(`File type ${att.mimeType} not allowed. Only images and documents are permitted.`);
+                    }
+                }
+            }
+        }
+
 
 
         // Update user preferences

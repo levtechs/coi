@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
             title,
             hierarchy,
             cards,
+            uploads: [],
             quizIds,
         }, uid);
 

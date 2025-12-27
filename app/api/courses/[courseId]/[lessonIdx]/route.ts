@@ -99,6 +99,7 @@ export async function POST(
                 children: lesson.description ? [{ type: "text", text: lesson.description }] : []
             },
             cards: [],
+            uploads: [],
             courseLesson: lesson,
             courseId: courseId,
         }, uid);

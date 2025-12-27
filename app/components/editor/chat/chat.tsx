@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, Dispatch, SetStateAction } from "react";
 
 import { FiCircle, FiSend, FiX, FiSettings, FiMaximize, FiMinimize } from "react-icons/fi";
 import { BsFillChatRightTextFill } from "react-icons/bs";
+import { MdFileUpload } from "react-icons/md";
 
 import ChatMessages from "./chat_messages";
 import NewCardsPopup from "./new_cards_popup";
@@ -9,21 +10,24 @@ import ChatPreferencesPanel from "./chat_preferences_panel";
 
 
 import { Project, Message, Card, StreamPhase, ChatAttachment, ChatPreferences } from "@/lib/types";
-import { ModalContents } from "../types";
+import { ModalContents, noModal } from "../types";
 
 import { getChatHistory, getUserPreferences } from "@/app/views/chat";
 import { sendMessage } from "./helpers";
+import { uploadFile } from "@/app/views/uploads";
+import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/uploadConstants";
 
 interface ChatPanelProps {
     project: Project;
     setModalContents: (newContents: ModalContents) => void;
     attachments: null | ChatAttachment[]
     setAttachments: Dispatch<SetStateAction<ChatAttachment[] | null>>;
+    addFileAttachment: (attachment: ChatAttachment) => void;
     setClickedCard: Dispatch<SetStateAction<Card | null>>;
     onFullscreenChange?: (isFullscreen: boolean) => void;
 }
 
-const ChatPanel = ({ project, setModalContents, attachments, setAttachments, setClickedCard, onFullscreenChange }: ChatPanelProps) => {
+const ChatPanel = ({ project, setModalContents, attachments, setAttachments, addFileAttachment, setClickedCard, onFullscreenChange }: ChatPanelProps) => {
     const [chatToggled, setChatToggled] = useState(true);
 
     const [messages, setMessages] = useState<Message[]>([]);
@@ -47,6 +51,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, set
     });
 
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     const setNewCards = (newCards: Card[]) => setModalContents({
         isOpen: true,
@@ -187,7 +192,9 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, set
                                     {attachments.map((attachment: ChatAttachment) => {
                                         // Determine display text based on type
                                         let text: string;
-                                        if ("title" in attachment) {
+                                        if ("type" in attachment && attachment.type === 'file') {
+                                            text = attachment.name;
+                                        } else if ("title" in attachment) {
                                             text = attachment.title;
                                         } else if ("text" in attachment) {
                                             text = attachment.text;
@@ -226,11 +233,18 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, set
                                         placeholder="Type a message..."
                                         className="flex-1 bg-transparent outline-none p-2 text-[var(--foreground)] resize-none max-h-100 overflow-y-auto"
                                     />
-                                    <FiSend
-                                        size={20}
-                                        onClick={onSend}
-                                        className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
-                                    />
+                                    <div className="flex flex-col gap-2">
+                                        <FiSend
+                                            size={20}
+                                            onClick={onSend}
+                                            className="text-[var(--neutral-500)] hover:text-[var(--accent-600)] cursor-pointer"
+                                        />
+                                        <MdFileUpload
+                                            size={20}
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="text-[var(--neutral-500)] hover:text-[var(--accent-600)] cursor-pointer"
+                                        />
+                                    </div>
                                 </>
                             ) : (
                                 <>
@@ -246,9 +260,62 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, set
                                     />
                                 </>
                             )}
-                        </div>
-                    </div>
-                </div>
+                         </div>
+                         <input
+                             type="file"
+                             ref={fileInputRef}
+                             style={{ display: 'none' }}
+                             onChange={async (e) => {
+                                 const file = e.target.files?.[0];
+                                 if (file) {
+                                     // Validate file type
+                                     if (!ALLOWED_MIME_TYPES.some(type => file.type.startsWith(type))) {
+                                         setModalContents({
+                                             isOpen: true,
+                                             type: "error",
+                                             width: "sm",
+                                             message: `File type ${file.type} not allowed. Only images and documents are permitted.`,
+                                             onClose: () => setModalContents(noModal),
+                                         });
+                                         return;
+                                     }
+
+                                     // Validate total size
+                                     const currentSize = (attachments || []).reduce((sum, att) => {
+                                         if ('type' in att && att.type === 'file') {
+                                             return sum + att.size;
+                                         }
+                                         return sum;
+                                     }, 0);
+                                     if (currentSize + file.size > MAX_UPLOAD_SIZE_BYTES) {
+                                         setModalContents({
+                                             isOpen: true,
+                                             type: "error",
+                                             width: "sm",
+                                             message: `Total attachment size would exceed ${MAX_UPLOAD_SIZE_MB}MB. Please remove some attachments.`,
+                                             onClose: () => setModalContents(noModal),
+                                         });
+                                         return;
+                                     }
+
+                                     try {
+                                         const attachment = await uploadFile(file, project.id);
+                                         addFileAttachment(attachment);
+                                     } catch (error) {
+                                         console.error('Upload failed:', error);
+                                         setModalContents({
+                                             isOpen: true,
+                                             type: "error",
+                                             width: "sm",
+                                             message: error instanceof Error ? error.message : 'Upload failed.',
+                                             onClose: () => setModalContents(noModal),
+                                         });
+                                     }
+                                 }
+                             }}
+                         />
+                     </div>
+                 </div>
             ) : (
                 <div className="absolute top-12 right-2 m-4"> 
                     <BsFillChatRightTextFill 

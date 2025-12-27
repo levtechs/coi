@@ -64,6 +64,7 @@ export type Project = {
     quizIds?: string[]; // ids of quizzes
     courseLesson?: CourseLesson; // if project is part of a courseLesson
     courseId?: string; // if project is part of a course
+    uploads: FileAttachment[];
 };
 
 export interface User {
@@ -95,7 +96,16 @@ export type ThinkData = {
     time: number;
 };
 
-export type ChatAttachment = Card | ContentNode | ContentHierarchy | GroundingChunk | ThinkData;
+export interface FileAttachment {
+    id?: string;
+    type: 'file';
+    name: string;
+    url: string;
+    size: number;
+    mimeType: string;
+}
+
+export type ChatAttachment = Card | ContentNode | ContentHierarchy | GroundingChunk | ThinkData | FileAttachment;
 export type StreamPhase = "starting" | "streaming" | "processing" | "generating content" | "generating cards";
 
 // Chat Preferences
