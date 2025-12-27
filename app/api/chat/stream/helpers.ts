@@ -80,7 +80,7 @@ export async function streamChatResponse(
 
     contents.push({
         role: "user",
-        parts: [{ text: message }, ...fileParts] as Part[],
+        parts: [{ text: message }, ...fileParts] as MyPart[],
     });
     
     const prevContent = await ((previousContentHierarchy && previousCards) ? getStringFromHierarchyAndCards(previousCards, previousContentHierarchy) : null);
@@ -119,7 +119,7 @@ export async function streamChatResponse(
 
         const params: MyGenerateContentParameters = {
             model: selectedModel,
-            contents: allContents as unknown as Content[],
+            contents: allContents,
             config,
         };
 
