@@ -26,6 +26,8 @@ const UploadsPanel = ({ addFileAttachment, projectId }: { addFileAttachment?: (a
         return unsubscribe;
     }, [projectId]);
 
+    const acceptTypes = ALLOWED_MIME_TYPES.map(type => type.endsWith('/') ? type + '*' : type).join(',');
+
     const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -77,7 +79,7 @@ const UploadsPanel = ({ addFileAttachment, projectId }: { addFileAttachment?: (a
                 type="file"
                 ref={fileInputRef}
                 onChange={handleUpload}
-                accept={ALLOWED_MIME_TYPES.join(',')}
+                accept={acceptTypes}
                 className="hidden"
             />
             {uploads.length === 0 ? (
