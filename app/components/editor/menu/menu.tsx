@@ -10,6 +10,7 @@ import CollaboratorsDropdown from "./collabs_dd";
 import ShareMenu from "./share";
 import ProjectDetailsPanel from "./project_details";
 import StudyPanel from "../study/study_panel";
+import UploadsPanel from "../uploads/uploads_panel";
 import { ModalContents } from "../types";
 import { Project, Quiz, CardFilter } from "@/lib/types";
 import { getQuiz } from "@/app/views/quiz";
@@ -249,6 +250,19 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                 >
                     Review
                 </button>
+                 <button
+                     className="px-3 py-1 text-sm bg-[var(--neutral-200)] text-[var(--foreground)] hover:bg-[var(--neutral-300)] rounded-md transition-colors duration-200 ml-2 whitespace-nowrap"
+                      onClick={() => {
+                          setModalContents({
+                              isOpen: true,
+                              type: "info",
+                              width: "4xl",
+                              children: <UploadsPanel uploads={project.uploads || []} />
+                          });
+                      }}
+                 >
+                     Uploads
+                 </button>
             </div>
 
             {/* Right side: Share + Collaborators */}

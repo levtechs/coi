@@ -1,6 +1,7 @@
 import { db } from "@/lib/firebase";
 import { Project } from "@/lib/types";
 import { doc, getDoc, collection, updateDoc, addDoc } from "firebase/firestore";
+import { fetchUploadsFromProject } from "../uploads/helpers";
 
 /**
  * Fetches a single project by ID, checking user access.
@@ -21,7 +22,8 @@ export async function getProjectById(projectId: string, uid: string): Promise<Pr
             return null; // Access denied
         }
 
-        return { id: projectId, ...data } as Project;
+        const uploads = await fetchUploadsFromProject(projectId);
+        return { id: projectId, ...data, uploads } as Project;
     } catch (err) {
         console.error("Error fetching project by ID:", err);
         throw new Error("Failed to fetch project");

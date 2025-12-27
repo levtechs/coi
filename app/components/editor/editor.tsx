@@ -49,6 +49,9 @@ const Editor = ({
     const [cardPopup, setCardPopup] = useState<Card | null>(null);
     const [chatFullscreen, setChatFullscreen] = useState(false);
 
+    const addFileAttachment = (attachment: ChatAttachment) =>
+        setChatAttachments((prev) => [attachment, ...(prev ?? [])]);
+
 
     return (
         <div className="flex flex-col h-dvh w-full bg-[var(--neutral-100)] text-[var(--foreground)]">
@@ -109,6 +112,7 @@ const Editor = ({
                         setModalContents={setModalContents}
                         attachments={chatAttachments}
                         setAttachments={setChatAttachments}
+                        addFileAttachment={addFileAttachment}
                         setClickedCard={setCardPopup}
                         onFullscreenChange={setChatFullscreen}
                     />

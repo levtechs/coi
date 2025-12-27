@@ -95,6 +95,8 @@ const ChatMessage = ({ message, cards, onCardClick, onFollowUpClick }: ChatMessa
                               text = attachment.title;
                           } else if ("title" in attachment) {
                               text = attachment.title;
+                          } else if ("name" in attachment) {
+                              text = attachment.name;
                           } else if ("text" in attachment) {
                               text = attachment.text;
                           }

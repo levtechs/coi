@@ -29,6 +29,29 @@ export async function POST(req: NextRequest) {
         } = await req.json();
         const { message, messageHistory, projectId, attachments, preferences } = body;
 
+        console.log('Received chat attachments:', JSON.stringify(attachments));
+
+        // Validate attachments
+        if (attachments) {
+            const totalSize = attachments.reduce((sum, att) => {
+                if ('type' in att && att.type === 'file') {
+                    return sum + att.size;
+                }
+                return sum;
+            }, 0);
+            if (totalSize > 20 * 1024 * 1024) { // 20MB
+                throw new Error('Total attachment size exceeds 20MB. Please remove some attachments.');
+            }
+            for (const att of attachments) {
+                if ('type' in att && att.type === 'file') {
+                    const allowedTypes = ['image/', 'application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+                    if (!allowedTypes.some(type => att.mimeType.startsWith(type))) {
+                        throw new Error(`File type ${att.mimeType} not allowed. Only images and documents are permitted.`);
+                    }
+                }
+            }
+        }
+
 
 
         // Update user preferences
