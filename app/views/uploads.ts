@@ -4,7 +4,7 @@ import { writeUploadsToDb } from '@/app/api/uploads/helpers';
 
 export async function uploadFile(file: File, projectId: string): Promise<FileAttachment> {
     const storage = getStorage();
-    const storageRef = ref(storage, `uploads/${Date.now()}_${file.name}`);
+    const storageRef = ref(storage, `uploads/${crypto.randomUUID()}_${file.name}`);
     const snapshot = await uploadBytes(storageRef, file);
     const url = await getDownloadURL(snapshot.ref);
     const attachment: Omit<FileAttachment, 'id'> = {

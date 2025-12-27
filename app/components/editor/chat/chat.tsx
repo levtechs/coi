@@ -15,6 +15,7 @@ import { ModalContents, noModal } from "../types";
 import { getChatHistory, getUserPreferences } from "@/app/views/chat";
 import { sendMessage } from "./helpers";
 import { uploadFile } from "@/app/views/uploads";
+import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/uploadConstants";
 
 interface ChatPanelProps {
     project: Project;
@@ -268,8 +269,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                                  const file = e.target.files?.[0];
                                  if (file) {
                                      // Validate file type
-                                     const allowedTypes = ['image/', 'application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-                                     if (!allowedTypes.some(type => file.type.startsWith(type))) {
+                                     if (!ALLOWED_MIME_TYPES.some(type => file.type.startsWith(type))) {
                                          setModalContents({
                                              isOpen: true,
                                              type: "error",
@@ -287,12 +287,12 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                                          }
                                          return sum;
                                      }, 0);
-                                     if (currentSize + file.size > 20 * 1024 * 1024) { // 20MB
+                                     if (currentSize + file.size > MAX_UPLOAD_SIZE_BYTES) {
                                          setModalContents({
                                              isOpen: true,
                                              type: "error",
                                              width: "sm",
-                                             message: 'Total attachment size would exceed 20MB. Please remove some attachments.',
+                                             message: `Total attachment size would exceed ${MAX_UPLOAD_SIZE_MB}MB. Please remove some attachments.`,
                                              onClose: () => setModalContents(noModal),
                                          });
                                          return;

@@ -56,15 +56,13 @@ export const writeUploadsToDb = async (
     try {
         const uploadsCollectionRef = collection(db, "projects", projectId, "uploads");
 
-        const addedUploads: FileAttachment[] = [];
-
-        for (const upload of newUploads) {
+        const addedUploads = await Promise.all(newUploads.map(async (upload) => {
             const docRef = await addDoc(uploadsCollectionRef, upload);
-            addedUploads.push({
+            return {
                 id: docRef.id,
                 ...upload,
-            });
-        }
+            };
+        }));
 
         return addedUploads;
     } catch (err) {
@@ -87,10 +85,12 @@ export const copyUploadsToDb = async (
     try {
         const uploadsCollectionRef = collection(db, "projects", projectId, "uploads");
 
+        const batch = writeBatch(db);
         for (const upload of uploads) {
             const docRef = doc(uploadsCollectionRef, upload.id);
-            await setDoc(docRef, upload);
+            batch.set(docRef, upload);
         }
+        await batch.commit();
 
         return uploads;
     } catch (err) {

@@ -29,23 +29,21 @@ export async function POST(req: NextRequest) {
         } = await req.json();
         const { message, messageHistory, projectId, attachments, preferences } = body;
 
-        console.log('Received chat attachments:', JSON.stringify(attachments));
-
         // Validate attachments
         if (attachments) {
+            const { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB, ALLOWED_MIME_TYPES } = await import('@/lib/uploadConstants');
             const totalSize = attachments.reduce((sum, att) => {
                 if ('type' in att && att.type === 'file') {
                     return sum + att.size;
                 }
                 return sum;
             }, 0);
-            if (totalSize > 20 * 1024 * 1024) { // 20MB
-                throw new Error('Total attachment size exceeds 20MB. Please remove some attachments.');
+            if (totalSize > MAX_UPLOAD_SIZE_BYTES) {
+                throw new Error(`Total attachment size exceeds ${MAX_UPLOAD_SIZE_MB}MB. Please remove some attachments.`);
             }
             for (const att of attachments) {
                 if ('type' in att && att.type === 'file') {
-                    const allowedTypes = ['image/', 'application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-                    if (!allowedTypes.some(type => att.mimeType.startsWith(type))) {
+                    if (!ALLOWED_MIME_TYPES.some(type => att.mimeType.startsWith(type))) {
                         throw new Error(`File type ${att.mimeType} not allowed. Only images and documents are permitted.`);
                     }
                 }
