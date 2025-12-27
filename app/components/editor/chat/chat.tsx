@@ -261,11 +261,12 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                                 </>
                             )}
                          </div>
-                         <input
-                             type="file"
-                             ref={fileInputRef}
-                             style={{ display: 'none' }}
-                             onChange={async (e) => {
+                          <input
+                              type="file"
+                              ref={fileInputRef}
+                              accept={ALLOWED_MIME_TYPES.join(',')}
+                              style={{ display: 'none' }}
+                              onChange={async (e) => {
                                  const file = e.target.files?.[0];
                                  if (file) {
                                      // Validate file type

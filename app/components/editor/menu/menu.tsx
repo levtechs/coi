@@ -258,7 +258,7 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                               isOpen: true,
                               type: "info",
                               width: "4xl",
-                               children: <UploadsPanel uploads={project.uploads || []} addFileAttachment={addFileAttachment} />
+                               children: <UploadsPanel addFileAttachment={addFileAttachment} projectId={project.id} />
                           });
                       }}
                  >
