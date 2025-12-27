@@ -1,9 +1,9 @@
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/lib/firebase';
 import { FileAttachment } from '@/lib/types';
 import { writeUploadsToDb } from '@/app/api/uploads/helpers';
 
 export async function uploadFile(file: File, projectId: string): Promise<FileAttachment> {
-    const storage = getStorage();
     const storageRef = ref(storage, `uploads/${crypto.randomUUID()}_${file.name}`);
     const snapshot = await uploadBytes(storageRef, file);
     const url = await getDownloadURL(snapshot.ref);

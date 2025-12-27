@@ -12,7 +12,7 @@ import ProjectDetailsPanel from "./project_details";
 import StudyPanel from "../study/study_panel";
 import UploadsPanel from "../uploads/uploads_panel";
 import { ModalContents } from "../types";
-import { Project, Quiz, CardFilter } from "@/lib/types";
+import { Project, Quiz, CardFilter, ChatAttachment } from "@/lib/types";
 import { getQuiz } from "@/app/views/quiz";
 import { fetchCardsFromProject } from "@/app/api/cards/helpers";
 import TabSelector from "../tab_selector";
@@ -31,9 +31,10 @@ interface MenuBarProps {
     toggleKnowledge: () => void;
     toggleResource: () => void;
     toggleImportant: () => void;
+    addFileAttachment: (attachment: ChatAttachment) => void;
 }
 
-const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, tab, setTab, cardFilters, filtersExpanded, setFiltersExpanded, toggleKnowledge, toggleResource, toggleImportant} : MenuBarProps) => {
+const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, tab, setTab, cardFilters, filtersExpanded, setFiltersExpanded, toggleKnowledge, toggleResource, toggleImportant, addFileAttachment} : MenuBarProps) => {
     const [quizzes, setQuizzes] = useState<Quiz[] | null>(null);
     const [lessonProgress, setLessonProgress] = useState<number | null>(null);
 
@@ -257,7 +258,7 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                               isOpen: true,
                               type: "info",
                               width: "4xl",
-                              children: <UploadsPanel uploads={project.uploads || []} />
+                               children: <UploadsPanel uploads={project.uploads || []} addFileAttachment={addFileAttachment} />
                           });
                       }}
                  >

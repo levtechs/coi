@@ -1,7 +1,8 @@
 import React from 'react';
-import { FileAttachment } from '@/lib/types';
+import { FileAttachment, ChatAttachment } from '@/lib/types';
+import { FiEye, FiPlus } from 'react-icons/fi';
 
-const UploadsPanel = ({ uploads }: { uploads: FileAttachment[] }) => {
+const UploadsPanel = ({ uploads, addFileAttachment }: { uploads: FileAttachment[], addFileAttachment?: (attachment: ChatAttachment) => void }) => {
     const formatSize = (bytes: number) => {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
@@ -34,14 +35,22 @@ const UploadsPanel = ({ uploads }: { uploads: FileAttachment[] }) => {
                                     </p>
                                 </div>
                             </div>
-                            <a
-                                href={upload.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-3 py-1 bg-[var(--accent-500)] text-white rounded-md hover:bg-[var(--accent-600)] transition-colors"
-                            >
-                                Download
-                            </a>
+                             <div className="flex gap-2">
+                                 <button
+                                     onClick={() => window.open(upload.url, '_blank')}
+                                     className="p-2 bg-[var(--neutral-200)] text-[var(--foreground)] rounded-md hover:bg-[var(--neutral-300)] transition-colors"
+                                     title="Download"
+                                 >
+                                     <FiEye size={16} />
+                                 </button>
+                                 <button
+                                     onClick={() => addFileAttachment?.(upload)}
+                                     className="p-2 bg-[var(--accent-500)] text-white rounded-md hover:bg-[var(--accent-600)] transition-colors"
+                                     title="Add to chat"
+                                 >
+                                     <FiPlus size={16} />
+                                 </button>
+                             </div>
                         </div>
                     ))}
                 </div>

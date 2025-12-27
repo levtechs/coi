@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Project, Card, ChatAttachment, CardFilter, DEFAULT_CARD_FILTER } from "@/lib/types";
 import Modal from "../modal";
 import MenuBar from "./menu/menu";
@@ -49,8 +49,8 @@ const Editor = ({
     const [cardPopup, setCardPopup] = useState<Card | null>(null);
     const [chatFullscreen, setChatFullscreen] = useState(false);
 
-    const addFileAttachment = (attachment: ChatAttachment) =>
-        setChatAttachments((prev) => [attachment, ...(prev ?? [])]);
+    const addFileAttachment = useCallback((attachment: ChatAttachment) =>
+        setChatAttachments((prev) => [attachment, ...(prev ?? [])]), []);
 
 
     return (
@@ -73,6 +73,7 @@ const Editor = ({
                     toggleKnowledge={toggleKnowledge}
                     toggleResource={toggleResource}
                     toggleImportant={toggleImportant}
+                    addFileAttachment={addFileAttachment}
                 />
 
                 {/* Main Content Area */}
