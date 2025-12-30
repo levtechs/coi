@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-import Buttons from "./buttons";
+import Button from "../button";
 import WalkthroughComponent from "./walkthrough";
 import Testimonials from "./testimonials_component";
 import Footer from "./footer";
@@ -175,9 +175,16 @@ const LandingPage = () => {
                 className="flex flex-col items-center bg-[var(--neutral-200)] text-[var(--foreground)] p-6 min-h-screen relative"
             >
                   <div className={`${isTestimonialsIntersecting ? "absolute w-full" : "fixed w-screen"} bottom-0 pb-4 p-6 transition-all duration-500 z-30 ${showButtons ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-full pointer-events-none'}`}>
-                     <div className="flex justify-center">
-                         <Buttons />
-                     </div>
+                      <div className="flex justify-center">
+                          <div className="z-40 flex flex-col md:flex-row justify-center gap-4 mt-4">
+                              <Button color="var(--neutral-500)" onClick={() => router.push("/dashboard")} className="flex-1 md:flex-none px-0 py-3 md:px-6 md:py-3 md:text-lg">
+                                  Go to Dashboard
+                              </Button>
+                              <Button color="var(--accent-500)" onClick={() => router.push("/login?signup=true")} className="flex-1 md:flex-none px-0 py-3 md:px-6 md:py-3 md:text-lg">
+                                  Get Started
+                              </Button>
+                          </div>
+                      </div>
                  </div>
                 <WalkthroughComponent themeFolder={themeFolder} animationsEnabled={animationsEnabled} isMobile={isMobile} />
             </div>
