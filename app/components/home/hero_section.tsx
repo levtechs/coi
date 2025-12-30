@@ -39,8 +39,8 @@ const HeroSection = React.forwardRef<HTMLDivElement, HeroSectionProps>(
                         </div>
                     </div>
                     <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2">
-                        <button className="flex flex-col items-center">
-                            <div className={`text-sm font-semibold text-[var(--neutral-600)] ${animationsEnabled ? 'animate-bounce' : ''} flex items-center gap-1`} onClick={scrollToWalkthrough}>
+                        <button className="flex flex-col items-center" onClick={scrollToWalkthrough}>
+                            <div className={`text-sm font-semibold text-[var(--neutral-600)] ${animationsEnabled ? 'animate-bounce' : ''} flex items-center gap-1`}>
                                 <FiChevronDown size={20} />
                                 scroll for details
                                 <FiChevronDown size={20} />
