@@ -4,10 +4,11 @@ Official source code of the coi project
 [Check it out](https://coilearn.com/)
 
 ## Features 
-- chat with AI tutor
+- chat with AI tutor & upload materials
 - auto-updating study guide and note cards
 - add collaborators via email or invite via invite link
 - generate quiz with both multiple-choice and free-response tailored to your project that will automatically grade you and give you feedback
+- take pre-made courses with complete lessons 
 
 ## Purpose
 
