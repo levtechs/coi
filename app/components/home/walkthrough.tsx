@@ -243,6 +243,47 @@ const WalkthroughComponent = ({ themeFolder, animationsEnabled, isMobile }: { th
                 )}
             </div>
             {isMobile && <hr className="w-full border-t border-[var(--neutral-300)] my-4" />}
+
+            {/* Courses Section */}
+            <div
+                data-index={5}
+                className={`flex ${isMobile ? 'flex-col' : 'items-center justify-center'} py-8 mb-8 ${isMobile ? '' : '-mt-16'} ${animationsEnabled ? 'transition-all duration-1000' : ''} ${
+                    animationsEnabled ? (visibleSections.has(5) ? 'opacity-100 translate-x-0' : `opacity-0 ${isMobile ? '' : '-translate-x-full'}`) : 'opacity-100 translate-x-0'
+                }`}
+            >
+                {isMobile ? (
+                    <>
+                        <div className="max-w-xs md:max-w-none mb-4 mx-auto">
+                            <Image
+                                src={`/demos/${themeFolder}/course.png`}
+                                alt="Courses screenshot"
+                                width={500}
+                                height={375}
+                                className="rounded-lg shadow-lg hover:shadow-xl transition-shadow"
+                            />
+                        </div>
+                        <div className="text-center">
+                            <p className="text-md md:text-xl">Explore pre-made courses with complete lessons</p>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <div className="relative transform -translate-x-1/4 md:transform-none max-w-xs md:max-w-none">
+                            <Image
+                                src={`/demos/${themeFolder}/course.png`}
+                                alt="Courses screenshot"
+                                width={500}
+                                height={375}
+                                className="rounded-lg shadow-lg hover:shadow-xl transition-shadow transform -rotate-3"
+                            />
+                        </div>
+                        <div className="flex-1 text-left">
+                            <p className="text-md md:text-xl">Explore pre-made courses with complete lessons</p>
+                        </div>
+                    </>
+                )}
+            </div>
+            {isMobile && <hr className="w-full border-t border-[var(--neutral-300)] my-4" />}
         </div>
     );
 };
