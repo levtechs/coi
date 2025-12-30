@@ -25,7 +25,7 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
     const wrapperRef = useRef<HTMLDivElement>(null);
 
     const mouseRef = useRef({ x: -9999, y: -9999 });
-    const squaresRef = useRef<Float32Array>();
+    const squaresRef = useRef<Float32Array | null>(null);
     const gridRef = useRef({ cols: 0, rows: 0 });
 
     useEffect(() => {
