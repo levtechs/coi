@@ -3,13 +3,11 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-import { FiChevronDown } from "react-icons/fi";
-import Image from "next/image";
-import { FlickeringGrid } from "../../components/flickering-grid";
 import Buttons from "./buttons";
 import WalkthroughComponent from "./walkthrough";
 import Testimonials from "./testimonials_component";
 import Footer from "./footer";
+import HeroSection from "./hero_section";
 
 const LandingPage = () => {
     const landingPageRef = useRef<HTMLDivElement>(null);
@@ -52,18 +50,11 @@ const LandingPage = () => {
         };
     }, []);
 
+
+
     useEffect(() => {
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                setShowButtons(entry.isIntersecting);
-            },
-            { threshold: 0.1 }
-        );
-        if (walkthroughRef.current) {
-            observer.observe(walkthroughRef.current);
-        }
-        return () => observer.disconnect();
-    }, []);
+        setShowButtons(activeSection === 'details');
+    }, [activeSection]);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -176,48 +167,18 @@ const LandingPage = () => {
                 </nav>
             )}
             {/* Hero Section */}
-            <div
-                ref={landingPageRef}
-                className={`relative min-h-screen text-[var(--foreground)] ${animationsEnabled ? 'transition-all duration-500' : ''}`}
-            >
-
-                <div className="fixed inset-0 bg-[var(--neutral-100)] pointer-events-none"></div>
-                {animationsEnabled && <FlickeringGrid className="fixed inset-0 z-5" />}
-
-                <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6 gap-3">
-                    <Image src="/favicon.png" alt="Coi Logo" width={150} height={150} className="w-48 h-48" />
-
-                    <h1 className="text-6xl font-bold t-[var(--neutral-900)] flex items-center gap-2">
-                        Study Smarter,<br />Together.
-                    </h1>
-
-                    <p className="text-center text-3xl text-[var(--neutral-600)] max-w-xl mb-4">
-                        Coi brings cards, projects, and collaboration into one interactive learning platform.
-                    </p>
-
-                    <Buttons />
-                    <p className="text-center text-xl font-bold max-w-xl text-[var(--accent-400)]" style={{ textShadow: '0 0 10px var(--accent-100)' }}>
-                        Right now, it&apos;s 100% FREE!
-                    </p>
-
-                    <button className="flex flex-col items-center mt-12">
-                        <div className={`text-sm font-semibold text-[var(--neutral-600)] ${animationsEnabled ? 'animate-bounce' : ''} flex items-center gap-1`} onClick={scrollToWalkthrough}>
-                            <FiChevronDown size={20} />
-                            scroll for details
-                            <FiChevronDown size={20} />
-                        </div>
-                    </button>
-                </div>
-            </div>
+            <HeroSection ref={landingPageRef} animationsEnabled={animationsEnabled} scrollToWalkthrough={scrollToWalkthrough} />
 
             {/* Walkthrough Section */}
             <div
                 ref={walkthroughRef}
                 className="flex flex-col items-center bg-[var(--neutral-200)] text-[var(--foreground)] p-6 min-h-screen relative"
             >
-                 <div className={`${isTestimonialsIntersecting ? "absolute w-full" : "fixed w-screen"} bottom-0 pb-4 p-6 transition-all duration-500 z-30 ${showButtons ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-full pointer-events-none'}`}>
-                    <Buttons />
-                </div>
+                  <div className={`${isTestimonialsIntersecting ? "absolute w-full" : "fixed w-screen"} bottom-0 pb-4 p-6 transition-all duration-500 z-30 ${showButtons ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-full pointer-events-none'}`}>
+                     <div className="flex justify-center">
+                         <Buttons />
+                     </div>
+                 </div>
                 <WalkthroughComponent themeFolder={themeFolder} animationsEnabled={animationsEnabled} isMobile={isMobile} />
             </div>
 
