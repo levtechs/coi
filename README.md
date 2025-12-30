@@ -1,7 +1,7 @@
 # Learn with coi
 Official source code of the coi project
 
-[Check it out](https://coilearn.vercel.app/)
+[Check it out](https://coilearn.com/)
 
 ## Features 
 - chat with AI tutor
