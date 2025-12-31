@@ -175,9 +175,9 @@ const LandingPage = () => {
                 className="flex flex-col items-center bg-[var(--neutral-200)] text-[var(--foreground)] p-6 min-h-screen relative"
             >
                   <div className={`${isTestimonialsIntersecting ? "absolute w-full" : "fixed w-screen"} bottom-0 pb-4 p-6 transition-all duration-500 z-30 ${showButtons ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-full pointer-events-none'}`}>
-                     <div className="flex justify-center">
-                         <Buttons />
-                     </div>
+                      <div className="flex justify-center">
+                          <Buttons className="flex-col md:flex-row justify-center" />
+                      </div>
                  </div>
                 <WalkthroughComponent themeFolder={themeFolder} animationsEnabled={animationsEnabled} isMobile={isMobile} />
             </div>
