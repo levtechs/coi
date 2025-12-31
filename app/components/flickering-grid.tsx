@@ -49,7 +49,8 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
 
         const tmp = document.createElement('canvas');
         tmp.width = tmp.height = 1;
-        const tctx = tmp.getContext('2d')!;
+        const tctx = tmp.getContext('2d');
+        if (!tctx) return;
         tctx.fillStyle = resolvedColor;
         tctx.fillRect(0, 0, 1, 1);
         const [r, g, b] = tctx.getImageData(0, 0, 1, 1).data;
@@ -83,15 +84,15 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
 
         /* ---------- mouse ---------- */
         const onMouseMove = (e: MouseEvent) => {
-            const rect = wrapper.getBoundingClientRect();
-            mouseRef.current.x = e.clientX - rect.left;
-            mouseRef.current.y = e.clientY - rect.top;
+            mouseRef.current.x = e.offsetX;
+            mouseRef.current.y = e.offsetY;
         };
 
-        window.addEventListener('mousemove', onMouseMove);
+        wrapper.addEventListener('mousemove', onMouseMove);
 
         /* ---------- animation ---------- */
         let last = performance.now();
+        let animationFrameId: number;
 
         const animate = (now: number) => {
             const dt = (now - last) / 1000;
@@ -101,7 +102,10 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
 
             const { cols, rows } = gridRef.current;
             const squares = squaresRef.current;
-            if (!squares) return;
+            if (!squares) {
+                animationFrameId = requestAnimationFrame(animate);
+                return;
+            }
 
             for (let i = 0; i < squares.length; i++) {
                 if (Math.random() < flickerChance * dt) {
@@ -142,14 +146,15 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
                 }
             }
 
-            requestAnimationFrame(animate);
+            animationFrameId = requestAnimationFrame(animate);
         };
 
-        requestAnimationFrame(animate);
+        animationFrameId = requestAnimationFrame(animate);
 
         return () => {
+            cancelAnimationFrame(animationFrameId);
             resizeObserver.disconnect();
-            window.removeEventListener('mousemove', onMouseMove);
+            wrapper.removeEventListener('mousemove', onMouseMove);
         };
     }, [squareSize, gridGap, flickerChance, color, maxOpacity, mouseRadius]);
 
