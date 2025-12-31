@@ -113,8 +113,9 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
                 }
             }
 
-            const mx = mouseRef.current.x;
-            const my = mouseRef.current.y;
+            const rect = wrapper.getBoundingClientRect();
+            const mx = mouseRef.current.x - rect.left;
+            const my = mouseRef.current.y - rect.top;
 
             for (let x = 0; x < cols; x++) {
                 for (let y = 0; y < rows; y++) {
