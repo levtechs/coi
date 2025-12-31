@@ -84,11 +84,11 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
 
         /* ---------- mouse ---------- */
         const onMouseMove = (e: MouseEvent) => {
-            mouseRef.current.x = e.offsetX;
-            mouseRef.current.y = e.offsetY;
+            mouseRef.current.x = e.clientX;
+            mouseRef.current.y = e.clientY;
         };
 
-        wrapper.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mousemove', onMouseMove);
 
         /* ---------- animation ---------- */
         let last = performance.now();
@@ -154,7 +154,7 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
         return () => {
             cancelAnimationFrame(animationFrameId);
             resizeObserver.disconnect();
-            wrapper.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mousemove', onMouseMove);
         };
     }, [squareSize, gridGap, flickerChance, color, maxOpacity, mouseRadius]);
 
