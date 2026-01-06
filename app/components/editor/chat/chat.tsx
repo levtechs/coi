@@ -16,6 +16,7 @@ import { getChatHistory, getUserPreferences } from "@/app/views/chat";
 import { sendMessage } from "./helpers";
 import { uploadFile } from "@/app/views/uploads";
 import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/uploadConstants";
+import { validateAndUploadFiles } from '@/lib/uploadUtils';
 
 interface ChatPanelProps {
     project: Project;
@@ -74,6 +75,61 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
             e.preventDefault();
             onSend();
         }
+    };
+
+    const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        const files: File[] = [];
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.kind === 'file') {
+                const file = item.getAsFile();
+                if (file && ALLOWED_MIME_TYPES.some(type => file.type.startsWith(type))) {
+                    files.push(file);
+                }
+            }
+        }
+        if (files.length === 0) return;
+        e.preventDefault();
+
+        // Check total size including existing attachments
+        const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+        const currentSize = (attachments || []).reduce((sum, att) => {
+            if ('type' in att && att.type === 'file') {
+                return sum + att.size;
+            }
+            return sum;
+        }, 0);
+        if (currentSize + totalSize > MAX_UPLOAD_SIZE_BYTES) {
+            setModalContents({
+                isOpen: true,
+                type: "error",
+                width: "sm",
+                message: `Total attachment size would exceed ${MAX_UPLOAD_SIZE_MB}MB. Please remove some attachments.`,
+                onClose: () => setModalContents(noModal),
+            });
+            return;
+        }
+
+        await validateAndUploadFiles(files, {
+            projectId: project.id,
+            onError: (message) => setModalContents({
+                isOpen: true,
+                type: "error",
+                width: "sm",
+                message,
+                onClose: () => setModalContents(noModal),
+            }),
+            onFileError: (_, message) => setModalContents({
+                isOpen: true,
+                type: "error",
+                width: "sm",
+                message,
+                onClose: () => setModalContents(noModal),
+            }),
+            onSuccess: addFileAttachment,
+        });
     };
     
     // NEW: Scroll to the bottom when the chat is opened or mounted
@@ -230,6 +286,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
                                         onKeyDown={handleKeyDown}
+                                        onPaste={handlePaste}
                                         placeholder="Type a message..."
                                         className="flex-1 bg-transparent outline-none p-2 text-[var(--foreground)] resize-none max-h-100 overflow-y-auto"
                                     />
@@ -252,6 +309,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
                                         onKeyDown={handleKeyDown}
+                                        onPaste={handlePaste}
                                         className="flex-1 bg-transparent outline-none p-2 text-[var(--foreground)] resize-none max-h-100 overflow-y-auto"
                                     />
                                     <FiCircle
