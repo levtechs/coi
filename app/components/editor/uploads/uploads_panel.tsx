@@ -2,7 +2,8 @@ import React, { useRef, useState, useEffect } from 'react';
 import { FileAttachment, ChatAttachment } from '@/lib/types';
 import { FiEye, FiPlus, FiUpload } from 'react-icons/fi';
 import { uploadFile } from '@/app/views/uploads';
-import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from '@/lib/uploadConstants';
+import { ALLOWED_MIME_TYPES } from '@/lib/uploadConstants';
+import { validateAndUploadFiles } from '@/lib/uploadUtils';
 import { collection, onSnapshot, CollectionReference } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
@@ -70,35 +71,14 @@ const UploadsPanel = ({ addFileAttachment, projectId }: { addFileAttachment?: (a
         e.preventDefault();
         setIsDragOver(false);
         const files = Array.from(e.dataTransfer.files);
-        const MAX_FILES = 10;
-        if (files.length > MAX_FILES) {
-            alert(`Too many files. Maximum ${MAX_FILES} files allowed.`);
-            return;
-        }
-        const totalSize = files.reduce((sum, f) => sum + f.size, 0);
-        if (totalSize > MAX_UPLOAD_SIZE_BYTES) {
-            alert(`Total file size exceeds the limit of ${MAX_UPLOAD_SIZE_MB} MB`);
-            return;
-        }
-        for (const file of files) {
-            if (!ALLOWED_MIME_TYPES.some(type => file.type.startsWith(type))) {
-                alert(`File type ${file.type} is not allowed. Allowed types: ${ALLOWED_MIME_TYPES.join(', ')}`);
-                continue;
-            }
-            if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-                alert(`File size exceeds the limit of ${MAX_UPLOAD_SIZE_MB} MB`);
-                continue;
-            }
-            try {
-                await uploadFile(file, projectId);
-            } catch (error) {
-                console.error('Upload failed:', error);
-                alert('Upload failed. Please try again.');
-            }
-        }
+        await validateAndUploadFiles(files, {
+            projectId,
+            onError: alert,
+            onFileError: (_, message) => alert(message),
+        });
     };
 
-    const handlePaste = (e: React.ClipboardEvent) => {
+    const handlePaste = async (e: React.ClipboardEvent) => {
         const items = e.clipboardData?.items;
         if (!items) return;
         const files: File[] = [];
@@ -111,31 +91,13 @@ const UploadsPanel = ({ addFileAttachment, projectId }: { addFileAttachment?: (a
                 }
             }
         }
-        const MAX_FILES = 10;
-        if (files.length > MAX_FILES) {
-            alert(`Too many files. Maximum ${MAX_FILES} files allowed.`);
-            e.preventDefault();
-            return;
-        }
-        const totalSize = files.reduce((sum, f) => sum + f.size, 0);
-        if (totalSize > MAX_UPLOAD_SIZE_BYTES) {
-            alert(`Total file size exceeds the limit of ${MAX_UPLOAD_SIZE_MB} MB`);
-            e.preventDefault();
-            return;
-        }
-        for (const file of files) {
-            if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-                alert(`File size exceeds the limit of ${MAX_UPLOAD_SIZE_MB} MB`);
-                continue;
-            }
-            uploadFile(file, projectId).catch((error) => {
-                console.error('Upload failed:', error);
-                alert('Upload failed. Please try again.');
-            });
-        }
-        if (files.length > 0) {
-            e.preventDefault();
-        }
+        if (files.length === 0) return;
+        e.preventDefault();
+        await validateAndUploadFiles(files, {
+            projectId,
+            onError: (message) => { alert(message); },
+            onFileError: (_, message) => alert(message),
+        });
     };
 
     const formatSize = (bytes: number) => {

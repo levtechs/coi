@@ -16,6 +16,7 @@ import { getChatHistory, getUserPreferences } from "@/app/views/chat";
 import { sendMessage } from "./helpers";
 import { uploadFile } from "@/app/views/uploads";
 import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/uploadConstants";
+import { validateAndUploadFiles } from '@/lib/uploadUtils';
 
 interface ChatPanelProps {
     project: Project;
@@ -76,7 +77,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
         }
     };
 
-    const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
         const items = e.clipboardData?.items;
         if (!items) return;
         const files: File[] = [];
@@ -90,18 +91,9 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
             }
         }
         if (files.length === 0) return;
-        const MAX_FILES = 10;
-        if (files.length > MAX_FILES) {
-            setModalContents({
-                isOpen: true,
-                type: "error",
-                width: "sm",
-                message: `Too many files. Maximum ${MAX_FILES} files allowed.`,
-                onClose: () => setModalContents(noModal),
-            });
-            e.preventDefault();
-            return;
-        }
+        e.preventDefault();
+
+        // Check total size including existing attachments
         const totalSize = files.reduce((sum, f) => sum + f.size, 0);
         const currentSize = (attachments || []).reduce((sum, att) => {
             if ('type' in att && att.type === 'file') {
@@ -117,32 +109,27 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                 message: `Total attachment size would exceed ${MAX_UPLOAD_SIZE_MB}MB. Please remove some attachments.`,
                 onClose: () => setModalContents(noModal),
             });
-            e.preventDefault();
             return;
         }
-        for (const file of files) {
-            if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-                setModalContents({
-                    isOpen: true,
-                    type: "error",
-                    width: "sm",
-                    message: `File size exceeds the limit of ${MAX_UPLOAD_SIZE_MB}MB`,
-                    onClose: () => setModalContents(noModal),
-                });
-                continue;
-            }
-            uploadFile(file, project.id).then(addFileAttachment).catch((error) => {
-                console.error('Upload failed:', error);
-                setModalContents({
-                    isOpen: true,
-                    type: "error",
-                    width: "sm",
-                    message: error instanceof Error ? error.message : 'Upload failed.',
-                    onClose: () => setModalContents(noModal),
-                });
-            });
-        }
-        e.preventDefault();
+
+        await validateAndUploadFiles(files, {
+            projectId: project.id,
+            onError: (message) => setModalContents({
+                isOpen: true,
+                type: "error",
+                width: "sm",
+                message,
+                onClose: () => setModalContents(noModal),
+            }),
+            onFileError: (_, message) => setModalContents({
+                isOpen: true,
+                type: "error",
+                width: "sm",
+                message,
+                onClose: () => setModalContents(noModal),
+            }),
+            onSuccess: addFileAttachment,
+        });
     };
     
     // NEW: Scroll to the bottom when the chat is opened or mounted
