@@ -75,6 +75,75 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
             onSend();
         }
     };
+
+    const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        const files: File[] = [];
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.kind === 'file') {
+                const file = item.getAsFile();
+                if (file && ALLOWED_MIME_TYPES.some(type => file.type.startsWith(type))) {
+                    files.push(file);
+                }
+            }
+        }
+        if (files.length === 0) return;
+        const MAX_FILES = 10;
+        if (files.length > MAX_FILES) {
+            setModalContents({
+                isOpen: true,
+                type: "error",
+                width: "sm",
+                message: `Too many files. Maximum ${MAX_FILES} files allowed.`,
+                onClose: () => setModalContents(noModal),
+            });
+            e.preventDefault();
+            return;
+        }
+        const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+        const currentSize = (attachments || []).reduce((sum, att) => {
+            if ('type' in att && att.type === 'file') {
+                return sum + att.size;
+            }
+            return sum;
+        }, 0);
+        if (currentSize + totalSize > MAX_UPLOAD_SIZE_BYTES) {
+            setModalContents({
+                isOpen: true,
+                type: "error",
+                width: "sm",
+                message: `Total attachment size would exceed ${MAX_UPLOAD_SIZE_MB}MB. Please remove some attachments.`,
+                onClose: () => setModalContents(noModal),
+            });
+            e.preventDefault();
+            return;
+        }
+        for (const file of files) {
+            if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+                setModalContents({
+                    isOpen: true,
+                    type: "error",
+                    width: "sm",
+                    message: `File size exceeds the limit of ${MAX_UPLOAD_SIZE_MB}MB`,
+                    onClose: () => setModalContents(noModal),
+                });
+                continue;
+            }
+            uploadFile(file, project.id).then(addFileAttachment).catch((error) => {
+                console.error('Upload failed:', error);
+                setModalContents({
+                    isOpen: true,
+                    type: "error",
+                    width: "sm",
+                    message: error instanceof Error ? error.message : 'Upload failed.',
+                    onClose: () => setModalContents(noModal),
+                });
+            });
+        }
+        e.preventDefault();
+    };
     
     // NEW: Scroll to the bottom when the chat is opened or mounted
     useEffect(() => {
@@ -230,6 +299,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
                                         onKeyDown={handleKeyDown}
+                                        onPaste={handlePaste}
                                         placeholder="Type a message..."
                                         className="flex-1 bg-transparent outline-none p-2 text-[var(--foreground)] resize-none max-h-100 overflow-y-auto"
                                     />
@@ -252,6 +322,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
                                         onKeyDown={handleKeyDown}
+                                        onPaste={handlePaste}
                                         className="flex-1 bg-transparent outline-none p-2 text-[var(--foreground)] resize-none max-h-100 overflow-y-auto"
                                     />
                                     <FiCircle
