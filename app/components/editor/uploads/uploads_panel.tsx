@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { FileAttachment, ChatAttachment } from '@/lib/types';
 import { FiEye, FiPlus, FiUpload } from 'react-icons/fi';
 import { uploadFile } from '@/app/views/uploads';
-import { ALLOWED_MIME_TYPES } from '@/lib/uploadConstants';
+import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES } from '@/lib/uploadConstants';
 import { validateAndUploadFiles } from '@/lib/uploadUtils';
 import { collection, onSnapshot, CollectionReference } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
