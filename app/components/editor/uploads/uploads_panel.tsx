@@ -127,21 +127,20 @@ const UploadsPanel = ({ addFileAttachment, projectId }: { addFileAttachment?: (a
                 accept={acceptTypes}
                 className="hidden"
             />
-            {uploads.length === 0 ? (
-                <div
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onPaste={handlePaste}
-                    onClick={() => fileInputRef.current?.click()}
-                    tabIndex={0}
-                    className={`border-2 border-dashed rounded-md p-8 text-center cursor-pointer transition-colors ${isDragOver ? 'border-[var(--accent-500)] bg-[var(--accent-100)]' : 'border-[var(--neutral-300)]'}`}
-                >
-                    <FiUpload size={48} className="mx-auto mb-4 text-[var(--neutral-500)]" />
-                    <p className="text-[var(--neutral-500)]">Drag and drop files here to upload</p>
-                    <p className="text-sm text-[var(--neutral-400)] mt-2">or paste from clipboard, or click to select files</p>
-                </div>
-            ) : (
+            <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onPaste={handlePaste}
+                onClick={() => fileInputRef.current?.click()}
+                tabIndex={0}
+                className={`border-2 border-dashed rounded-md p-8 text-center cursor-pointer transition-colors mb-4 ${isDragOver ? 'border-[var(--accent-500)] bg-[var(--accent-100)]' : 'border-[var(--neutral-300)]'}`}
+            >
+                <FiUpload size={48} className="mx-auto mb-4 text-[var(--neutral-500)]" />
+                <p className="text-[var(--neutral-500)]">Drag and drop files here to upload</p>
+                <p className="text-sm text-[var(--neutral-400)] mt-2">or paste from clipboard, or click to select files</p>
+            </div>
+            {uploads.length > 0 && (
                 <div className="space-y-2">
                     {uploads.map((upload) => (
                         <div key={upload.id} className="flex items-center justify-between p-3 bg-[var(--neutral-100)] rounded-md">
@@ -160,22 +159,22 @@ const UploadsPanel = ({ addFileAttachment, projectId }: { addFileAttachment?: (a
                                     </p>
                                 </div>
                             </div>
-                             <div className="flex gap-2">
-                                 <button
-                                     onClick={() => window.open(upload.url, '_blank')}
-                                     className="p-2 bg-[var(--neutral-200)] text-[var(--foreground)] rounded-md hover:bg-[var(--neutral-300)] transition-colors"
-                                     title="Download"
-                                 >
-                                     <FiEye size={16} />
-                                 </button>
-                                 <button
-                                     onClick={() => addFileAttachment?.(upload)}
-                                     className="p-2 bg-[var(--accent-500)] text-white rounded-md hover:bg-[var(--accent-600)] transition-colors"
-                                     title="Add to chat"
-                                 >
-                                     <FiPlus size={16} />
-                                 </button>
-                             </div>
+                              <div className="flex gap-2">
+                                  <button
+                                      onClick={() => window.open(upload.url, '_blank')}
+                                      className="p-2 bg-[var(--neutral-200)] text-[var(--foreground)] rounded-md hover:bg-[var(--neutral-300)] transition-colors"
+                                      title="Download"
+                                  >
+                                      <FiEye size={16} />
+                                  </button>
+                                  <button
+                                      onClick={() => addFileAttachment?.(upload)}
+                                      className="p-2 bg-[var(--accent-500)] text-white rounded-md hover:bg-[var(--accent-600)] transition-colors"
+                                      title="Add to chat"
+                                  >
+                                      <FiPlus size={16} />
+                                  </button>
+                              </div>
                         </div>
                     ))}
                 </div>
