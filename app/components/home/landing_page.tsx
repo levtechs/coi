@@ -31,20 +31,24 @@ const LandingPage = () => {
     const pricingRef = useRef<HTMLDivElement>(null);
     const faqRef = useRef<HTMLDivElement>(null);
 
+    const navItems = [
+        { id: 'hero' as SectionId, label: 'Home', ref: heroRef },
+        { id: 'problem' as SectionId, label: 'Problem', ref: problemRef },
+        { id: 'transformation' as SectionId, label: 'Solution', ref: transformationRef },
+        { id: 'testimonials' as SectionId, label: 'Reviews', ref: testimonialsRef },
+        { id: 'features' as SectionId, label: 'Features', ref: featuresRef },
+        { id: 'about' as SectionId, label: 'About', ref: aboutRef },
+        /* { id: 'pricing' as SectionId, label: 'Pricing', ref: pricingRef }, */
+    ];
+
     useEffect(() => {
         const handleScroll = () => {
             const scrollY = window.scrollY + 100; // Offset for nav height
 
-            const sections: { id: SectionId; ref: React.RefObject<HTMLDivElement | null> }[] = [
-                { id: 'hero', ref: heroRef },
-                { id: 'problem', ref: problemRef },
-                { id: 'transformation', ref: transformationRef },
-                { id: 'testimonials', ref: testimonialsRef },
-                { id: 'features', ref: featuresRef },
-                { id: 'about', ref: aboutRef },
-                { id: 'pricing', ref: pricingRef },
-                { id: 'faq', ref: faqRef }
-            ];
+            const sections: { id: SectionId; ref: React.RefObject<HTMLDivElement | null> }[] = navItems.map(item => ({
+                id: item.id,
+                ref: { hero: heroRef, problem: problemRef, transformation: transformationRef, testimonials: testimonialsRef, features: featuresRef, about: aboutRef, pricing: pricingRef, faq: faqRef }[item.id] || null
+            }));
 
             for (const section of sections) {
                 const element = section.ref.current;
@@ -85,113 +89,23 @@ const LandingPage = () => {
                         {isMenuOpen ? <FiChevronUp size={20} /> : <FiChevronDown size={20} />}
                     </button>
                     <ul className={`flex flex-col md:flex-row space-y-2 md:space-y-0 space-x-0 md:space-x-4 transition-all duration-300 ${isMenuOpen ? 'opacity-100 max-h-96' : 'opacity-0 max-h-0 md:opacity-100 md:max-h-96'} md:flex`}>
-                        <li className="relative group">
-                            <button
-                                onClick={() => scrollToSection(heroRef)}
-                                className={`text-sm transition-colors ${
-                                    activeSection === 'hero'
-                                        ? 'text-[var(--neutral-900)]'
-                                        : 'text-[var(--neutral-700)] hover:text-[var(--neutral-900)]'
-                                }`}
-                            >
-                                Home
-                            </button>
-                            <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-current transition-opacity ${
-                                activeSection === 'hero' ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
-                            }`}></div>
-                        </li>
-                        <li className="relative group">
-                            <button
-                                onClick={() => scrollToSection(problemRef)}
-                                className={`text-sm transition-colors ${
-                                    activeSection === 'problem'
-                                        ? 'text-[var(--neutral-900)]'
-                                        : 'text-[var(--neutral-700)] hover:text-[var(--neutral-900)]'
-                                }`}
-                            >
-                                Problem
-                            </button>
-                            <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-current transition-opacity ${
-                                activeSection === 'problem' ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
-                            }`}></div>
-                        </li>
-                        <li className="relative group">
-                            <button
-                                onClick={() => scrollToSection(transformationRef)}
-                                className={`text-sm transition-colors ${
-                                    activeSection === 'transformation'
-                                        ? 'text-[var(--neutral-900)]'
-                                        : 'text-[var(--neutral-700)] hover:text-[var(--neutral-900)]'
-                                }`}
-                            >
-                                Solution
-                            </button>
-                            <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-current transition-opacity ${
-                                activeSection === 'transformation' ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
-                            }`}></div>
-                        </li>
-                        <li className="relative group">
-                            <button
-                                onClick={() => scrollToSection(testimonialsRef)}
-                                className={`text-sm transition-colors ${
-                                    activeSection === 'testimonials'
-                                        ? 'text-[var(--neutral-900)]'
-                                        : 'text-[var(--neutral-700)] hover:text-[var(--neutral-900)]'
-                                }`}
-                            >
-                                Reviews
-                            </button>
-                            <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-current transition-opacity ${
-                                activeSection === 'testimonials' ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
-                            }`}></div>
-                        </li>
-                        <li className="relative group">
-                            <button
-                                onClick={() => scrollToSection(featuresRef)}
-                                className={`text-sm transition-colors ${
-                                    activeSection === 'features'
-                                        ? 'text-[var(--neutral-900)]'
-                                        : 'text-[var(--neutral-700)] hover:text-[var(--neutral-900)]'
-                                }`}
-                            >
-                                Features
-                            </button>
-                            <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-current transition-opacity ${
-                                activeSection === 'features' ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
-                            }`}></div>
-                        </li>
-                        <li className="relative group">
-                            <button
-                                onClick={() => scrollToSection(aboutRef)}
-                                className={`text-sm transition-colors ${
-                                    activeSection === 'about'
-                                        ? 'text-[var(--neutral-900)]'
-                                        : 'text-[var(--neutral-700)] hover:text-[var(--neutral-900)]'
-                                }`}
-                            >
-                                About
-                            </button>
-                            <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-current transition-opacity ${
-                                activeSection === 'about' ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
-                            }`}></div>
-                        </li>
-                        {/*
-                        <li className="relative group">
-                            <button
-                                onClick={() => scrollToSection(pricingRef)}
-                                className={`text-sm transition-colors ${
-                                    activeSection === 'pricing'
-                                        ? 'text-[var(--neutral-900)]'
-                                        : 'text-[var(--neutral-700)] hover:text-[var(--neutral-900)]'
-                                }`}
-                            >
-                                Pricing
-                            </button>
-                            <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-current transition-opacity ${
-                                activeSection === 'pricing' ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
-                            }`}></div>
-                        </li>
-                        */}
+                        {navItems.map(({ id, label, ref }) => (
+                            <li key={id} className="relative group">
+                                <button
+                                    onClick={() => scrollToSection(ref)}
+                                    className={`text-sm transition-colors ${
+                                        activeSection === id
+                                            ? 'text-[var(--neutral-900)]'
+                                            : 'text-[var(--neutral-700)] hover:text-[var(--neutral-900)]'
+                                    }`}
+                                >
+                                    {label}
+                                </button>
+                                <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-current transition-opacity ${
+                                    activeSection === id ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
+                                }`}></div>
+                            </li>
+                        ))}
                         <li>
                             <button onClick={() => router.push("/dashboard")} className="text-[var(--neutral-700)] hover:text-[var(--neutral-900)] transition-colors text-sm">
                                 Dashboard
@@ -210,7 +124,7 @@ const LandingPage = () => {
             <div className="relative z-10">
                 {/* Hero Section */}
                 <div ref={heroRef}>
-                    <HeroSection />
+                    <HeroSection onScrollDown={() => scrollToSection(problemRef)} />
                 </div>
 
                 <hr className="border-[var(--neutral-300)]" />

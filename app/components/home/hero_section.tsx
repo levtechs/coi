@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import { FiChevronDown } from "react-icons/fi";
 
-const HeroSection = React.forwardRef<HTMLDivElement>((props, ref) => {
+const HeroSection = React.forwardRef<HTMLDivElement, { onScrollDown?: () => void }>(({ onScrollDown }, ref) => {
     const [isDark, setIsDark] = useState(false);
 
     useEffect(() => {
@@ -21,7 +22,7 @@ const HeroSection = React.forwardRef<HTMLDivElement>((props, ref) => {
             ref={ref}
             className="relative min-h-screen text-[var(--foreground)] bg-[var(--neutral-400)]/20"
         >
-            <div className="fixed top-4 left-4 flex items-center gap-2 z-30 bg-[]/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md">
+            <div className="fixed top-4 left-4 flex items-center gap-2 z-30 bg-[var(--neutral-100)]/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md">
                 <Image
                     src={`/logo.png`}
                     alt="Coi logo"
@@ -50,7 +51,7 @@ const HeroSection = React.forwardRef<HTMLDivElement>((props, ref) => {
                             </p>
                         </div>
                     </div>
-                    <div className="relative top-10"> 
+                    <div className="relative top-0 md:top-10"> 
                         {/* 1. Move the logo OUTSIDE the overflow-hidden div */}
                         <Image
                             src={`/logo.png`}
@@ -79,6 +80,13 @@ const HeroSection = React.forwardRef<HTMLDivElement>((props, ref) => {
                                 <span className="text-sm font-medium text-[var(--neutral-700)]">Live Demo</span>
                             </div>
                         </div>
+                    </div>
+                </div>
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
+                    <div className="flex items-center gap-2 text-lg text-[var(--neutral-600)] animate-bounce cursor-pointer" onClick={onScrollDown}>
+                        <FiChevronDown />
+                        <span className="whitespace-nowrap">Scroll down for details</span>
+                        <FiChevronDown />
                     </div>
                 </div>
             </div>
