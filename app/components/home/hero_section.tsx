@@ -41,9 +41,9 @@ const HeroSection = React.forwardRef<HTMLDivElement, { onScrollDown?: () => void
                             Coi brings cards, projects, and collaboration into one interactive learning platform that adapts to your study needs.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4">
-                            <button className="bg-[var(--accent-500)] hover:bg-[var(--accent-600)] text-white px-8 py-4 rounded-lg text-lg font-semibold transition-colors">
+                            <a href="/login?signup=true" className="bg-[var(--accent-500)] hover:bg-[var(--accent-600)] text-white px-8 py-4 rounded-lg text-lg font-semibold transition-colors text-center">
                                 Get Started Free
-                            </button>
+                            </a>
                         </div>
                         <div className="bg-[var(--neutral-200)] rounded-lg p-4 border border-[var(--neutral-300)]">
                             <p className="text-[var(--neutral-700)] italic">
