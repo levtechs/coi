@@ -18,15 +18,15 @@ const AboutUs = () => {
 
                         <div className="space-y-6 text-lg text-[var(--neutral-600)] leading-relaxed">
                             <p>
-                                As someone who's always been passionate about education, I noticed a gap in how students learn. Traditional methods often feel disconnected from real understanding, and generic AI tools don't adapt to individual learning styles or specific course material.
+                            {`As someone who's always been passionate about education, I noticed a gap in how students learn. Traditional methods often feel disconnected from real understanding, and generic AI tools don't adapt to individual learning styles or specific course material.`}
                             </p>
 
                             <p>
-                                During my own studies, I struggled with inefficient study techniques and wished for a platform that could combine the power of AI with collaborative learning. That's when I started building Coi – a tool that would make studying more effective, engaging, and social.
+                            {`During my own studies, I struggled with inefficient study techniques and wished for a platform that could combine the power of AI with collaborative learning. That's when I started building Coi – a tool that would make studying more effective, engaging, and social.`}
                             </p>
 
                             <p>
-                                Today, Coi helps hundreds of students worldwide transform their learning experience. It's not just about memorizing facts; it's about truly understanding concepts, collaborating with peers, and building knowledge that lasts.
+                            {`Today, Coi helps hundreds of students worldwide transform their learning experience. It's not just about memorizing facts; it's about truly understanding concepts, collaborating with peers, and building knowledge that lasts.`}
                             </p>
                         </div>
 
