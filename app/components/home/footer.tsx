@@ -5,7 +5,7 @@ import { FiGithub } from "react-icons/fi";
 
 const Footer = React.forwardRef<HTMLDivElement>((props, ref) => {
     return (
-        <footer ref={ref} className="bg-[var(--neutral-100)] z-10 text-[var(--foreground)] p-6 w-full">
+        <footer ref={ref} className="bg-[var(--neutral-400)]/20 z-10 text-[var(--foreground)] p-6 w-full">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-center">
                 <div className="text-left">
                     <p className="text-lg text-[var(--neutral-500)] mb-4">

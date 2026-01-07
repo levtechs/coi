@@ -1,197 +1,188 @@
 "use client";
 
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FlickeringGrid } from "../../components/flickering-grid";
 
-import Buttons from "./buttons";
-import WalkthroughComponent from "./walkthrough";
-import Testimonials from "./testimonials_component";
-import Footer from "./footer";
 import HeroSection from "./hero_section";
+import ProblemAgitation from "./problem_agitation";
+import Transformation from "./transformation";
+import Testimonials from "./testimonials_component";
+import Features from "./features";
+import AboutUs from "./about_us";
+import Pricing from "./pricing";
+import FAQ from "./faq";
+import Footer from "./footer";
+
+type SectionId = 'hero' | 'problem' | 'transformation' | 'testimonials' | 'features' | 'about' | 'pricing' | 'faq';
 
 const LandingPage = () => {
-    const landingPageRef = useRef<HTMLDivElement>(null);
-    const walkthroughRef = useRef<HTMLDivElement>(null);
-    const testimonialsRef = useRef<HTMLDivElement>(null);
-    const footerRef = useRef<HTMLDivElement>(null);
-    const isScrolling = useRef(false);
     const router = useRouter();
+    const [activeSection, setActiveSection] = useState<SectionId>('hero');
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-    const [isDark, setIsDark] = useState(false);
-    const [showButtons, setShowButtons] = useState(false);
-    const [isTestimonialsIntersecting, setIsTestimonialsIntersecting] = useState(false);
-    const [animationsEnabled, setAnimationsEnabled] = useState(true);
-    const [isMobile, setIsMobile] = useState(false);
-    const [reducedMotion, setReducedMotion] = useState(false);
-    const [activeSection, setActiveSection] = useState<'home' | 'details' | null>('home');
+    const heroRef = useRef<HTMLDivElement>(null);
+    const problemRef = useRef<HTMLDivElement>(null);
+    const transformationRef = useRef<HTMLDivElement>(null);
+    const testimonialsRef = useRef<HTMLDivElement>(null);
+    const featuresRef = useRef<HTMLDivElement>(null);
+    const aboutRef = useRef<HTMLDivElement>(null);
+    const pricingRef = useRef<HTMLDivElement>(null);
+    const faqRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        setIsDark(mediaQuery.matches);
-        const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
-        mediaQuery.addEventListener('change', handler);
-        return () => mediaQuery.removeEventListener('change', handler);
-    }, []);
-
-    useEffect(() => {
-        const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-        const mobileQuery = window.matchMedia('(max-width: 768px)');
-        const updateSettings = () => {
-            setAnimationsEnabled(!reducedMotionQuery.matches && !mobileQuery.matches);
-            setIsMobile(mobileQuery.matches);
-            setReducedMotion(reducedMotionQuery.matches);
-        };
-        updateSettings();
-        reducedMotionQuery.addEventListener('change', updateSettings);
-        mobileQuery.addEventListener('change', updateSettings);
-        return () => {
-            reducedMotionQuery.removeEventListener('change', updateSettings);
-            mobileQuery.removeEventListener('change', updateSettings);
-        };
-    }, []);
-
-
-
-    useEffect(() => {
-        setShowButtons(activeSection === 'details');
-    }, [activeSection]);
-
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                setIsTestimonialsIntersecting(entry.isIntersecting);
-            },
-            { threshold: 0 }
-        );
-        if (testimonialsRef.current) {
-            observer.observe(testimonialsRef.current);
-        }
-        return () => observer.disconnect();
-    }, []);
+    const navItems = [
+        { id: 'hero' as SectionId, label: 'Home', ref: heroRef },
+        { id: 'problem' as SectionId, label: 'Problem', ref: problemRef },
+        { id: 'transformation' as SectionId, label: 'Solution', ref: transformationRef },
+        { id: 'testimonials' as SectionId, label: 'Reviews', ref: testimonialsRef },
+        { id: 'features' as SectionId, label: 'Features', ref: featuresRef },
+        { id: 'about' as SectionId, label: 'About', ref: aboutRef },
+        /* { id: 'pricing' as SectionId, label: 'Pricing', ref: pricingRef }, */
+    ];
 
     useEffect(() => {
         const handleScroll = () => {
-            if (walkthroughRef.current) {
-                const detailsTop = walkthroughRef.current.offsetTop;
-                setActiveSection(window.scrollY >= detailsTop ? 'details' : 'home');
+            const scrollY = window.scrollY + 100; // Offset for nav height
+
+            const sections: { id: SectionId; ref: React.RefObject<HTMLDivElement | null> }[] = navItems.map(item => ({
+                id: item.id,
+                ref: { hero: heroRef, problem: problemRef, transformation: transformationRef, testimonials: testimonialsRef, features: featuresRef, about: aboutRef, pricing: pricingRef, faq: faqRef }[item.id] || null
+            }));
+
+            for (const section of sections) {
+                const element = section.ref.current;
+                if (element) {
+                    const rect = element.getBoundingClientRect();
+                    const elementTop = rect.top + window.scrollY;
+                    const elementBottom = elementTop + rect.height;
+
+                    if (scrollY >= elementTop && scrollY < elementBottom) {
+                        setActiveSection(section.id);
+                        break;
+                    }
+                }
             }
         };
+
         window.addEventListener('scroll', handleScroll);
-        handleScroll(); // call once to set initial
+        handleScroll(); // Initial check
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // This function handles the scroll snapping
-    const handleScroll = useCallback((e: WheelEvent) => {
-        // Skip scroll snapping on mobile
-        if (isMobile) {
-            return;
-        }
-        // Prevent multiple scroll events from firing at once
-        if (isScrolling.current) {
-            return;
-        }
-
-        isScrolling.current = true;
-        const currentScrollY = window.scrollY;
-
-        // Determine if scrolling down or up
-        if (e.deltaY > 0) { // Scrolling down
-            // If at the top section, scroll to the walkthrough section
-            if (currentScrollY < (walkthroughRef.current?.offsetTop || Infinity)) {
-                walkthroughRef.current?.scrollIntoView({ behavior: animationsEnabled ? 'smooth' : 'auto' });
-            }
-        } else { // Scrolling up
-            // If at the top of the walkthrough section, scroll back to the landing page
-            if (currentScrollY <= (walkthroughRef.current?.offsetTop || 0)) {
-                landingPageRef.current?.scrollIntoView({ behavior: animationsEnabled ? 'smooth' : 'auto' });
-            }
-        }
-
-        // Reset the scrolling flag after a brief delay
-        setTimeout(() => {
-            isScrolling.current = false;
-        }, 1000);
-    }, [animationsEnabled, isMobile]);
-
-    // Attach and clean up the scroll listener
-    useEffect(() => {
-        window.addEventListener('wheel', handleScroll);
-        return () => window.removeEventListener('wheel', handleScroll);
-    }, [handleScroll]);
-
-    const scrollToHome = () => {
-        landingPageRef.current?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
+    const scrollToSection = (sectionRef: React.RefObject<HTMLDivElement | null>) => {
+        sectionRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
-
-    const scrollToDetails = () => {
-        walkthroughRef.current?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
-    };
-
-    const scrollToWalkthrough = () => {
-        walkthroughRef.current?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
-    };
-
-    const themeFolder = isDark ? 'dark' : 'light';
 
     return (
-        <div className="flex flex-col">
-            {!isMobile && (
-                <nav className={`fixed top-4 right-4 z-20 bg-[var(--neutral-100)] z-20 border border-[var(--neutral-300)] rounded-lg shadow-lg`}>
-                    <div className="px-4 py-2">
-                        <ul className="flex space-x-4">
-                            <li className="relative group">
-                                <button onClick={scrollToHome} className="text-[var(--neutral-700)] hover:text-[var(--neutral-900)] transition-colors text-sm">
-                                    Home
-                                </button>
-                                <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-current transition-opacity ${activeSection === 'home' ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'}`}></div>
-                            </li>
-                            <li className="relative group">
-                                <button onClick={scrollToDetails} className="text-[var(--neutral-700)] hover:text-[var(--neutral-900)] transition-colors text-sm">
-                                    Details
-                                </button>
-                                <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-current transition-opacity ${activeSection === 'details' ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'}`}></div>
-                            </li>
-                            <li>
-                                <button onClick={() => router.push("/dashboard")} className="text-[var(--neutral-700)] hover:text-[var(--neutral-900)] transition-colors text-sm">
-                                    Dashboard
-                                </button>
-                            </li>
-                            <li>
-                                <button onClick={() => router.push("/login?signup=true")} className="text-[var(--accent-500)] hover:text-[var(--accent-600)] transition-colors text-sm">
-                                    Sign Up
-                                </button>
-                            </li>
-                        </ul>
-                    </div>
-                </nav>
-            )}
-            {/* Hero Section */}
-            <HeroSection ref={landingPageRef} animationsEnabled={animationsEnabled} scrollToWalkthrough={scrollToWalkthrough} />
+        <div className="relative flex flex-col">
+            {/* Background Flickering Grid */}
+            <FlickeringGrid className="fixed inset-0 z-5" color="var(--neutral-400)" maxOpacity={0.2} />
 
-            {/* Walkthrough Section */}
-            <div
-                ref={walkthroughRef}
-                className="flex flex-col items-center bg-[var(--neutral-200)] text-[var(--foreground)] p-6 min-h-screen relative"
-            >
-                  <div className={`${isTestimonialsIntersecting ? "absolute w-full" : "fixed w-screen"} bottom-0 pb-4 p-6 transition-all duration-500 z-30 ${showButtons ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-full pointer-events-none'}`}>
-                      <div className="flex justify-center">
-                          <Buttons className="flex-col md:flex-row justify-center" />
-                      </div>
-                 </div>
-                <WalkthroughComponent themeFolder={themeFolder} animationsEnabled={animationsEnabled} isMobile={isMobile} />
+            {/* Navigation */}
+            <nav className="fixed top-4 right-4 z-30 bg-[var(--neutral-100)]/80 backdrop-blur-sm border border-[var(--neutral-300)] rounded-lg shadow-lg">
+                <div className="px-4 py-2">
+                    <button
+                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        className="md:hidden flex justify-center items-center w-full text-[var(--neutral-700)] hover:text-[var(--neutral-900)] py-1 transition-transform duration-300"
+                    >
+                        {isMenuOpen ? <FiChevronUp size={20} /> : <FiChevronDown size={20} />}
+                    </button>
+                    <ul className={`flex flex-col md:flex-row space-y-2 md:space-y-0 space-x-0 md:space-x-4 transition-all duration-300 ${isMenuOpen ? 'opacity-100 max-h-96' : 'opacity-0 max-h-0 md:opacity-100 md:max-h-96'} md:flex`}>
+                        {navItems.map(({ id, label, ref }) => (
+                            <li key={id} className="relative group">
+                                <button
+                                    onClick={() => scrollToSection(ref)}
+                                    className={`text-sm transition-colors ${
+                                        activeSection === id
+                                            ? 'text-[var(--neutral-900)]'
+                                            : 'text-[var(--neutral-700)] hover:text-[var(--neutral-900)]'
+                                    }`}
+                                >
+                                    {label}
+                                </button>
+                                <div className={`absolute bottom-0 left-0 w-full h-0.5 bg-current transition-opacity ${
+                                    activeSection === id ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
+                                }`}></div>
+                            </li>
+                        ))}
+                        <li>
+                            <button onClick={() => router.push("/dashboard")} className="text-[var(--neutral-700)] hover:text-[var(--neutral-900)] transition-colors text-sm">
+                                Dashboard
+                            </button>
+                        </li>
+                        <li>
+                            <button onClick={() => router.push("/login?signup=true")} className="text-[var(--accent-500)] hover:text-[var(--accent-600)] transition-colors text-sm">
+                                Sign Up
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            {/* Content */}
+            <div className="relative z-10">
+                {/* Hero Section */}
+                <div ref={heroRef}>
+                    <HeroSection onScrollDown={() => scrollToSection(problemRef)} />
+                </div>
+
+                <hr className="border-[var(--neutral-300)]" />
+
+                {/* Problem Agitation */}
+                <div ref={problemRef}>
+                    <ProblemAgitation />
+                </div>
+
+                <hr className="border-[var(--neutral-300)]" />
+
+                {/* Transformation */}
+                <div ref={transformationRef}>
+                    <Transformation />
+                </div>
+
+                <hr className="border-[var(--neutral-300)]" />
+
+                {/* Social Proof */}
+                <div ref={testimonialsRef}>
+                    <Testimonials />
+                </div>
+
+                <hr className="border-[var(--neutral-300)]" />
+
+                {/* Features */}
+                <div ref={featuresRef}>
+                    <Features />
+                </div>
+
+                <hr className="border-[var(--neutral-300)]" />
+
+                {/* About Us */}
+                <div ref={aboutRef}>
+                    <AboutUs />
+                </div>
+
+                <hr className="border-[var(--neutral-300)]" />
+
+                {/* Pricing not yet implemneted */}
+                {/*
+                <div ref={pricingRef}>
+                    <Pricing />
+                </div>
+                */}
+
+                <hr className="border-[var(--neutral-300)]" />
+
+                {/* FAQ */}
+                <div ref={faqRef}>
+                    <FAQ />
+                </div>
+
+                <hr className="border-[var(--neutral-300)]" />
+
+                {/* Footer */}
+                <Footer />
             </div>
-
-            {/* Testimonials Section */}
-            <div
-                ref={testimonialsRef}
-                className="flex flex-col items-center bg-[var(--neutral-100)] text-[var(--foreground)] p-6"
-            >
-                <Testimonials />
-            </div>
-
-            {/* Footer */}
-            <Footer ref={footerRef} />
         </div>
     );
 };
