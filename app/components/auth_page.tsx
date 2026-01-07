@@ -1,83 +1,70 @@
 "use client";
 
 import { useState } from "react";
-import { signInWithEmailAndPassword, signInWithPopup, createUserWithEmailAndPassword, GoogleAuthProvider, updateProfile } from "firebase/auth";
+import Image from "next/image";
+import { 
+    signInWithEmailAndPassword, 
+    signInWithPopup, 
+    createUserWithEmailAndPassword, 
+    GoogleAuthProvider, 
+    updateProfile 
+} from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { auth } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { FcGoogle } from "react-icons/fc";
-import Button from "@/app/components/button";
+import { Eye, EyeOff } from "lucide-react"; // Common icons for show/hide
+
 
 interface AuthPageParams {
     signUpDefault: boolean;
     forward?: string;
 }
 
-export default function AuthPage({ signUpDefault, forward}: AuthPageParams) {
+export default function AuthPage({ signUpDefault, forward }: AuthPageParams) {
     const [email, setEmail] = useState("");
     const [dn, setDN] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [isSignup, setIsSignup] = useState(signUpDefault);
     const [errorMessage, setErrorMessage] = useState("");
     const router = useRouter();
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        setErrorMessage(""); // Clear any previous errors
+        setErrorMessage("");
 
         try {
             if (isSignup) {
                 const cred = await createUserWithEmailAndPassword(auth, email, password);
-
-                // Update Firebase Auth profile with display name
                 if (dn.trim()) {
                     await updateProfile(cred.user, { displayName: dn.trim() });
                 }
-
-                // Create Firestore user document
                 await setDoc(doc(db, "users", cred.user.uid), {
                     email,
-                    displayName: dn.trim() || "", // same as Google login
+                    displayName: dn.trim() || "",
                     projectIds: [],
                 });
             } else {
                 await signInWithEmailAndPassword(auth, email, password);
             }
-
             router.replace(window.location.origin + "/" + (forward ? forward : "dashboard"));
         } catch (err: unknown) {
-            if (
-                typeof err === "object" &&
-                err !== null &&
-                "code" in err &&
-                (err as { code?: string }).code &&
-                (
-                    (err as { code: string }).code === "auth/wrong-password" ||
-                    (err as { code: string }).code === "auth/invalid-credential"
-                )
-            ) {
-                setErrorMessage("Incorrect password. Please try again.");
+            const error = err as { code?: string; message?: string };
+            if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
+                setErrorMessage("Incorrect credentials. Please try again.");
             } else {
-                setErrorMessage("An error occurred. Please try again.");
-                if (err instanceof Error) {
-                    console.error(err.message);
-                } else {
-                    console.error(err);
-                }
+                setErrorMessage(error.message || "An error occurred.");
             }
         }
     }
 
     async function handleGoogleLogin() {
-        setErrorMessage(""); // Clear any previous errors
-
+        setErrorMessage("");
         try {
             const provider = new GoogleAuthProvider();
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
-
-            // Create Firestore user doc if it doesn't exist
             const userRef = doc(db, "users", user.uid);
             const userSnap = await getDoc(userRef);
             if (!userSnap.exists()) {
@@ -87,64 +74,124 @@ export default function AuthPage({ signUpDefault, forward}: AuthPageParams) {
                     projectIds: [],
                 });
             }
-
             router.replace(window.location.origin + "/" + (forward ? forward : "dashboard"));
-        } catch (err) {
-            setErrorMessage("Failed to sign in with Google. Please try again.");
-            console.error(err);
+        } catch {
+            setErrorMessage("Failed to sign in with Google.");
         }
     }
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen text-[var(--foreground)]">
-            <form
-                onSubmit={handleSubmit}
-                className="flex flex-col space-y-3 w-72"
-            >
+        <div className="flex items-center justify-center min-h-screen p-4">
+            <div className="w-full max-w-md bg-[var(--neutral-50)] rounded-[2rem] shadow-xl p-8 flex flex-col items-center">
+                
+                {/* Logo */}
+                <div className="mb-6">
+                    <Image 
+                        src="/logo.png" 
+                        alt="Logo" 
+                        width={60} 
+                        height={60} 
+                        className="rounded-xl shadow-sm"
+                    />
+                </div>
+
+                <h1 className="text-2xl font-semibold text-[var(--foreground)] mb-1">
+                    {isSignup ? "Create an account" : "Welcome back"}
+                </h1>
+                <p className="text-[var(--neutral-600)] text-sm mb-8">
+                    Please enter your details to {isSignup ? "sign up" : "login"}.
+                </p>
+
+                <form onSubmit={handleSubmit} className="w-full space-y-5">
+                    {/* Email Field */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-[var(--neutral-700)] ml-1">Email</label>
                         <input
                             type="email"
-                            placeholder="Email"
-                            className="border border-[var(--neutral-300)] rounded-md p-2 focus:outline-none focus:border-[var(--accent-500)] bg-[var(--background)] text-[var(--foreground)]"
+                            required
+                            placeholder="Enter your email"
+                            className="w-full px-4 py-3 bg-[var(--neutral-200)] border-none rounded-xl focus:ring-2 focus:ring-[var(--accent-500)] outline-none transition-all"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                         />
-                        {isSignup && (
+                    </div>
+
+                    {/* Display Name (Signup Only) */}
+                    {isSignup && (
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-medium text-[var(--neutral-700)] ml-1">Display Name</label>
                             <input
                                 type="text"
-                                placeholder="Display name"
-                                className="border border-[var(--neutral-300)] rounded-md p-2 focus:outline-none focus:border-[var(--accent-500)] bg-[var(--background)] text-[var(--foreground)]"
+                                required
+                                placeholder="How should we call you?"
+                                className="w-full px-4 py-3 bg-[var(--neutral-200)] border-none rounded-xl focus:ring-2 focus:ring-[var(--accent-500)] outline-none transition-all"
                                 value={dn}
                                 onChange={(e) => setDN(e.target.value)}
                             />
-                        )}
-                        <input
-                            type="password"
-                            placeholder="Password"
-                            className="border border-[var(--neutral-300)] rounded-md p-2 focus:outline-none focus:border-[var(--accent-500)] bg-[var(--background)] text-[var(--foreground)]"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                        />
-
-                        <Button type="submit" color="var(--accent-500)">
-                            {isSignup ? "Sign Up" : "Login"}
-                        </Button>
-                    </form>
-
-                    {errorMessage && (
-                        <p className="text-[var(--error)] mt-2 text-center">{errorMessage}</p>
+                        </div>
                     )}
 
+                    {/* Password Field */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-sm font-medium text-[var(--neutral-700)] ml-1">Password</label>
+                        <div className="relative">
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                required
+                                placeholder="Enter your password"
+                                className="w-full px-4 py-3 bg-[var(--neutral-200)] border-none rounded-xl focus:ring-2 focus:ring-[var(--accent-500)] outline-none transition-all"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--neutral-500)] hover:text-[var(--neutral-700)]"
+                            >
+                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                        </div>
+                    </div>
+
+                    {errorMessage && (
+                        <p className="text-red-500 text-xs text-center">{errorMessage}</p>
+                    )}
+
+                    <button 
+                        type="submit" 
+                        className="w-full py-3.5 bg-[var(--accent-500)] hover:bg-[var(--accent-600)] text-white font-medium rounded-xl transition-colors shadow-md mt-2"
+                    >
+                        {isSignup ? "Sign Up" : "Login"}
+                    </button>
+                </form>
+
+                {/* Divider */}
+                <div className="w-full flex items-center my-8">
+                    <div className="flex-grow border-t border-[var(--neutral-300)]"></div>
+                    <span className="px-4 text-xs text-[var(--neutral-500)] uppercase tracking-widest font-medium">OR</span>
+                    <div className="flex-grow border-t border-[var(--neutral-300)]"></div>
+                </div>
+
+                {/* Social Login */}
+                <button
+                    onClick={handleGoogleLogin}
+                    className="w-full flex items-center justify-center gap-3 py-3 border border-[var(--neutral-300)] rounded-xl hover:bg-[var(--neutral-100)] transition-colors text-sm font-medium text-[var(--neutral-700)]"
+                >
+                    <FcGoogle size={22} />
+                    With Google
+                </button>
+
+                {/* Toggle Signup/Login */}
+                <p className="mt-8 text-sm text-[var(--neutral-600)]">
+                    {isSignup ? "Already have an account? " : "Don't have an account? "}
                     <button
                         onClick={() => setIsSignup(!isSignup)}
-                        className="text-[var(--accent-500)] hover:text-[var(--accent-600)] underline mt-4 transition"
+                        className="text-[var(--foreground)] font-semibold hover:underline"
                     >
-                        {isSignup ? "Already have an account? Log in" : "Need an account? Sign up"}
+                        {isSignup ? "Login" : "Register now"}
                     </button>
-
-            <Button onClick={handleGoogleLogin} color="var(--neutral-600)" className="flex items-center justify-center gap-2 mt-4 text-[var(--foreground)]">
-                <FcGoogle className="text-xl" />
-                Sign in with Google
-            </Button>
+                </p>
+            </div>
         </div>
     );
 }
