@@ -5,6 +5,7 @@ import { getAdminStats } from "@/app/views/admin";
 import LoadingComponent from "@/app/components/loading";
 import { useAuth } from "@/lib/AuthContext";
 import LoginPrompt from "../components/login_prompt";
+import { auth } from "@/lib/firebase";
 
 const AdminDashboard = () => {
     const { user, loading: authLoading } = useAuth();
@@ -81,10 +82,16 @@ const AdminDashboard = () => {
                     <div className="bg-[var(--neutral-200)] p-6 rounded-lg shadow">
                         <h3 className="text-lg font-semibold mb-2">Users with Filled Out Questionnaire</h3>
                         <p className="text-3xl font-bold">{usersWithSignUp}</p>
-                    </div>
-            </div>
-        </div>
+                     </div>
+             </div>
+             <button onClick={printIdToken} className="bg-blue-500 text-white px-4 py-2 rounded mt-4">Print ID Token</button>
+         </div>
     );
 };
 
 export default AdminDashboard;
+
+export async function printIdToken() {
+    const token = await auth.currentUser?.getIdToken(true);
+    console.log("FIREBASE_ID_TOKEN:", token);
+}
