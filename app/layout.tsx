@@ -13,6 +13,25 @@ const font = Mona_Sans({
 export const metadata: Metadata = {
     title: "coi",
     description: "Group learning with AI",
+    openGraph: {
+        title: "coi",
+        description: "Group learning with AI",
+        url: "https://coilearn.com",
+        siteName: "coi",
+        images: [
+            {
+                url: "https://coilearn.com/land.png",
+            },
+        ],
+        locale: "en_US",
+        type: "website",
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "coi",
+        description: "Group learning with AI",
+        images: ["https://coilearn.com/land.png"],
+    },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
