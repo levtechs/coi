@@ -28,7 +28,12 @@ const Features = () => {
                 "Custom quizzes that test your knowledge effectively"
             ],
             visual: `/demos/${themeFolder}/card1.png`,
-            alt: "Study cards interface"
+            alt: "Study cards interface",
+            overlay: {
+                src: `/demos/${themeFolder}/card2.png`,
+                alt: "Study cards overlay",
+                className: "absolute bottom-4 right-4 w-3/4 h-auto rounded-lg shadow-xl transform rotate-2"
+            }
         },
         {
             icon: FiZap,
@@ -40,7 +45,12 @@ const Features = () => {
                 "Instant answers to complex questions about your material"
             ],
             visual: `/demos/${themeFolder}/chat.png`,
-            alt: "AI chat interface"
+            alt: "AI chat interface",
+            overlay: {
+                src: `/demos/${themeFolder}/quiz.png`,
+                alt: "Quiz overlay",
+                className: "absolute bottom-4 right-4 w-3/4 h-auto rounded-lg shadow-xl transform rotate-3"
+            }
         },
         {
             icon: FiUsers,
@@ -121,22 +131,13 @@ const Features = () => {
                                         height={375}
                                         className="w-full h-auto"
                                     />
-                                     {feature.title === "Intelligent Study Tools" && (
+                                     {feature.overlay && (
                                          <Image
-                                             src={`/demos/${themeFolder}/card2.png`}
-                                             alt="Study cards overlay"
+                                             src={feature.overlay.src}
+                                             alt={feature.overlay.alt}
                                              width={500}
                                              height={375}
-                                             className="absolute bottom-4 right-4 w-3/4 h-auto rounded-lg shadow-xl transform rotate-2"
-                                         />
-                                     )}
-                                     {feature.title === "AI-Powered Learning" && (
-                                         <Image
-                                             src={`/demos/${themeFolder}/quiz.png`}
-                                             alt="Quiz overlay"
-                                             width={500}
-                                             height={375}
-                                             className="absolute bottom-4 right-4 w-3/4 h-auto rounded-lg shadow-xl transform rotate-3"
+                                             className={feature.overlay.className}
                                          />
                                      )}
                                 </div>

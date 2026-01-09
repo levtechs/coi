@@ -31,33 +31,22 @@ const AboutUs = () => {
                         </div>
 
                         <div className="flex gap-4">
-                            <a
-                                href="https://x.com/levtechs"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="w-10 h-10 bg-[var(--neutral-200)] rounded-full flex items-center justify-center hover:bg-[var(--accent-500)] hover:text-white transition-colors"
-                                aria-label="Twitter"
-                            >
-                                <FaXTwitter size={20} />
-                            </a>
-                            <a
-                                href="https://github.com/levtechs"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="w-10 h-10 bg-[var(--neutral-200)] rounded-full flex items-center justify-center hover:bg-[var(--accent-500)] hover:text-white transition-colors"
-                                aria-label="GitHub"
-                            >
-                                <FiGithub size={20} />
-                            </a>
-                            <a
-                                href="https://discordapp.com/users/739263047318634637"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="w-10 h-10 bg-[var(--neutral-200)] rounded-full flex items-center justify-center hover:bg-[var(--accent-500)] hover:text-white transition-colors"
-                                aria-label="Discord"
-                            >
-                                <RxDiscordLogo size={20} />
-                            </a>
+                            {[
+                                { href: "https://x.com/levtechs", label: "Twitter", Icon: FaXTwitter },
+                                { href: "https://github.com/levtechs", label: "GitHub", Icon: FiGithub },
+                                { href: "https://discordapp.com/users/739263047318634637", label: "Discord", Icon: RxDiscordLogo }
+                            ].map(({ href, label, Icon }) => (
+                                <a
+                                    key={href}
+                                    href={href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-10 h-10 bg-[var(--neutral-200)] rounded-full flex items-center justify-center hover:bg-[var(--accent-500)] hover:text-white transition-colors"
+                                    aria-label={label}
+                                >
+                                    <Icon size={20} />
+                                </a>
+                            ))}
                         </div>
                     </div>
 
