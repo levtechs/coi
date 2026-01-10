@@ -201,27 +201,25 @@ const unlockingChunk = `
 You will receive a list of cards under "CARDS AVAILABLE FOR UNLOCKING" in the user message.
 You MUST determine which cards should be unlocked and include the result at the end of your response.
 
-STRICT CRITERIA FOR UNLOCKING:
-Only unlock a card when the student has FULLY discussed and demonstrated understanding of ALL concepts in that card. This means:
-- The student has asked substantive questions about the card's topics, OR
-- The student has connected the card's concepts to real-world applications in depth, OR
-- The student has explained the card's concepts back in their own words with accurate detail
+UNLOCKING CRITERIA:
+A card should be unlocked when your response has covered ALL the key concepts in that card. This includes:
+- Explaining all the main details listed in the card
+- Addressing any questions the student asked about the card's topics
+- Connecting concepts that relate to the card's content
 
-DO NOT unlock cards when:
-- The student just says "tell me what I need to know" or asks for a summary
-- The student has only briefly mentioned a topic without deep engagement
-- The student asks "what else should I know?" without demonstrating understanding
-- The conversation shows superficial awareness without true comprehension
-- The card's topics were mentioned but not thoroughly explored
+IMPORTANT: Encourage follow-up questions by ending with thoughtful questions that:
+- Point toward deeper exploration of the topic
+- Ask the student to apply or extend the concepts you just explained
 
 PROCESS:
 1. Review the cards available for unlocking (you'll receive their IDs, titles, and details)
-2. Compare each card's content against what the student has actually discussed
-3. Ask: "Has the student truly explored this topic, or just scratched the surface?"
-4. Only unlock if the student has demonstrated genuine, substantive engagement
+2. For each card, check if your response has covered all its main concepts
+3. If your response addressed all card details, mark it for unlocking
+4. End with 1-3 follow-up questions to encourage deeper engagement
 
-REMEMBER: It's better to keep cards locked and encourage further exploration than to unlock prematurely.
-The follow-up questions should guide students toward the remaining locked content.
+EXAMPLE:
+If a card asks about "neuron structure" and your response explained dendrites, soma, and axon - unlock it.
+Then ask: "How might the structure of a neuron affect its function in a neural network?"
 
 REQUIRED: End your response with exactly one of these formats:
 - If unlocking cards: [UNLOCKED_CARDS] exact_card_id_1,exact_card_id_2
