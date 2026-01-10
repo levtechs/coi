@@ -185,7 +185,8 @@ export async function streamChatResponse(
         // Add single thinking attachment if any thoughts
         if (thoughtSummaries.length > 0) {
             const combinedSummary = thoughtSummaries.join('\n\n');
-        chatAttachments.push({ title: `Thought for ${totalThoughtTime} seconds`, summary: combinedSummary, time: totalThoughtTime });
+            chatAttachments.push({ title: `Thought for ${totalThoughtTime} seconds`, summary: combinedSummary, time: totalThoughtTime });
+        }
 
         // Detect hasNewInfo from token, but override based on preferences
         let responseMessage = accumulated.trim();
