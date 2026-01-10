@@ -91,9 +91,30 @@ export async function POST(
     }
 
     try {
+        // Check for existing projects from this lesson to determine if we need a number suffix
+        let projectCount = 0;
+        try {
+            const projectsRef = collection(db, 'projects');
+            const q = query(
+                projectsRef,
+                and(
+                    where('courseLesson.id', '==', lesson.id),
+                    where('ownerId', '==', uid)
+                )
+            );
+            const projectsSnap = await getDocs(q);
+            projectCount = projectsSnap.size;
+        } catch (error) {
+            console.error("Error counting existing projects:", error);
+        }
+
+        // Determine the project title with optional number suffix
+        const baseTitle = lesson.title;
+        const projectTitle = projectCount > 0 ? `${baseTitle} ${projectCount + 1}` : baseTitle;
+
         // Create a project from the lesson
         const projectId = await createProject({
-            title: lesson.title,
+            title: projectTitle,
             hierarchy: {
                 title: lesson.title,
                 children: lesson.description ? [{ type: "text", text: lesson.description }] : []

@@ -54,8 +54,16 @@ export async function POST (req: NextRequest, context: { params: Promise<{ proje
     const { projectId } = await context.params;
 
     try {
-        // Parse request body
-        const body: NewCard = await req.json();
+        const body: Partial<NewCard> = await req.json();
+
+        const allowedFields = ['title', 'details', 'exclude', 'labels', 'url', 'refImageUrls', 'iconUrl'];
+        const providedFields = Object.keys(body);
+        const invalidFields = providedFields.filter(field => !allowedFields.includes(field));
+
+        if (invalidFields.length > 0) {
+            console.error(`[SECURITY] Attempt to set protected card fields during creation. User: ${uid}, Project: ${projectId}, Invalid fields:`, invalidFields);
+            return NextResponse.json({ error: `Invalid fields: ${invalidFields.join(', ')}` }, { status: 400 });
+        }
 
         if (!body.title || body.title.trim() === "") {
             return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -80,6 +88,9 @@ export async function POST (req: NextRequest, context: { params: Promise<{ proje
             details: body.details || [],
             exclude: body.exclude ?? true,
             labels: body.labels || [],
+            url: body.url,
+            refImageUrls: body.refImageUrls,
+            iconUrl: body.iconUrl,
         };
 
         return NextResponse.json(newCard);
@@ -99,10 +110,19 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ project
 
     try {
         const body = await req.json();
-        const { cardId, title, details, exclude, labels } = body;
+        const { cardId, title, details, exclude, labels, url, refImageUrls, iconUrl } = body;
 
         if (!cardId) {
             return NextResponse.json({ error: "Card ID is required" }, { status: 400 });
+        }
+
+        const allowedFields = ['cardId', 'title', 'details', 'exclude', 'labels', 'url', 'refImageUrls', 'iconUrl'];
+        const providedFields = Object.keys(body);
+        const invalidFields = providedFields.filter(field => !allowedFields.includes(field));
+
+        if (invalidFields.length > 0) {
+            console.error(`[SECURITY] Attempt to modify protected card fields. User: ${uid}, Project: ${projectId}, Invalid fields:`, invalidFields);
+            return NextResponse.json({ error: `Invalid fields: ${invalidFields.join(', ')}` }, { status: 400 });
         }
 
         const cardDocRef = doc(db, "projects", projectId, "cards", cardId);
@@ -116,7 +136,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ project
         const currentCard = cardDoc.data() as Card;
 
         // Build update object with only provided fields
-        const updateData: { title?: string; details?: string[]; exclude?: boolean; labels?: Label[] } = {};
+        const updateData: { title?: string; details?: string[]; exclude?: boolean; labels?: Label[]; url?: string; refImageUrls?: string[]; iconUrl?: string } = {};
         if (title !== undefined) {
             if (!title || title.trim() === "") {
                 return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -126,6 +146,9 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ project
         if (details !== undefined) updateData.details = details || [];
         if (exclude !== undefined) updateData.exclude = exclude ?? true;
         if (labels !== undefined) updateData.labels = labels || [];
+        if (url !== undefined) updateData.url = url;
+        if (refImageUrls !== undefined) updateData.refImageUrls = refImageUrls;
+        if (iconUrl !== undefined) updateData.iconUrl = iconUrl;
 
         await updateDoc(cardDocRef, updateData);
 
@@ -136,6 +159,9 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ project
             details: details !== undefined ? (details || []) : currentCard.details,
             exclude: exclude !== undefined ? (exclude ?? true) : currentCard.exclude,
             labels: labels !== undefined ? (labels || []) : currentCard.labels,
+            url: url !== undefined ? url : currentCard.url,
+            refImageUrls: refImageUrls !== undefined ? refImageUrls : currentCard.refImageUrls,
+            iconUrl: iconUrl !== undefined ? iconUrl : currentCard.iconUrl,
         };
 
         return NextResponse.json(updatedCard);

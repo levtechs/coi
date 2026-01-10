@@ -23,7 +23,7 @@ type MyGenerateContentParameters = {
 
 import { ContentHierarchy, Card, Message, ChatAttachment, GroundingChunk, ChatPreferences, FileAttachment } from "@/lib/types"; // { content: string; isResponse: boolean }
 
-import { getStringFromHierarchyAndCards } from "../helpers"
+import { getStringFromHierarchyAndCards, parseUnlockedCardsFromResponse } from "../helpers"
 
 import {
     getLLMModel,
@@ -46,8 +46,10 @@ export async function streamChatResponse(
     attachments: null | ChatAttachment[],
     preferences: ChatPreferences,
     startTime: number,
-    onToken: (token: string) => Promise<void> | void
-): Promise<{ responseMessage: string; hasNewInfo: boolean; chatAttachments: ChatAttachment[]; followUpQuestions: string[] } | null> {
+    onToken: (token: string) => Promise<void> | void,
+    cardsToUnlock?: Card[],
+    courseLesson?: { cardsToUnlock: Card[] }
+): Promise<{ responseMessage: string; hasNewInfo: boolean; chatAttachments: ChatAttachment[]; followUpQuestions: string[]; unlockedCardIds: string[] } | null> {
     if (!message || message.trim() === "") throw new Error("Message is required.");
 
     // Process file attachments: fetch and add as inlineData
@@ -91,9 +93,22 @@ export async function streamChatResponse(
         })
     }
 
+    if (cardsToUnlock && cardsToUnlock.length > 0) {
+        const cardsToUnlockList = cardsToUnlock.map(card => ({
+            id: card.id,
+            title: card.title,
+            details: card.details
+        }));
+        contents.push({
+            role: "user",
+            parts: [{text: `CARDS AVAILABLE FOR UNLOCKING: ${JSON.stringify(cardsToUnlockList)}`}
+            ]
+        });
+    }
+
 
     // systemInstruction as first content with role "user"
-    const systemInstruction = { role: "user", parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch, preferences.followUpQuestions).parts as MyPart[] }
+    const systemInstruction = { role: "user", parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch, preferences.followUpQuestions, cardsToUnlock, courseLesson).parts as MyPart[] }
 
     // Include systemInstruction at the beginning of contents
     const allContents = [systemInstruction, ...contents];
@@ -179,6 +194,12 @@ export async function streamChatResponse(
         let hasNewInfo = responseMessage.includes("[HAS_NEW_INFO]");
         responseMessage = responseMessage.replace(/\[HAS_NEW_INFO\]/g, '').trim();
 
+        // Parse unlocked cards before removing the token
+        const unlockedCardIds = parseUnlockedCardsFromResponse(accumulated);
+
+        // Remove [UNLOCKED_CARDS] token from the response message (it's for backend processing only)
+        responseMessage = responseMessage.replace(/\[UNLOCKED_CARDS\][^\n]*/, '').trim();
+
         // Override hasNewInfo based on forceCardCreation preference
         if (preferences.forceCardCreation === "on") {
             hasNewInfo = true;
@@ -231,6 +252,7 @@ export async function streamChatResponse(
             hasNewInfo,
             chatAttachments,
             followUpQuestions,
+            unlockedCardIds,
         };
     } catch (err) {
         console.error("streamChatResponse error:", err);

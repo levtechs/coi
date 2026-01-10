@@ -1,5 +1,7 @@
 // ==== prompts ====
 
+import { Card } from "@/lib/types";
+
 // "Chunk" prompts
 
 const personalityChunk = `
@@ -153,14 +155,39 @@ To include follow-up questions, append them at the very end of your response usi
 You can put multiple questions on the same line or separate lines.
 `
 
+const lessonFollowUpChunk = `
+FOLLOW-UP QUESTIONS FOR LESSON PROGRESS:
+Your goal is to guide the student toward discovering the remaining concepts on their own, rather than explaining everything upfront.
+
+IMPORTANT: Before generating follow-up questions, identify which cards are still locked (not yet unlocked). Generate questions that:
+1. Point the student toward the concepts they haven't fully explored yet
+2. Encourage curiosity about the remaining material
+3. Help bridge their current understanding to the next locked concept
+
+For example:
+- If a student has unlocked 2/5 cards, ask questions about the remaining 3 cards
+- If a student is close to unlocking the next card, ask a question that would demonstrate understanding of what's missing
+
+Avoid:
+- Giving away answers that would immediately unlock cards
+- Asking about concepts they've already demonstrated understanding of
+- Generic questions that don't guide toward specific remaining content
+
+REQUIRED: End your response with 1-3 follow-up questions using this format:
+[FOLLOW_UP] Your question here? [FOLLOW_UP] Another question here?
+`
+
 const disableFollowUpChunk = ``
 
 /**
  * Returns the appropriate follow-up chunk based on the followUpQuestions preference.
  */
-export const getFollowUpChunk = (followUpQuestions: string): string => {
+export const getFollowUpChunk = (followUpQuestions: string, courseLesson?: { cardsToUnlock: Card[] }): string => {
     switch (followUpQuestions) {
         case "auto":
+            if (courseLesson && courseLesson.cardsToUnlock.length > 0) {
+                return lessonFollowUpChunk;
+            }
             return followUpChunk;
         case "off":
             return disableFollowUpChunk;
@@ -169,12 +196,56 @@ export const getFollowUpChunk = (followUpQuestions: string): string => {
     }
 };
 
+const unlockingChunk = `
+=== CARD UNLOCKING INSTRUCTIONS ===
+You will receive a list of cards under "CARDS AVAILABLE FOR UNLOCKING" in the user message.
+You MUST determine which cards should be unlocked and include the result at the end of your response.
+
+UNLOCKING CRITERIA:
+A card should be unlocked when your response has covered ALL the key concepts in that card. This includes:
+- Explaining all the main details listed in the card
+- Addressing any questions the student asked about the card's topics
+- Connecting concepts that relate to the card's content
+
+IMPORTANT: Encourage follow-up questions by ending with thoughtful questions that:
+- Point toward deeper exploration of the topic
+- Ask the student to apply or extend the concepts you just explained
+
+PROCESS:
+1. Review the cards available for unlocking (you'll receive their IDs, titles, and details)
+2. For each card, check if your response has covered all its main concepts
+3. If your response addressed all card details, mark it for unlocking
+4. End with 1-3 follow-up questions to encourage deeper engagement
+
+EXAMPLE:
+If a card asks about "neuron structure" and your response explained dendrites, soma, and axon - unlock it.
+Then ask: "How might the structure of a neuron affect its function in a neural network?"
+
+REQUIRED: End your response with exactly one of these formats:
+- If unlocking cards: [UNLOCKED_CARDS] exact_card_id_1,exact_card_id_2
+- If no cards to unlock: [UNLOCKED_CARDS]
+
+The [UNLOCKED_CARDS] token must be the absolute last thing in your response. Nothing after it.
+Use the exact card IDs from cardsToUnlock - do not make up IDs.
+=== END CARD UNLOCKING ===
+`
+
+const disableUnlockingChunk = ``
+
+/**
+ * Returns the appropriate unlocking chunk based on whether cardsToUnlock are provided.
+ */
+export const getUnlockingChunk = (cardsToUnlock?: Card[]): string => {
+    return cardsToUnlock && cardsToUnlock.length > 0 ? unlockingChunk : disableUnlockingChunk;
+};
+
 // ==== Full prompts with new hierarchy examples ====
 
-export const getChatResponseSystemInstruction = (personality: string, googleSearch: string, followUpQuestions: string) => {
+export const getChatResponseSystemInstruction = (personality: string, googleSearch: string, followUpQuestions: string, cardsToUnlock?: Card[], courseLesson?: { cardsToUnlock: Card[] }) => {
     const personalityChunk = getPersonalityChunk(personality);
     const searchChunk = getSearchChunk(googleSearch);
-    const followUpChunk = getFollowUpChunk(followUpQuestions);
+    const followUpChunk = getFollowUpChunk(followUpQuestions, courseLesson);
+    const unlockingChunk = getUnlockingChunk(cardsToUnlock);
 
     const example1FollowUp = followUpQuestions === "auto" ? "\n[FOLLOW_UP] How do neurons communicate with each other across synapses?\n[FOLLOW_UP] What are the different types of neurons in the nervous system?" : "";
     const example2FollowUp = followUpQuestions === "auto" ? "\n[FOLLOW_UP] Explain how neurons form networks" : "";
@@ -201,6 +272,8 @@ ${markdownChunk}
  ${searchChunk}
 
  ${followUpChunk}
+
+ ${unlockingChunk}
 
 EXAMPLE OUTPUT 1
 
@@ -267,54 +340,7 @@ const cardAdditionalChunk = `
     - **Return only the new list of cards**
 `
 
-const unlockingChunk = `
-2. **Unlocking Cards**
-    - Review the user message and AI response to assess progress.
-    - Determine which cards from 'cardsToUnlock' should be unlocked. 
-    - A card is unlocked if the conversation demonstrates understanding towards the concept.
-    - Be conservative: only unlock if there's clear evidence of understanding.
-`
 
-const unlockingFormatChunk = `
-3. **Format of the Response**
-    - Return **valid JSON** only.
-    - Return an object with:
-      {
-        "newCards": array of card objects, each with "title" and "details",
-        "unlockedCardIds": array of strings (IDs from 'cardsToUnlock' that should be unlocked)
-      }
-    - No extra text or commentary outside the JSON.
-    - Example of correct output:
-
-     EXAMPLE OUTPUT:
-
-     \`\`\`json
-     {
-       "newCards": [
-         {
-           "title": "Divergence of a Vector Field",
-           "details": [
-             "Measures the magnitude of a field's source or sink at a given point",
-             "Positive divergence indicates a source; negative divergence indicates a sink",
-             "Formula: div(F) = ∂F_x/∂x + ∂F_y/∂y + ∂F_z/∂z"
-           ]
-         }
-       ],
-       "unlockedCardIds": ["cardId1", "cardId2"]
-     }
-     \`\`\`
-`
-
-const unlockingAdditionalChunk = `
-4. **Additional Guidance**
-    - Make titles short but descriptive.
-    - Include only meaningful details; do not copy entire paragraphs.
-    - Do not make cards purely about resources discussed in the conversation, those will be automatically done for you.
-    - If the content contains multiple examples, group them under the same card when they illustrate the same concept.
-    - Do not include IDs; the system will assign them after writing to the database.
-    - Do not unlock cards unless all of the information in the card has been discussed in the conversation.
-    - Do not create cards with the exact same information as the cards you are unlocking. 
-`
 
 const jsonChunk = `
 Always respond with valid JSON. 
@@ -346,24 +372,7 @@ ${jsonChunk}
 ` }]
 };
 
-export const generateCardsWithUnlockingSystemInstruction = {
-    parts: [{ text: `
-You are an AI assistant tasked with generating new study cards from provided content and determining which lesson cards to unlock. Follow these rules carefully:
 
-${cardIdentifyChunk}
-
-${unlockingChunk}
-
-${unlockingFormatChunk}
-
-${unlockingAdditionalChunk}
-
-${markdownChunk}
-
-${jsonChunk}
-
-` }]
-};
 
 
 export const generateHierarchySystemInstruction = {

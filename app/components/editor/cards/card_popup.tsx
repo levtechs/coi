@@ -10,9 +10,10 @@ import MarkdownArticle from "../../md";
 type CardPopupProps = {
     card: Card;
     onClose: () => void;
+    isPartOfCourseLesson?: boolean;
 };
 
-export default function CardPopup({ card, onClose }: CardPopupProps) {
+export default function CardPopup({ card, onClose, isPartOfCourseLesson }: CardPopupProps) {
 
     const isYoutube = card.url && (card.url.includes('youtube.com') || card.url.includes('youtu.be'));
     const videoId = isYoutube ? card.url!.match(/[?&]v=([^#\&\?]*)/)?.[1] : null;
@@ -110,13 +111,18 @@ export default function CardPopup({ card, onClose }: CardPopupProps) {
                      </ul>
                  </div>
 
-                 {/* Unlocking notice */}
-                 {card.isUnlocked === false && (
-                     <div className="flex items-center justify-center mt-4 text-sm text-[var(--neutral-600)]">
-                         <FiStar className="w-4 h-4 mr-2 text-[var(--accent-500)]" />
-                         Unlocking the card is necessary for completing the course
-                     </div>
-                 )}
+                  {/* Unlocking notice */}
+                  {card.isUnlocked ? (
+                      <div className="flex items-center justify-center mt-4 text-sm text-[var(--accent-500)]">
+                          <FiStar className="w-4 h-4 mr-2" />
+                          Card unlocked
+                      </div>
+                  ) : isPartOfCourseLesson ? (
+                      <div className="flex items-center justify-center mt-4 text-sm text-[var(--neutral-600)]">
+                          <FiStar className="w-4 h-4 mr-2 text-[var(--accent-500)]" />
+                          Unlocking the card is necessary for completing the course
+                      </div>
+                  ) : null}
              </div>
          </div>
      );

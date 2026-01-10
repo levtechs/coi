@@ -7,6 +7,8 @@ import {
     generateNewHierarchyFromCards,
     writeHierarchy,
     updatePreferences,
+    parseUnlockedCardsFromResponse,
+    unlockCards,
 } from "../helpers";
 import { streamChatResponse } from "./helpers";
 import { getProjectById } from "@/app/api/projects/helpers";
@@ -93,6 +95,7 @@ export async function POST(req: NextRequest) {
 
                     let followUpDetected = false;
                     const startTime = Date.now();
+                    const cardsToUnlock = project.courseLesson?.cardsToUnlock || [];
 
                     const result = await streamChatResponse(
                         message,
@@ -116,17 +119,20 @@ export async function POST(req: NextRequest) {
                                 return; // Don't send the rest
                             }
 
-                            // If follow-up has been detected, don't send subsequent tokens
+                            // If follow-up has been detected, don't send any more tokens (including [UNLOCKED_CARDS])
                             if (followUpDetected) {
                                 return;
                             }
 
                             // Send tokens directly without \n
+
                             controller.enqueue(encoder.encode(token));
-                        }
+                        },
+                        cardsToUnlock,
+                        project.courseLesson
                     );
 
-                    const { responseMessage: chatResponseMessage, hasNewInfo, chatAttachments, followUpQuestions } = result!;
+                    const { responseMessage: chatResponseMessage, hasNewInfo, chatAttachments, followUpQuestions, unlockedCardIds: parsedUnlockedCardIds } = result!;
 
                     updatePhase("processing"); // phase 2
 
@@ -140,6 +146,17 @@ export async function POST(req: NextRequest) {
                     // Send follow-up questions immediately after streaming
                     if (followUpQuestions.length > 0) {
                         sendUpdate("followUpQuestions", JSON.stringify(followUpQuestions));
+                    }
+
+                    // Parse and unlock cards from response
+                    let unlockedCards: Card[] = [];
+                    if (parsedUnlockedCardIds.length > 0 && cardsToUnlock.length > 0) {
+                        const existingCardIds = new Set((effectivePreviousCards || []).map(c => c.id));
+                        unlockedCards = unlockCards(parsedUnlockedCardIds, cardsToUnlock, existingCardIds);
+                        if (unlockedCards.length > 0) {
+                            unlockedCards = unlockedCards.map(c => ({ ...c, isUnlocked: true }));
+                            await copyCardsToDb(projectId, unlockedCards);
+                        }
                     }
 
                     // Save the chat pair
@@ -166,17 +183,14 @@ export async function POST(req: NextRequest) {
                         updatePhase("generating cards"); // phase 3
 
                         let newCards: Card[] = []
-                        let unlockedCards: Card[] = []
                         try {
                             if (hasNewInfo) {
-                                const cardsToUnlock = project.courseLesson?.cardsToUnlock || [];
                                 const [resultFromChat, cardsFromGrounding] = await Promise.all([
-                                    generateAndWriteNewCards(projectId, effectivePreviousCards, message, finalResponseMessage, cardsToUnlock, preferences.generationModel),
+                                    generateAndWriteNewCards(projectId, effectivePreviousCards, message, finalResponseMessage, preferences.generationModel),
                                     groundingChunksToCardsAndWrite(projectId, previousCards, chatAttachments.filter((a): a is GroundingChunk => 'web' in a)),
                                 ]);
 
-                                newCards = [...resultFromChat.newCards, ...cardsFromGrounding];
-                                unlockedCards = resultFromChat.unlockedCards;
+                                newCards = [...resultFromChat, ...cardsFromGrounding];
                             }
                             else { // There are chatAttachments but hasNewInfo is false
                                 newCards = await groundingChunksToCardsAndWrite(projectId, previousCards, chatAttachments.filter((a): a is GroundingChunk => 'web' in a))
@@ -184,11 +198,6 @@ export async function POST(req: NextRequest) {
                         } catch (cardErr) {
                             console.error("Failed to generate cards:", cardErr);
                             finalResponseMessage += "\n\n*Note: Card generation failed. Some information may not be properly organized.*";
-                        }
-
-                        if (unlockedCards.length > 0) {
-                            unlockedCards = unlockedCards.map(c => ({ ...c, isUnlocked: true }));
-                            await copyCardsToDb(projectId, unlockedCards);
                         }
 
                         if (newCards.length > 0 || unlockedCards.length > 0) {

@@ -56,7 +56,9 @@ export const sendMessage = async (
                          : msg
                  ));
              },
-             (newCards: Card[]) => setNewCards(newCards),
+               (newCards: Card[]) => {
+                   setNewCards(newCards);
+               },
              (questions: string[]) => {
                  // Update the streaming message with follow-up questions
                  setMessages(prev => prev.map(msg =>
