@@ -268,19 +268,47 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
 
             {/* Right side: Share + Collaborators */}
             <div className="flex items-center gap-4">
-                {isLessonProject && lessonProgress !== null && (
-                    <span className="text-[var(--foreground)] text-sm">
-                        (lesson {lessonProgress}% complete)
-                    </span>
-                )}
                  {isLessonProject && project.courseId && (
-                     <Button
-                         color="var(--neutral-300)"
-                         onClick={() => window.open(`/courses/${project.courseId}/${project.courseLesson!.index}`, '_blank')}
-                     >
-                         View Lesson
-                     </Button>
-                 )}
+                      <Button
+                          color="var(--neutral-300)"
+                          onClick={() => window.open(`/courses/${project.courseId}/${project.courseLesson!.index}`, '_blank')}
+                          className="flex items-center gap-2"
+                      >
+                          <span className="text-white">View Lesson</span>
+                          <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 36 36">
+                              <circle
+                                  cx="18"
+                                  cy="18"
+                                  r="16"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  opacity="0.5"
+                              />
+                              <circle
+                                  cx="18"
+                                  cy="18"
+                                  r="16"
+                                  fill="none"
+                                  stroke="var(--accent-500)"
+                                  strokeWidth="2"
+                                  strokeDasharray={`${lessonProgress} 100`}
+                                  strokeLinecap="round"
+                                  transform="rotate(-90 18 18)"
+                              />
+                              <text
+                                  x="18"
+                                  y="21"
+                                  textAnchor="middle"
+                                  fontSize="8"
+                                  fill="white"
+                                  fontWeight="bold"
+                              >
+                                  {lessonProgress}%
+                              </text>
+                          </svg>
+                      </Button>
+                  )}
                 <Button
                     color="var(--neutral-300)"
                     onClick={()=>{
