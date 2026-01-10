@@ -98,10 +98,6 @@ export async function streamChat(
                     }
                      if (obj.newCards) {
                           const parsedCards = JSON.parse(obj.newCards) as Card[];
-                          if (parsedCards.length > 0) {
-                              const unlockedCards = parsedCards.filter(c => c.isUnlocked);
-                              const newCards = parsedCards.filter(c => !c.isUnlocked);
-                          }
                           setNewCards(parsedCards);
                       }
                     if (obj.followUpQuestions) {
