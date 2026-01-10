@@ -221,7 +221,7 @@ export const generateAndWriteNewCards = async (
         newCardsRaw = Array.isArray(parsed) ? parsed : [];
     } catch (err) {
         console.error("generateAndWriteNewCards: Failed to parse response from Gemini:", err, "jsonString:", jsonString);
-        return oldCards || [];
+        return [];
     }
 
     // Write new cards to DB
