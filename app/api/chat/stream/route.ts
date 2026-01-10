@@ -119,8 +119,8 @@ export async function POST(req: NextRequest) {
                                 return; // Don't send the rest
                             }
 
-                            // If follow-up has been detected, don't send subsequent tokens except [UNLOCKED_CARDS]
-                            if (followUpDetected && !token.includes('[UNLOCKED_CARDS]')) {
+                            // If follow-up has been detected, don't send any more tokens (including [UNLOCKED_CARDS])
+                            if (followUpDetected) {
                                 return;
                             }
 

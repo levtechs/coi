@@ -208,17 +208,9 @@ export async function streamChatResponse(
         }
         // If "auto", keep the original hasNewInfo detection
 
-        // Parse follow-up questions and unlocked cards if enabled
+        // Parse follow-up questions if enabled
         const followUpQuestions: string[] = [];
         if (preferences.followUpQuestions === "auto") {
-            // First, extract and remove [UNLOCKED_CARDS] token if present
-            let unlockedCardsPart = '';
-            const unlockedIndex = responseMessage.lastIndexOf('[UNLOCKED_CARDS]');
-            if (unlockedIndex !== -1) {
-                unlockedCardsPart = responseMessage.substring(unlockedIndex);
-                responseMessage = responseMessage.substring(0, unlockedIndex).trim();
-            }
-
             // Find the position of the first [FOLLOW_UP]
             const followUpIndex = responseMessage.indexOf('[FOLLOW_UP]');
             if (followUpIndex !== -1) {
@@ -238,11 +230,6 @@ export async function streamChatResponse(
 
                 // Update responseMessage to only contain the main response
                 responseMessage = mainResponse;
-            }
-
-            // Re-append the unlocked cards part for parsing
-            if (unlockedCardsPart) {
-                responseMessage += ' ' + unlockedCardsPart;
             }
         }
 
