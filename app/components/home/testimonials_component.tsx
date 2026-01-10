@@ -16,7 +16,7 @@ const Testimonials = () => {
                     {testimonials.map((testimonial, index) => (
                         <div
                             key={index}
-                            className="bg-[var(--neutral-300)] rounded-xl p-8 shadow-lg border border-[var(--neutral-300)] hover:shadow-xl transition-shadow"
+                            className="bg-[var(--neutral-300)] rounded-xl p-8 shadow-lg border border-[var(--neutral-300)] hover:shadow-xl hover:scale-105 transition-all duration-300"
                         >
                             <div className="flex items-center gap-4 mb-6">
                                 <div className="w-12 h-12 bg-[var(--accent-500)] rounded-full flex items-center justify-center text-white font-bold text-xl">

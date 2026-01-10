@@ -17,7 +17,7 @@ const ProblemAgitation = () => {
                 </div>
 
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                     <div className="bg-[var(--neutral-300)] rounded-xl p-8 shadow-lg border border-[var(--neutral-300)]">
+                     <div className="bg-[var(--neutral-300)] rounded-xl p-8 shadow-lg border border-[var(--neutral-300)] hover:scale-105 transition-all duration-300">
                          <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-6 mx-auto">
                              <FiX className="w-8 h-8 text-red-500" />
                          </div>
@@ -29,7 +29,7 @@ const ProblemAgitation = () => {
                         </p>
                     </div>
 
-                     <div className="bg-[var(--neutral-300)] rounded-xl p-8 shadow-lg border border-[var(--neutral-300)]">
+                     <div className="bg-[var(--neutral-300)] rounded-xl p-8 shadow-lg border border-[var(--neutral-300)] hover:scale-105 transition-all duration-300">
                          <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-6 mx-auto">
                              <FiX className="w-8 h-8 text-red-500" />
                          </div>
@@ -41,7 +41,7 @@ const ProblemAgitation = () => {
                         </p>
                     </div>
 
-                     <div className="bg-[var(--neutral-300)] rounded-xl p-8 shadow-lg border border-[var(--neutral-300)]">
+                     <div className="bg-[var(--neutral-300)] rounded-xl p-8 shadow-lg border border-[var(--neutral-300)] hover:scale-105 transition-all duration-300">
                          <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-6 mx-auto">
                              <FiX className="w-8 h-8 text-red-500" />
                          </div>

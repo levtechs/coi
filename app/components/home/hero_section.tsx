@@ -6,6 +6,7 @@ import { FiChevronDown } from "react-icons/fi";
 
 const HeroSection = React.forwardRef<HTMLDivElement, { onScrollDown?: () => void }>(({ onScrollDown }, ref) => {
     const [isDark, setIsDark] = useState(false);
+    const [buttonsVisible, setButtonsVisible] = useState(false);
 
     useEffect(() => {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -13,6 +14,14 @@ const HeroSection = React.forwardRef<HTMLDivElement, { onScrollDown?: () => void
         const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
         mediaQuery.addEventListener('change', handler);
         return () => mediaQuery.removeEventListener('change', handler);
+    }, []);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setButtonsVisible(window.scrollY > 200);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
     const themeFolder = isDark ? 'dark' : 'light';
@@ -37,14 +46,32 @@ const HeroSection = React.forwardRef<HTMLDivElement, { onScrollDown?: () => void
                         <h1 className="text-5xl lg:text-7xl font-bold text-[var(--neutral-900)] leading-tight">
                             Study Smarter,<br />Together.
                         </h1>
-                        <p className="text-xl lg:text-2xl text-[var(--neutral-600)] max-w-2xl">
+                         <p className="text-xl lg:text-2xl text-[var(--neutral-600)] max-w-2xl">
                             Coi brings cards, projects, and collaboration into one interactive learning platform that adapts to your study needs.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4">
-                            <a href="/login?signup=true" className="bg-[var(--accent-500)] hover:bg-[var(--accent-600)] text-white px-8 py-4 rounded-lg text-lg font-semibold transition-colors text-center">
-                                Get Started Free
-                            </a>
+                        <a
+                        href="/login?signup=true"
+                        className="relative inline-block px-8 py-4 rounded-lg text-lg font-semibold text-white text-center transition-all duration-300
+                                    bg-gradient-to-r from-[var(--accent-500)] via-[var(--accent-400)] to-[var(--accent-500)]
+                                    bg-[length:200%_auto] hover:bg-right animate-shimmer
+                                    shadow-[0_0_20px_rgba(var(--accent-500),0.3)] hover:shadow-[0_0_30px_rgba(var(--accent-500),0.5)]
+                                    active:scale-95"
+                        >
+                        Get Started Free
+                        </a>
+                        <a
+                        href="/dashboard"
+                        className="relative inline-block px-8 py-4 rounded-lg text-lg font-semibold text-[var(--neutral-900)] text-center transition-all duration-300
+                                    bg-gradient-to-r from-[var(--neutral-300)] via-[var(--neutral-200)] to-[var(--neutral-300)]
+                                    bg-[length:200%_auto] hover:bg-right animate-shimmer
+                                    shadow-[0_0_20px_rgba(var(--neutral-400),0.3)] hover:shadow-[0_0_30px_rgba(var(--neutral-400),0.5)]
+                                    active:scale-95"
+                        >
+                        Go to Dashboard
+                        </a>
                         </div>
+
                         <div className="bg-[var(--neutral-200)] rounded-lg p-4 border border-[var(--neutral-300)]">
                             <p className="text-[var(--neutral-700)] italic">
                                 &ldquo;After using coi for my next test, I got an A.&rdquo; - Anonymous Student
@@ -82,13 +109,37 @@ const HeroSection = React.forwardRef<HTMLDivElement, { onScrollDown?: () => void
                         </div>
                     </div>
                 </div>
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
+                 <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
                     <div className="flex items-center gap-2 text-lg text-[var(--neutral-600)] animate-bounce cursor-pointer" onClick={onScrollDown}>
                         <FiChevronDown />
                         <span className="whitespace-nowrap">Scroll down for details</span>
                         <FiChevronDown />
                     </div>
                 </div>
+            </div>
+
+            {/* Fixed Buttons */}
+            <div className={`fixed bottom-4 right-4 z-40 flex flex-row gap-4 transition-all duration-500 ${buttonsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                <a
+                    href="/login?signup=true"
+                    className="relative inline-block px-8 py-4 rounded-lg text-lg font-semibold text-white text-center transition-all duration-300
+                               bg-gradient-to-r from-[var(--accent-500)] via-[var(--accent-400)] to-[var(--accent-500)]
+                               bg-[length:200%_auto] hover:bg-right animate-shimmer
+                               shadow-[0_0_20px_rgba(var(--accent-500),0.3)] hover:shadow-[0_0_30px_rgba(var(--accent-500),0.5)]
+                               active:scale-95"
+                >
+                    Get Started Free
+                </a>
+                <a
+                    href="/dashboard"
+                    className="relative inline-block px-8 py-4 rounded-lg text-lg font-semibold text-[var(--neutral-900)] text-center transition-all duration-300
+                               bg-gradient-to-r from-[var(--neutral-300)] via-[var(--neutral-200)] to-[var(--neutral-300)]
+                               bg-[length:200%_auto] hover:bg-right animate-shimmer
+                               shadow-[0_0_20px_rgba(var(--neutral-400),0.3)] hover:shadow-[0_0_30px_rgba(var(--neutral-400),0.5)]
+                               active:scale-95"
+                >
+                    Go to Dashboard
+                </a>
             </div>
         </section>
     );

@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { FiCheck } from "react-icons/fi";
 
 const Transformation = () => {
     const [isDark, setIsDark] = useState(false);
+    const bulletRefs = useRef<(HTMLDivElement | null)[]>([]);
+    const [visibleBullets, setVisibleBullets] = useState<boolean[]>(new Array(3).fill(false));
 
     useEffect(() => {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -13,6 +15,28 @@ const Transformation = () => {
         const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
         mediaQuery.addEventListener('change', handler);
         return () => mediaQuery.removeEventListener('change', handler);
+    }, []);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        const index = bulletRefs.current.indexOf(entry.target as HTMLDivElement);
+                        if (index !== -1) {
+                            setVisibleBullets((prev) => prev.map((v, i) => (i === index ? true : v)));
+                        }
+                    }
+                });
+            },
+            { threshold: 0.1 }
+        );
+
+        bulletRefs.current.forEach((ref) => {
+            if (ref) observer.observe(ref);
+        });
+
+        return () => observer.disconnect();
     }, []);
 
     const themeFolder = isDark ? 'dark' : 'light';
@@ -52,42 +76,42 @@ const Transformation = () => {
                         </p>
 
                         <div className="space-y-6">
-                            <div className="flex items-start gap-4">
-                                <div className="flex-shrink-0 w-8 h-8 bg-[var(--accent-500)] rounded-full flex items-center justify-center">
-                                    <FiCheck className="w-5 h-5 text-white" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-semibold text-[var(--neutral-900)] mb-2">
-                                        Active Learning Techniques
-                                    </h3>
+                             <div ref={(el) => { bulletRefs.current[0] = el; }} className={`flex items-start gap-4 transition-all duration-700 ease-out ${visibleBullets[0] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                                 <div className="flex-shrink-0 w-8 h-8 bg-[var(--accent-500)] rounded-full flex items-center justify-center">
+                                     <FiCheck className="w-5 h-5 text-white" />
+                                 </div>
+                                 <div>
+                                     <h3 className="text-xl font-semibold text-[var(--neutral-900)] mb-2">
+                                         Active Learning Techniques
+                                     </h3>
                                     <p className="text-[var(--neutral-600)]">
                                         Spaced repetition, active recall, and adaptive questioning ensure you retain information efficiently.
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="flex items-start gap-4">
-                                <div className="flex-shrink-0 w-8 h-8 bg-[var(--accent-500)] rounded-full flex items-center justify-center">
-                                    <FiCheck className="w-5 h-5 text-white" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-semibold text-[var(--neutral-900)] mb-2">
-                                        Collaborative Study Groups
-                                    </h3>
+                             <div ref={(el) => { bulletRefs.current[1] = el; }} className={`flex items-start gap-4 transition-all duration-700 ease-out ${visibleBullets[1] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                                 <div className="flex-shrink-0 w-8 h-8 bg-[var(--accent-500)] rounded-full flex items-center justify-center">
+                                     <FiCheck className="w-5 h-5 text-white" />
+                                 </div>
+                                 <div>
+                                     <h3 className="text-xl font-semibold text-[var(--neutral-900)] mb-2">
+                                         Collaborative Study Groups
+                                     </h3>
                                     <p className="text-[var(--neutral-600)]">
                                         Share projects, discuss concepts, and learn from peers in real-time collaborative environments.
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="flex items-start gap-4">
-                                <div className="flex-shrink-0 w-8 h-8 bg-[var(--accent-500)] rounded-full flex items-center justify-center">
-                                    <FiCheck className="w-5 h-5 text-white" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-semibold text-[var(--neutral-900)] mb-2">
-                                        Personalized AI Assistance
-                                    </h3>
+                             <div ref={(el) => { bulletRefs.current[2] = el; }} className={`flex items-start gap-4 transition-all duration-700 ease-out ${visibleBullets[2] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                                 <div className="flex-shrink-0 w-8 h-8 bg-[var(--accent-500)] rounded-full flex items-center justify-center">
+                                     <FiCheck className="w-5 h-5 text-white" />
+                                 </div>
+                                 <div>
+                                     <h3 className="text-xl font-semibold text-[var(--neutral-900)] mb-2">
+                                         Personalized AI Assistance
+                                     </h3>
                                     <p className="text-[var(--neutral-600)]">
                                         An AI tutor that understands your course material and adapts explanations to your learning style.
                                     </p>

@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { FiBookOpen, FiZap, FiUsers, FiFolder } from "react-icons/fi";
 
 const Features = () => {
     const [isDark, setIsDark] = useState(false);
+    const ulRefs = useRef<(HTMLUListElement | null)[]>([]);
+    const [visibleUls, setVisibleUls] = useState<boolean[]>(new Array(4).fill(false));
 
     useEffect(() => {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -13,6 +15,28 @@ const Features = () => {
         const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
         mediaQuery.addEventListener('change', handler);
         return () => mediaQuery.removeEventListener('change', handler);
+    }, []);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        const index = ulRefs.current.indexOf(entry.target as HTMLUListElement);
+                        if (index !== -1) {
+                            setVisibleUls((prev) => prev.map((v, i) => (i === index ? true : v)));
+                        }
+                    }
+                });
+            },
+            { threshold: 0.1 }
+        );
+
+        ulRefs.current.forEach((ref) => {
+            if (ref) observer.observe(ref);
+        });
+
+        return () => observer.disconnect();
     }, []);
 
     const themeFolder = isDark ? 'dark' : 'light';
@@ -112,7 +136,7 @@ const Features = () => {
                                     {feature.description}
                                 </p>
 
-                                <ul className="space-y-3">
+                                <ul ref={(el) => { ulRefs.current[index] = el; }} className={`space-y-3 transition-all duration-700 ease-out ${visibleUls[index] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                                     {feature.subBenefits.map((benefit, i) => (
                                         <li key={i} className="flex items-start gap-3">
                                             <div className="w-2 h-2 bg-[var(--accent-500)] rounded-full mt-2 flex-shrink-0"></div>
