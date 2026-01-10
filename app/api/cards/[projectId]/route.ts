@@ -110,7 +110,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ project
 
     try {
         const body = await req.json();
-        const { cardId, title, details, exclude, labels, url, refImageUrls, iconUrl, isUnlocked, id } = body;
+        const { cardId, title, details, exclude, labels, url, refImageUrls, iconUrl } = body;
 
         if (!cardId) {
             return NextResponse.json({ error: "Card ID is required" }, { status: 400 });
