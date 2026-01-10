@@ -137,6 +137,7 @@ const LessonPage = ({ lesson, courseId, lessonIdx, projects }: LessonPageProps) 
                                 <DetailCard
                                     card={{ id: index.toString(), title: card.title, details: card.details, isUnlocked: unlockedCardIds.has(card.id) }}
                                     onClick={() => setClickedCard({ id: index.toString(), title: card.title, details: card.details, isUnlocked: unlockedCardIds.has(card.id) })}
+                                    useCheckbox={true}
                                 />
                             </div>
                         ))}
@@ -272,6 +273,7 @@ const LessonPage = ({ lesson, courseId, lessonIdx, projects }: LessonPageProps) 
                 <CardPopup
                     card={clickedCard}
                     onClose={() => setClickedCard(null)}
+                    isPartOfCourseLesson={true}
                 />
             )}
         </div>

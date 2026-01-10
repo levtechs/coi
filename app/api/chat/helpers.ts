@@ -26,7 +26,6 @@ type MyGenerateContentParameters = {
 import {
     getChatResponseSystemInstruction,
     generateCardsSystemInstruction,
-    generateCardsWithUnlockingSystemInstruction,
     generateHierarchySystemInstruction,
     //  === \/ below is depricated \/
     firstChatResponseSystemInstruction,
@@ -169,14 +168,13 @@ export const generateAndWriteNewCards = async (
     oldCards: Card[] | null,
     userMessage: string,
     responseMessage: string,
-    cardsToUnlock?: Card[],
     generationModel?: "flash" | "flash-lite"
-): Promise<{ newCards: Card[]; unlockedCards: Card[] }> => {
+): Promise<Card[]> => {
 
-    const attachments = { oldCards, userMessage, responseMessage, ...(cardsToUnlock && { cardsToUnlock }) };
+    const attachments = { oldCards, userMessage, responseMessage };
     const parts = [{ text: JSON.stringify(attachments) }]
 
-    const systemInstruction = cardsToUnlock ? generateCardsWithUnlockingSystemInstruction : generateCardsSystemInstruction;
+    const systemInstruction = generateCardsSystemInstruction;
 
     const systemInstructionContent = { role: "user", parts: systemInstruction.parts };
     const allContents = [systemInstructionContent, { role: "user", parts }];
@@ -215,36 +213,57 @@ export const generateAndWriteNewCards = async (
     }
 
     let newCardsRaw: NewCard[] = [];
-    let unlockedCardIds: string[] = [];
 
     try {
         jsonString = jsonString.replace(/```json\s*/, '').replace(/\s*```$/, '').trim();
         const parsed = JSON.parse(jsonString);
-        if (cardsToUnlock) {
-            // Expect { newCards, unlockedCardIds }
-            newCardsRaw = parsed.newCards || [];
-            unlockedCardIds = parsed.unlockedCardIds || [];
-        } else {
-            // Expect array of cards
-            newCardsRaw = Array.isArray(parsed) ? parsed : [];
-        }
+        // Expect array of cards
+        newCardsRaw = Array.isArray(parsed) ? parsed : [];
     } catch (err) {
         console.error("generateAndWriteNewCards: Failed to parse response from Gemini:", err, "jsonString:", jsonString);
-        return { newCards: oldCards || [], unlockedCards: [] };
+        return oldCards || [];
     }
 
     // Write new cards to DB
     const newCards = await writeCardsToDb(projectId, newCardsRaw);
 
-    // Determine unlocked cards
-    const existingCardIds = new Set((oldCards || []).map(c => c.id));
-    const unlockedCards = (cardsToUnlock || []).filter(card => unlockedCardIds.includes(card.id) && !existingCardIds.has(card.id));
-
-    return { newCards, unlockedCards };
+    return newCards;
 };
 
 /**
-* Generates cards from groundingChunks
+ * Parses unlocked card IDs from the chat response.
+ * Looks for the last [UNLOCKED_CARDS] token in the response.
+ */
+export const parseUnlockedCardsFromResponse = (response: string): string[] => {
+    // Find the last occurrence of [UNLOCKED_CARDS] in the response
+    const lastIndex = response.lastIndexOf('[UNLOCKED_CARDS]');
+    if (lastIndex === -1) {
+        return [];
+    }
+
+    // Extract everything after [UNLOCKED_CARDS] until end of string
+    const afterToken = response.substring(lastIndex + '[UNLOCKED_CARDS]'.length).trim();
+
+    // If empty, no IDs specified
+    if (!afterToken) {
+        return [];
+    }
+
+    // Split by comma and clean up
+    const ids = afterToken.split(',').map(id => id.trim()).filter(id => id.length > 0);
+    return ids;
+};
+
+/**
+ * Unlocks cards based on provided IDs, filtering against available cards and existing cards.
+ */
+export const unlockCards = (unlockedCardIds: string[], availableCards: Card[], existingCardIds: Set<string>): Card[] => {
+    const unlockedCards = availableCards.filter(card => unlockedCardIds.includes(card.id) && !existingCardIds.has(card.id));
+    return unlockedCards;
+};
+
+/**
+ * Generates cards from groundingChunks
 *
 * @param projectId - The ID of the project.
 * @param oldCards - Existing cards, if any (can be null).

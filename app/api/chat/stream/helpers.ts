@@ -23,7 +23,7 @@ type MyGenerateContentParameters = {
 
 import { ContentHierarchy, Card, Message, ChatAttachment, GroundingChunk, ChatPreferences, FileAttachment } from "@/lib/types"; // { content: string; isResponse: boolean }
 
-import { getStringFromHierarchyAndCards } from "../helpers"
+import { getStringFromHierarchyAndCards, parseUnlockedCardsFromResponse } from "../helpers"
 
 import {
     getLLMModel,
@@ -46,8 +46,9 @@ export async function streamChatResponse(
     attachments: null | ChatAttachment[],
     preferences: ChatPreferences,
     startTime: number,
-    onToken: (token: string) => Promise<void> | void
-): Promise<{ responseMessage: string; hasNewInfo: boolean; chatAttachments: ChatAttachment[]; followUpQuestions: string[] } | null> {
+    onToken: (token: string) => Promise<void> | void,
+    cardsToUnlock?: Card[]
+): Promise<{ responseMessage: string; hasNewInfo: boolean; chatAttachments: ChatAttachment[]; followUpQuestions: string[]; unlockedCardIds: string[] } | null> {
     if (!message || message.trim() === "") throw new Error("Message is required.");
 
     // Process file attachments: fetch and add as inlineData
@@ -91,9 +92,22 @@ export async function streamChatResponse(
         })
     }
 
+    if (cardsToUnlock && cardsToUnlock.length > 0) {
+        const cardsToUnlockList = cardsToUnlock.map(card => ({
+            id: card.id,
+            title: card.title,
+            details: card.details
+        }));
+        contents.push({
+            role: "user",
+            parts: [{text: `CARDS AVAILABLE FOR UNLOCKING: ${JSON.stringify(cardsToUnlockList)}`}
+            ]
+        });
+    }
+
 
     // systemInstruction as first content with role "user"
-    const systemInstruction = { role: "user", parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch, preferences.followUpQuestions).parts as MyPart[] }
+    const systemInstruction = { role: "user", parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch, preferences.followUpQuestions, cardsToUnlock).parts as MyPart[] }
 
     // Include systemInstruction at the beginning of contents
     const allContents = [systemInstruction, ...contents];
@@ -171,13 +185,18 @@ export async function streamChatResponse(
         // Add single thinking attachment if any thoughts
         if (thoughtSummaries.length > 0) {
             const combinedSummary = thoughtSummaries.join('\n\n');
-            chatAttachments.push({ title: `Thought for ${totalThoughtTime} seconds`, summary: combinedSummary, time: totalThoughtTime });
-        }
+        chatAttachments.push({ title: `Thought for ${totalThoughtTime} seconds`, summary: combinedSummary, time: totalThoughtTime });
 
         // Detect hasNewInfo from token, but override based on preferences
         let responseMessage = accumulated.trim();
         let hasNewInfo = responseMessage.includes("[HAS_NEW_INFO]");
         responseMessage = responseMessage.replace(/\[HAS_NEW_INFO\]/g, '').trim();
+
+        // Parse unlocked cards before removing the token
+        const unlockedCardIds = parseUnlockedCardsFromResponse(accumulated);
+
+        // Remove [UNLOCKED_CARDS] token from the response message (it's for backend processing only)
+        responseMessage = responseMessage.replace(/\[UNLOCKED_CARDS\][^\n]*/, '').trim();
 
         // Override hasNewInfo based on forceCardCreation preference
         if (preferences.forceCardCreation === "on") {
@@ -187,9 +206,17 @@ export async function streamChatResponse(
         }
         // If "auto", keep the original hasNewInfo detection
 
-        // Parse follow-up questions if enabled
+        // Parse follow-up questions and unlocked cards if enabled
         const followUpQuestions: string[] = [];
         if (preferences.followUpQuestions === "auto") {
+            // First, extract and remove [UNLOCKED_CARDS] token if present
+            let unlockedCardsPart = '';
+            const unlockedIndex = responseMessage.lastIndexOf('[UNLOCKED_CARDS]');
+            if (unlockedIndex !== -1) {
+                unlockedCardsPart = responseMessage.substring(unlockedIndex);
+                responseMessage = responseMessage.substring(0, unlockedIndex).trim();
+            }
+
             // Find the position of the first [FOLLOW_UP]
             const followUpIndex = responseMessage.indexOf('[FOLLOW_UP]');
             if (followUpIndex !== -1) {
@@ -209,6 +236,11 @@ export async function streamChatResponse(
 
                 // Update responseMessage to only contain the main response
                 responseMessage = mainResponse;
+            }
+
+            // Re-append the unlocked cards part for parsing
+            if (unlockedCardsPart) {
+                responseMessage += ' ' + unlockedCardsPart;
             }
         }
 
@@ -231,6 +263,7 @@ export async function streamChatResponse(
             hasNewInfo,
             chatAttachments,
             followUpQuestions,
+            unlockedCardIds,
         };
     } catch (err) {
         console.error("streamChatResponse error:", err);

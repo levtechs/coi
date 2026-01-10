@@ -96,9 +96,14 @@ export async function streamChat(
                             attachments: obj.chatAttachments ?? null,
                         } as Message);
                     }
-                    if (obj.newCards) {
-                        setNewCards(JSON.parse(obj.newCards) as Card[]);
-                    }
+                     if (obj.newCards) {
+                          const parsedCards = JSON.parse(obj.newCards) as Card[];
+                          if (parsedCards.length > 0) {
+                              const unlockedCards = parsedCards.filter(c => c.isUnlocked);
+                              const newCards = parsedCards.filter(c => !c.isUnlocked);
+                          }
+                          setNewCards(parsedCards);
+                      }
                     if (obj.followUpQuestions) {
                         console.log("Received follow-up questions update:", obj.followUpQuestions);
                         setFollowUpQuestions(JSON.parse(obj.followUpQuestions) as string[]);
