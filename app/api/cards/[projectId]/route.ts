@@ -54,7 +54,7 @@ export async function POST (req: NextRequest, context: { params: Promise<{ proje
     const { projectId } = await context.params;
 
     try {
-        const body = await req.json();
+        const body: Partial<NewCard> = await req.json();
 
         const allowedFields = ['title', 'details', 'exclude', 'labels', 'url', 'refImageUrls', 'iconUrl'];
         const providedFields = Object.keys(body);
