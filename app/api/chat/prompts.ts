@@ -155,14 +155,39 @@ To include follow-up questions, append them at the very end of your response usi
 You can put multiple questions on the same line or separate lines.
 `
 
+const lessonFollowUpChunk = `
+FOLLOW-UP QUESTIONS FOR LESSON PROGRESS:
+Your goal is to guide the student toward discovering the remaining concepts on their own, rather than explaining everything upfront.
+
+IMPORTANT: Before generating follow-up questions, identify which cards are still locked (not yet unlocked). Generate questions that:
+1. Point the student toward the concepts they haven't fully explored yet
+2. Encourage curiosity about the remaining material
+3. Help bridge their current understanding to the next locked concept
+
+For example:
+- If a student has unlocked 2/5 cards, ask questions about the remaining 3 cards
+- If a student is close to unlocking the next card, ask a question that would demonstrate understanding of what's missing
+
+Avoid:
+- Giving away answers that would immediately unlock cards
+- Asking about concepts they've already demonstrated understanding of
+- Generic questions that don't guide toward specific remaining content
+
+REQUIRED: End your response with 1-3 follow-up questions using this format:
+[FOLLOW_UP] Your question here? [FOLLOW_UP] Another question here?
+`
+
 const disableFollowUpChunk = ``
 
 /**
  * Returns the appropriate follow-up chunk based on the followUpQuestions preference.
  */
-export const getFollowUpChunk = (followUpQuestions: string): string => {
+export const getFollowUpChunk = (followUpQuestions: string, courseLesson?: { cardsToUnlock: Card[] }): string => {
     switch (followUpQuestions) {
         case "auto":
+            if (courseLesson && courseLesson.cardsToUnlock.length > 0) {
+                return lessonFollowUpChunk;
+            }
             return followUpChunk;
         case "off":
             return disableFollowUpChunk;
@@ -176,33 +201,34 @@ const unlockingChunk = `
 You will receive a list of cards under "CARDS AVAILABLE FOR UNLOCKING" in the user message.
 You MUST determine which cards should be unlocked and include the result at the end of your response.
 
-Process:
-1. Review the conversation for evidence of understanding
-2. Look at the cards available for unlocking (you will receive their IDs, titles, and details)
-3. Unlock cards when the user shows meaningful engagement with the concepts in those cards
-4. Look for active learning and comprehension
+STRICT CRITERIA FOR UNLOCKING:
+Only unlock a card when the student has FULLY discussed and demonstrated understanding of ALL concepts in that card. This means:
+- The student has asked substantive questions about the card's topics, OR
+- The student has connected the card's concepts to real-world applications in depth, OR
+- The student has explained the card's concepts back in their own words with accurate detail
 
-Evidence that SHOULD unlock cards:
-- User asks thoughtful questions about topics covered in the cards
-- User connects concepts to real-world applications
-- User demonstrates understanding through examples or explanations
-- User explores related ideas or extensions mentioned in the cards
-- The conversation shows genuine interest and comprehension of card topics
+DO NOT unlock cards when:
+- The student just says "tell me what I need to know" or asks for a summary
+- The student has only briefly mentioned a topic without deep engagement
+- The student asks "what else should I know?" without demonstrating understanding
+- The conversation shows superficial awareness without true comprehension
+- The card's topics were mentioned but not thoroughly explored
 
-Evidence that should NOT unlock cards:
-- User just says "explain this" without follow-up
-- User repeats information without understanding
-- Brief or superficial interactions
-- Topics in the cards were not discussed
+PROCESS:
+1. Review the cards available for unlocking (you'll receive their IDs, titles, and details)
+2. Compare each card's content against what the student has actually discussed
+3. Ask: "Has the student truly explored this topic, or just scratched the surface?"
+4. Only unlock if the student has demonstrated genuine, substantive engagement
 
-IMPORTANT: The cards available for unlocking will be provided to you in a separate message labeled "CARDS AVAILABLE FOR UNLOCKING". 
-Look at those cards' IDs, titles, and details to make your decision. You must use the exact card IDs provided.
+REMEMBER: It's better to keep cards locked and encourage further exploration than to unlock prematurely.
+The follow-up questions should guide students toward the remaining locked content.
 
 REQUIRED: End your response with exactly one of these formats:
 - If unlocking cards: [UNLOCKED_CARDS] exact_card_id_1,exact_card_id_2
 - If no cards to unlock: [UNLOCKED_CARDS]
 
 The [UNLOCKED_CARDS] token must be the absolute last thing in your response. Nothing after it.
+Use the exact card IDs from cardsToUnlock - do not make up IDs.
 === END CARD UNLOCKING ===
 `
 
@@ -217,10 +243,10 @@ export const getUnlockingChunk = (cardsToUnlock?: Card[]): string => {
 
 // ==== Full prompts with new hierarchy examples ====
 
-export const getChatResponseSystemInstruction = (personality: string, googleSearch: string, followUpQuestions: string, cardsToUnlock?: Card[]) => {
+export const getChatResponseSystemInstruction = (personality: string, googleSearch: string, followUpQuestions: string, cardsToUnlock?: Card[], courseLesson?: { cardsToUnlock: Card[] }) => {
     const personalityChunk = getPersonalityChunk(personality);
     const searchChunk = getSearchChunk(googleSearch);
-    const followUpChunk = getFollowUpChunk(followUpQuestions);
+    const followUpChunk = getFollowUpChunk(followUpQuestions, courseLesson);
     const unlockingChunk = getUnlockingChunk(cardsToUnlock);
 
     const example1FollowUp = followUpQuestions === "auto" ? "\n[FOLLOW_UP] How do neurons communicate with each other across synapses?\n[FOLLOW_UP] What are the different types of neurons in the nervous system?" : "";

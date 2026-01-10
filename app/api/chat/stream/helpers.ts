@@ -47,7 +47,8 @@ export async function streamChatResponse(
     preferences: ChatPreferences,
     startTime: number,
     onToken: (token: string) => Promise<void> | void,
-    cardsToUnlock?: Card[]
+    cardsToUnlock?: Card[],
+    courseLesson?: { cardsToUnlock: Card[] }
 ): Promise<{ responseMessage: string; hasNewInfo: boolean; chatAttachments: ChatAttachment[]; followUpQuestions: string[]; unlockedCardIds: string[] } | null> {
     if (!message || message.trim() === "") throw new Error("Message is required.");
 
@@ -107,7 +108,7 @@ export async function streamChatResponse(
 
 
     // systemInstruction as first content with role "user"
-    const systemInstruction = { role: "user", parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch, preferences.followUpQuestions, cardsToUnlock).parts as MyPart[] }
+    const systemInstruction = { role: "user", parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch, preferences.followUpQuestions, cardsToUnlock, courseLesson).parts as MyPart[] }
 
     // Include systemInstruction at the beginning of contents
     const allContents = [systemInstruction, ...contents];

@@ -128,7 +128,8 @@ export async function POST(req: NextRequest) {
 
                             controller.enqueue(encoder.encode(token));
                         },
-                        cardsToUnlock
+                        cardsToUnlock,
+                        project.courseLesson
                     );
 
                     const { responseMessage: chatResponseMessage, hasNewInfo, chatAttachments, followUpQuestions, unlockedCardIds: parsedUnlockedCardIds } = result!;
