@@ -13,7 +13,6 @@ type CardPopupProps = {
 };
 
 export default function CardPopup({ card, onClose }: CardPopupProps) {
-    const truncatedTitle = card.title.length > 50 ? card.title.slice(0, 47) + '...' : card.title;
 
     const isYoutube = card.url && (card.url.includes('youtube.com') || card.url.includes('youtu.be'));
     const videoId = isYoutube ? card.url!.match(/[?&]v=([^#\&\?]*)/)?.[1] : null;
@@ -51,9 +50,9 @@ export default function CardPopup({ card, onClose }: CardPopupProps) {
                     )}
 
                      {/* Card Title */}
-                     <h2 className="text-[var(--foreground)] font-bold text-3xl truncate">
-                         <MarkdownArticle markdown={truncatedTitle} />
-                     </h2>
+                      <h2 className="text-[var(--foreground)] font-bold text-3xl">
+                          <MarkdownArticle markdown={card.title} />
+                      </h2>
                 </div>
 
                 {/* Card Contents */}

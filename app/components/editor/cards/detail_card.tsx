@@ -57,7 +57,7 @@ export default function DetailCard({ card, onClick, projectId }: DetailCardProps
     return (
         <>
         <div
-            className="flex items-center justify-center text-center relative border border-[var(--neutral-300)] rounded-lg p-6 bg-[var(--neutral-200)] h-24 shadow hover:shadow-md transition cursor-pointer group"
+            className="flex items-center justify-start text-left relative border border-[var(--neutral-300)] rounded-lg p-6 bg-[var(--neutral-200)] h-24 shadow hover:shadow-md transition cursor-pointer group"
             onClick={() => onClick(card)}
         >
             {card.isUnlocked && (
