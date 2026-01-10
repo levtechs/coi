@@ -1,7 +1,9 @@
 # Learn with coi
 Official source code of the coi project
 
-[Check it out](https://coilearn.com/)
+[Check it out/production: coilearn.com](https://coilearn.com/)
+
+[Demo Gif](/demos/main_demo.gif)
 
 ## Features 
 - chat with AI tutor & upload materials
