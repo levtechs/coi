@@ -119,26 +119,26 @@ const HeroSection = React.forwardRef<HTMLDivElement, { onScrollDown?: () => void
             </div>
 
             {/* Fixed Buttons */}
-            <div className={`fixed bottom-4 right-4 z-40 flex flex-row gap-4 transition-all duration-500 ${buttonsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+            <div className={`fixed bottom-4 left-4 right-4 md:left-auto md:right-4 z-40 flex flex-nowrap justify-center gap-4 transition-all duration-500 ${buttonsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                 <a
                     href="/login?signup=true"
-                    className="relative inline-block px-8 py-4 rounded-lg text-lg font-semibold text-white text-center transition-all duration-300
+                    className="relative inline-block px-6 py-3 md:px-8 md:py-4 rounded-lg text-base md:text-lg font-semibold text-white text-center transition-all duration-300
                                bg-gradient-to-r from-[var(--accent-500)] via-[var(--accent-400)] to-[var(--accent-500)]
                                bg-[length:200%_auto] hover:bg-right animate-shimmer
                                shadow-[0_0_20px_rgba(var(--accent-500),0.3)] hover:shadow-[0_0_30px_rgba(var(--accent-500),0.5)]
-                               active:scale-95"
+                               active:scale-95 shrink-0"
                 >
                     Get Started Free
                 </a>
                 <a
                     href="/dashboard"
-                    className="relative inline-block px-8 py-4 rounded-lg text-lg font-semibold text-[var(--neutral-900)] text-center transition-all duration-300
+                    className="relative inline-block px-6 py-3 md:px-8 md:py-4 rounded-lg text-base md:text-lg font-semibold text-[var(--neutral-900)] text-center transition-all duration-300
                                bg-gradient-to-r from-[var(--neutral-300)] via-[var(--neutral-200)] to-[var(--neutral-300)]
                                bg-[length:200%_auto] hover:bg-right animate-shimmer
                                shadow-[0_0_20px_rgba(var(--neutral-400),0.3)] hover:shadow-[0_0_30px_rgba(var(--neutral-400),0.5)]
-                               active:scale-95"
+                               active:scale-95 shrink-0"
                 >
-                    Go to Dashboard
+                    Dashboard
                 </a>
             </div>
         </section>
