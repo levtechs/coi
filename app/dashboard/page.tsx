@@ -1,8 +1,6 @@
 "use client";
 
 import { useAuth } from "@/lib/AuthContext";
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import Dashboard from "@/app/components/dashboard/dashboard";
 import { getUserFromId } from "@/app/views/users";
 import { User } from "@/lib/types";
@@ -13,6 +11,7 @@ import { FlickeringGrid } from "@/app/components/flickering-grid";
 import Sidebar from "@/app/components/sidebar";
 import { useEffect, useState } from "react";
 import SignUpQuestionnaireModal from "@/app/components/signup/sign_up_questionnaire_modal";
+import LoadingComponent from "@/app/components/loading";
 
 export default function DashboardPage() {
     const { user: firebaseUser, loading: authLoading } = useAuth();
@@ -25,7 +24,6 @@ export default function DashboardPage() {
     }, []);
 
     useEffect(() => {
-        // Fetch full user data when firebase user is available
         if (firebaseUser && !fullUser && !userLoading) {
             setUserLoading(true);
             getUserFromId(firebaseUser.uid)
@@ -36,13 +34,10 @@ export default function DashboardPage() {
     }, [firebaseUser, fullUser, userLoading]);
 
     useEffect(() => {
-        // Check if user needs to fill out sign-up questionnaire
-        // Only show if they haven't submitted responses OR if their responses are empty
         if (fullUser && (!fullUser.signUpResponses ||
             (fullUser.signUpResponses.howDidYouHear.length === 0 &&
              fullUser.signUpResponses.interests.length === 0 &&
              !fullUser.signUpResponses.role))) {
-            // Small delay to ensure dashboard loads first
             const timer = setTimeout(() => {
                 setShowQuestionnaireModal(true);
             }, 1000);
@@ -57,7 +52,7 @@ export default function DashboardPage() {
     if (authLoading || userLoading) {
         return (
             <div className="flex items-center justify-center h-screen bg-[var(--background)] text-[var(--foreground)]">
-                <p className="text-xl">Loading...</p>
+                <LoadingComponent />
             </div>
         );
     }

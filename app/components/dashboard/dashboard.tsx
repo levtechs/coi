@@ -7,6 +7,7 @@ import { User } from "firebase/auth";
 import { Project, Course } from "@/lib/types";
 import { getProjects, saveProject, createProject } from "@/app/views/projects"
 import { getCourses } from "@/app/views/courses";
+import funFacts from "@/lib/fun-facts.json";
 
 import LoadingComponent from "@/app/components/loading";
 
@@ -18,12 +19,17 @@ interface DashboardProps {
 }
 
 const Dashboard = ({ user }: DashboardProps) => {
-
     const [isLoading, setLoading] = useState(false);
     const [projects, setProjects] = useState<Project[]>([]);
     const [courses, setCourses] = useState<Course[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
+
+    const getDailyFact = () => {
+        const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+        const randomIndex = dayOfYear % funFacts.length;
+        return funFacts[randomIndex] as string;
+    };
 
     // Separate projects into regular and lesson projects
     const isLessonProject = (project: Project) => {
@@ -178,6 +184,9 @@ const Dashboard = ({ user }: DashboardProps) => {
                 onSubmit={handleModalSubmit}
                 title={editingProject ? "Edit Project" : "Create Project"}
             />
+            <p className="text-center text-sm opacity-50 mt-12 pb-4 italic max-w-lg mx-auto px-6">
+                {getDailyFact()}
+            </p>
         </>
     );
 };
