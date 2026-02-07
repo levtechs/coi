@@ -66,6 +66,16 @@ const AboutUs = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* Quote */}
+                <div className="text-center mt-12">
+                    <blockquote className="text-xl italic text-[var(--neutral-600)] mb-2">
+                        &ldquo;You should be motivated and guided by the beauty of harmony&rdquo;
+                    </blockquote>
+                    <cite className="text-sm text-[var(--neutral-500)] not-italic">
+                        — Pavel Etingof
+                    </cite>
+                </div>
             </div>
         </section>
     );
