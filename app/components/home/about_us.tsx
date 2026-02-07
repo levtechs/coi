@@ -8,7 +8,7 @@ import { RxDiscordLogo } from "react-icons/rx";
 
 const AboutUs = () => {
     return (
-        <section className="py-20 bg-[var(--neutral-500)]/20">
+        <section className="pt-20 pb-8 bg-[var(--neutral-500)]/20">
             <div className="max-w-7xl mx-auto px-6">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                     <div className="space-y-8">
@@ -68,8 +68,8 @@ const AboutUs = () => {
                 </div>
 
                 {/* Quote */}
-                <div className="text-center mt-12">
-                    <blockquote className="text-xl italic text-[var(--neutral-600)] mb-2">
+                <div className="text-center mt-8">
+                    <blockquote className="text-xl italic text-[var(--neutral-600)] mb-1">
                         &ldquo;You should be motivated and guided by the beauty of harmony&rdquo;
                     </blockquote>
                     <cite className="text-sm text-[var(--neutral-500)] not-italic">
