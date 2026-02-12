@@ -171,6 +171,16 @@ export type ContentNode =
     | { type: "card"; cardId: string }
     | { type: "subcontent"; content: ContentHierarchy };
 
+// Tutor Actions - actions the AI tutor can trigger via [ACTION]...[/ACTION] tokens
+
+export type TutorAction =
+    | { type: "regenerate_hierarchy" }
+    | { type: "delete_card"; cardId: string }
+    | { type: "rename_section"; oldTitle: string; newTitle: string }
+    | { type: "create_section"; title: string; parentSection?: string }
+    | { type: "delete_section"; title: string }
+    | { type: "move_card"; cardId: string; toSection: string };
+
 // Invites
 
 export interface Invite {

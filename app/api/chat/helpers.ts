@@ -1,7 +1,7 @@
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, setDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc, setDoc, addDoc, deleteDoc, collection, serverTimestamp } from "firebase/firestore";
 
-import { Message, Card, NewCard, ContentNode, ContentHierarchy, ChatAttachment, GroundingChunk, ChatPreferences} from "@/lib/types"; // { content: string; isResponse: boolean }
+import { Message, Card, NewCard, ContentNode, ContentHierarchy, ChatAttachment, GroundingChunk, ChatPreferences, TutorAction} from "@/lib/types"; // { content: string; isResponse: boolean }
 import { Contents } from "./types";
 
 import {
@@ -807,6 +807,198 @@ export const getUserPreferences = async (
         return null;
     }
 };
+
+// ==== Tutor Action Helpers ====
+
+/**
+ * Renames a section in the hierarchy tree. Returns true if found and renamed.
+ */
+function renameSectionInHierarchy(hierarchy: ContentHierarchy, oldTitle: string, newTitle: string): boolean {
+    if (hierarchy.title === oldTitle) {
+        hierarchy.title = newTitle;
+        return true;
+    }
+    for (const child of hierarchy.children) {
+        if (child.type === "subcontent" && renameSectionInHierarchy(child.content, oldTitle, newTitle)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Creates a new section in the hierarchy. If parentSection is specified, creates it as a child of that section.
+ * Otherwise creates it at the top level. Returns true if successful.
+ */
+function createSectionInHierarchy(hierarchy: ContentHierarchy, title: string, parentSection?: string): boolean {
+    const newSection: ContentNode = { type: "subcontent", content: { title, children: [] } };
+    
+    if (!parentSection) {
+        hierarchy.children.push(newSection);
+        return true;
+    }
+
+    // Find parent section and add as child
+    if (hierarchy.title === parentSection) {
+        hierarchy.children.push(newSection);
+        return true;
+    }
+    for (const child of hierarchy.children) {
+        if (child.type === "subcontent" && createSectionInHierarchy(child.content, title, parentSection)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Deletes a section from the hierarchy. Returns true if found and deleted.
+ */
+function deleteSectionFromHierarchy(hierarchy: ContentHierarchy, title: string): boolean {
+    for (let i = 0; i < hierarchy.children.length; i++) {
+        const child = hierarchy.children[i];
+        if (child.type === "subcontent") {
+            if (child.content.title === title) {
+                hierarchy.children.splice(i, 1);
+                return true;
+            }
+            if (deleteSectionFromHierarchy(child.content, title)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/**
+ * Removes a card node from anywhere in the hierarchy. Returns true if found and removed.
+ */
+function removeCardFromHierarchy(hierarchy: ContentHierarchy, cardId: string): boolean {
+    for (let i = 0; i < hierarchy.children.length; i++) {
+        const child = hierarchy.children[i];
+        if (child.type === "card" && child.cardId === cardId) {
+            hierarchy.children.splice(i, 1);
+            return true;
+        }
+        if (child.type === "subcontent" && removeCardFromHierarchy(child.content, cardId)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Adds a card to a specific section in the hierarchy. Returns true if section found and card added.
+ */
+function addCardToSection(hierarchy: ContentHierarchy, cardId: string, sectionTitle: string): boolean {
+    if (hierarchy.title === sectionTitle) {
+        hierarchy.children.push({ type: "card", cardId });
+        return true;
+    }
+    for (const child of hierarchy.children) {
+        if (child.type === "subcontent" && addCardToSection(child.content, cardId, sectionTitle)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Executes tutor actions on the project. Returns the modified hierarchy (or null if unchanged)
+ * and a list of deleted card IDs.
+ */
+export async function executeTutorActions(
+    actions: TutorAction[],
+    projectId: string,
+    hierarchy: ContentHierarchy,
+    cards: Card[],
+    generationModel?: "flash" | "flash-lite"
+): Promise<{ modifiedHierarchy: ContentHierarchy | null; deletedCardIds: string[] }> {
+    // Deep copy hierarchy so we can mutate it
+    let currentHierarchy = JSON.parse(JSON.stringify(hierarchy)) as ContentHierarchy;
+    let hierarchyModified = false;
+    let needsRegeneration = false;
+    const deletedCardIds: string[] = [];
+
+    // Sort actions: do direct mutations first, regenerate_hierarchy last
+    const sortedActions = [...actions].sort((a, b) => {
+        if (a.type === "regenerate_hierarchy") return 1;
+        if (b.type === "regenerate_hierarchy") return -1;
+        return 0;
+    });
+
+    for (const action of sortedActions) {
+        try {
+            switch (action.type) {
+                case "delete_card": {
+                    // Delete card from Firestore
+                    const cardRef = doc(db, "projects", projectId, "cards", action.cardId);
+                    await deleteDoc(cardRef);
+                    deletedCardIds.push(action.cardId);
+                    // Also remove from hierarchy
+                    removeCardFromHierarchy(currentHierarchy, action.cardId);
+                    hierarchyModified = true;
+                    break;
+                }
+                case "rename_section": {
+                    const renamed = renameSectionInHierarchy(currentHierarchy, action.oldTitle, action.newTitle);
+                    if (renamed) hierarchyModified = true;
+                    else console.error(`Tutor action: section "${action.oldTitle}" not found for rename`);
+                    break;
+                }
+                case "create_section": {
+                    const created = createSectionInHierarchy(currentHierarchy, action.title, action.parentSection);
+                    if (created) hierarchyModified = true;
+                    else console.error(`Tutor action: parent section "${action.parentSection}" not found for create`);
+                    break;
+                }
+                case "delete_section": {
+                    const deleted = deleteSectionFromHierarchy(currentHierarchy, action.title);
+                    if (deleted) hierarchyModified = true;
+                    else console.error(`Tutor action: section "${action.title}" not found for delete`);
+                    break;
+                }
+                case "move_card": {
+                    const removed = removeCardFromHierarchy(currentHierarchy, action.cardId);
+                    if (removed) {
+                        const added = addCardToSection(currentHierarchy, action.cardId, action.toSection);
+                        if (!added) {
+                            console.error(`Tutor action: target section "${action.toSection}" not found for move_card`);
+                        }
+                        hierarchyModified = true;
+                    } else {
+                        console.error(`Tutor action: card "${action.cardId}" not found for move`);
+                    }
+                    break;
+                }
+                case "regenerate_hierarchy": {
+                    needsRegeneration = true;
+                    break;
+                }
+            }
+        } catch (err) {
+            console.error(`Tutor action "${action.type}" failed:`, err);
+        }
+    }
+
+    // If regeneration is requested, call the hierarchy generation AI
+    if (needsRegeneration) {
+        try {
+            // Filter out deleted cards
+            const remainingCards = cards.filter(c => !deletedCardIds.includes(c.id));
+            // Pass empty newCards array and all remaining cards as previousCards - the AI will reorganize
+            currentHierarchy = await generateNewHierarchyFromCards(currentHierarchy, remainingCards, [], generationModel);
+            hierarchyModified = true;
+        } catch (err) {
+            console.error("Tutor action: hierarchy regeneration failed:", err);
+        }
+    }
+
+    return {
+        modifiedHierarchy: hierarchyModified ? currentHierarchy : null,
+        deletedCardIds,
+    };
+}
 
 /*
  * ========================================================

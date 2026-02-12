@@ -21,7 +21,7 @@ type MyGenerateContentParameters = {
   config: MyConfig;
 };
 
-import { ContentHierarchy, Card, Message, ChatAttachment, GroundingChunk, ChatPreferences, FileAttachment } from "@/lib/types"; // { content: string; isResponse: boolean }
+import { ContentHierarchy, Card, Message, ChatAttachment, GroundingChunk, ChatPreferences, FileAttachment, TutorAction } from "@/lib/types"; // { content: string; isResponse: boolean }
 
 import { getStringFromHierarchyAndCards, parseUnlockedCardsFromResponse } from "../helpers"
 
@@ -49,7 +49,7 @@ export async function streamChatResponse(
     onToken: (token: string) => Promise<void> | void,
     cardsToUnlock?: Card[],
     courseLesson?: { cardsToUnlock: Card[] }
-): Promise<{ responseMessage: string; hasNewInfo: boolean; chatAttachments: ChatAttachment[]; followUpQuestions: string[]; unlockedCardIds: string[] } | null> {
+): Promise<{ responseMessage: string; hasNewInfo: boolean; chatAttachments: ChatAttachment[]; followUpQuestions: string[]; unlockedCardIds: string[]; tutorActions: TutorAction[] } | null> {
     if (!message || message.trim() === "") throw new Error("Message is required.");
 
     // Process file attachments: fetch and add as inlineData
@@ -174,8 +174,9 @@ export async function streamChatResponse(
             }
 
             if (partText) {
-                // Remove [HAS_NEW_INFO] from streaming tokens to prevent it from appearing in UI
-                const cleanToken = partText.replace(/\[HAS_NEW_INFO\]/g, '');
+                // Remove [HAS_NEW_INFO] and [ACTION]...[/ACTION] from streaming tokens to prevent them from appearing in UI
+                let cleanToken = partText.replace(/\[HAS_NEW_INFO\]/g, '');
+                cleanToken = cleanToken.replace(/\[ACTION\][\s\S]*?\[\/ACTION\]/g, '');
                 accumulated += partText; // Keep original for parsing
                 if (cleanToken) {
                     await onToken(cleanToken);
@@ -199,6 +200,21 @@ export async function streamChatResponse(
 
         // Remove [UNLOCKED_CARDS] token from the response message (it's for backend processing only)
         responseMessage = responseMessage.replace(/\[UNLOCKED_CARDS\][^\n]*/, '').trim();
+
+        // Parse tutor actions from response
+        const tutorActions: TutorAction[] = [];
+        const actionRegex = /\[ACTION\]([\s\S]*?)\[\/ACTION\]/g;
+        let actionMatch;
+        while ((actionMatch = actionRegex.exec(responseMessage)) !== null) {
+            try {
+                const action = JSON.parse(actionMatch[1].trim()) as TutorAction;
+                tutorActions.push(action);
+            } catch (e) {
+                console.error("Failed to parse tutor action:", actionMatch[1], e);
+            }
+        }
+        // Remove [ACTION]...[/ACTION] tokens from the response message
+        responseMessage = responseMessage.replace(/\[ACTION\][\s\S]*?\[\/ACTION\]/g, '').trim();
 
         // Override hasNewInfo based on forceCardCreation preference
         if (preferences.forceCardCreation === "on") {
@@ -253,6 +269,7 @@ export async function streamChatResponse(
             chatAttachments,
             followUpQuestions,
             unlockedCardIds,
+            tutorActions,
         };
     } catch (err) {
         console.error("streamChatResponse error:", err);

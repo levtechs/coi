@@ -232,6 +232,58 @@ Use the exact card IDs from cardsToUnlock - do not make up IDs.
 
 const disableUnlockingChunk = ``
 
+const tutorActionsChunk = `
+AVAILABLE ACTIONS:
+You can perform structural operations on the user's notes by emitting action tokens. These actions are processed by the backend and applied to the user's project.
+
+To trigger an action, include it in your response using this exact format:
+[ACTION]{"type": "action_type", ...params}[/ACTION]
+
+Available action types:
+
+1. **regenerate_hierarchy** - Reorganize/restructure the entire notes hierarchy
+   [ACTION]{"type": "regenerate_hierarchy"}[/ACTION]
+   Use when the user asks to reorganize, restructure, or rearrange their notes.
+
+2. **delete_card** - Delete a specific notecard
+   [ACTION]{"type": "delete_card", "cardId": "the_card_id"}[/ACTION]
+   Use when the user asks to remove or delete a specific card. Use the exact card ID from the existing notes.
+
+3. **rename_section** - Rename a section in the hierarchy
+   [ACTION]{"type": "rename_section", "oldTitle": "Current Title", "newTitle": "New Title"}[/ACTION]
+   Use when the user asks to rename a section or category.
+
+4. **create_section** - Create a new section
+   [ACTION]{"type": "create_section", "title": "New Section Title"}[/ACTION]
+   Or to create it inside an existing section:
+   [ACTION]{"type": "create_section", "title": "New Section Title", "parentSection": "Parent Section Title"}[/ACTION]
+
+5. **delete_section** - Delete a section from the hierarchy
+   [ACTION]{"type": "delete_section", "title": "Section Title"}[/ACTION]
+   Use when the user asks to remove a section. Cards in the section will be reorganized.
+
+6. **move_card** - Move a card to a different section
+   [ACTION]{"type": "move_card", "cardId": "the_card_id", "toSection": "Target Section Title"}[/ACTION]
+   Use when the user asks to move a card to a different section.
+
+IMPORTANT RULES FOR ACTIONS:
+- You can include multiple [ACTION]...[/ACTION] blocks in a single response.
+- Always explain to the user what you're doing in natural language BEFORE the action tokens.
+- Use exact card IDs and section titles from the existing notes. Do not guess or make up IDs.
+- The action tokens will be stripped from the visible response - the user will only see your natural language explanation.
+- If the user's request is ambiguous, ask for clarification rather than guessing which action to perform.
+`
+
+const tutorRestrictionsChunk = `
+STRICT RESTRICTIONS - YOU MUST FOLLOW THESE:
+- NEVER output raw JSON, data structures, or code blocks containing hierarchy structures, card arrays, or content organization schemas in your response.
+- NEVER show internal card IDs, database references, or system metadata to the user in your prose. You may use them ONLY inside [ACTION] tokens.
+- NEVER attempt to restructure, reorganize, or modify notes by writing out a new hierarchy or card structure in the chat. ALWAYS use the [ACTION] tokens instead.
+- NEVER return technical implementation details, type definitions, or schema information to the user.
+- If a user asks you to do something that requires modifying notes structure, use the appropriate [ACTION] token. If no suitable action exists, explain what you can do instead.
+- Your visible response should always be natural, conversational text appropriate for a student. Technical operations happen silently through action tokens.
+`
+
 /**
  * Returns the appropriate unlocking chunk based on whether cardsToUnlock are provided.
  */
@@ -274,6 +326,10 @@ ${markdownChunk}
  ${followUpChunk}
 
  ${unlockingChunk}
+
+ ${tutorActionsChunk}
+
+ ${tutorRestrictionsChunk}
 
 EXAMPLE OUTPUT 1
 

@@ -9,6 +9,7 @@ import {
     updatePreferences,
     parseUnlockedCardsFromResponse,
     unlockCards,
+    executeTutorActions,
 } from "../helpers";
 import { streamChatResponse } from "./helpers";
 import { getProjectById } from "@/app/api/projects/helpers";
@@ -132,7 +133,7 @@ export async function POST(req: NextRequest) {
                         project.courseLesson
                     );
 
-                    const { responseMessage: chatResponseMessage, hasNewInfo, chatAttachments, followUpQuestions, unlockedCardIds: parsedUnlockedCardIds } = result!;
+                    const { responseMessage: chatResponseMessage, hasNewInfo, chatAttachments, followUpQuestions, unlockedCardIds: parsedUnlockedCardIds, tutorActions } = result!;
 
                     updatePhase("processing"); // phase 2
 
@@ -161,6 +162,32 @@ export async function POST(req: NextRequest) {
 
                     // Save the chat pair
                     await writeChatPairToDb(message, attachments, finalResponseMessage, projectId, uid, chatAttachments, followUpQuestions);
+
+                    // Execute tutor actions if any
+                    if (tutorActions && tutorActions.length > 0) {
+                        try {
+                            const actionResult = await executeTutorActions(
+                                tutorActions,
+                                projectId,
+                                previousContentHierarchy || { title: "", children: [] },
+                                effectivePreviousCards,
+                                preferences.generationModel
+                            );
+                            
+                            // If actions modified the hierarchy, write it
+                            if (actionResult.modifiedHierarchy) {
+                                await writeHierarchy(projectId, actionResult.modifiedHierarchy);
+                                sendUpdate("newHierarchy", JSON.stringify(actionResult.modifiedHierarchy));
+                            }
+
+                            // If cards were deleted, notify the client
+                            if (actionResult.deletedCardIds.length > 0) {
+                                sendUpdate("deletedCards", JSON.stringify(actionResult.deletedCardIds));
+                            }
+                        } catch (actionErr) {
+                            console.error("Failed to execute tutor actions:", actionErr);
+                        }
+                    }
 
                     // Generate/update content only if needed
                     let finalObj: {
