@@ -94,7 +94,6 @@ export const sendMessage = async (
 export const sendQuickCreateMessage = async (
     input: string,
     attachments: null | ChatAttachment[],
-    project: Project,
     preferences: ChatPreferences,
     addMessage: (msg: Message) => void,
     setNewCards: (newCards: Card[]) => void,

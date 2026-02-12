@@ -203,7 +203,6 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
         sendQuickCreateMessage(
             quickCreate.message,
             quickCreate.attachments,
-            project,
             quickCreate.preferences,
             addMessage,
             setNewCards,

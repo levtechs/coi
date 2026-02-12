@@ -90,6 +90,10 @@ export async function streamQuickCreate(
             try {
                 const obj = JSON.parse(jsonStr);
 
+                if (obj.type === "error") {
+                    throw new Error(obj.message || "Error received from quick-create stream");
+                }
+
                 // Handle projectId message
                 if (obj.type === "projectId" && obj.projectId) {
                     receivedProjectId = obj.projectId;
@@ -147,6 +151,9 @@ export async function streamQuickCreate(
                     return result;
                 }
             } catch (err) {
+                if (err instanceof Error && err.message.includes("Error received from quick-create stream")) {
+                    throw err;
+                }
                 console.warn("Failed to parse JSON update:", jsonStr, err);
             }
         }

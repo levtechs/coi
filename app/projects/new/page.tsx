@@ -98,8 +98,8 @@ export default function QuickCreateProjectPage() {
         <Editor
             project={emptyProject}
             user={user}
-            addCollaborator={addCollaborator}
-            setTitle={setTitle}
+            addCollaborator={async () => { console.warn("Cannot add collaborators during creation"); }}
+            setTitle={async () => { console.warn("Cannot set title during creation"); }}
             setProject={() => {}} // No-op since this is a temporary project
             quickCreate={{
                 message: quickCreateData.message,

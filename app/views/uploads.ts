@@ -17,3 +17,17 @@ export async function uploadFile(file: File, projectId: string): Promise<FileAtt
     const saved = await writeUploadsToDb(projectId, [attachment]);
     return saved[0];
 }
+
+export async function uploadFileToStorageOnly(file: File): Promise<FileAttachment> {
+    const storageRef = ref(storage, `uploads/${crypto.randomUUID()}_${file.name}`);
+    const snapshot = await uploadBytes(storageRef, file);
+    const url = await getDownloadURL(snapshot.ref);
+    return {
+        id: crypto.randomUUID(), // temporary ID for frontend state
+        type: 'file',
+        name: file.name,
+        url,
+        size: file.size,
+        mimeType: file.type,
+    };
+}

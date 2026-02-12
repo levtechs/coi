@@ -136,7 +136,11 @@ export async function POST(req: NextRequest) {
                         },
                     );
 
-                    const { responseMessage: chatResponseMessage, hasNewInfo, chatAttachments, followUpQuestions } = result!;
+                    if (!result) {
+                        throw new Error("Failed to generate response.");
+                    }
+
+                    const { responseMessage: chatResponseMessage, hasNewInfo, chatAttachments, followUpQuestions } = result;
 
                     updatePhase("processing");
 
@@ -210,8 +214,8 @@ export async function POST(req: NextRequest) {
                             projectId,
                             responseMessage: finalResponseMessage,
                             chatAttachments,
-                            newHierarchy: null,
-                            allCards: null,
+                            newHierarchy,
+                            allCards: newCards,
                             followUpQuestions
                         };
                     }

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { ChatPreferences, ChatAttachment, FileAttachment } from "@/lib/types";
 import { getUserPreferences } from "@/app/views/chat";
-import { uploadFile } from "@/app/views/uploads";
+import { uploadFileToStorageOnly } from "@/app/views/uploads";
 import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/uploadConstants";
 
 import { FiArrowRight, FiLoader, FiX } from "react-icons/fi";
@@ -59,6 +59,7 @@ const QuickCreateInput = ({
     const [isTyping, setIsTyping] = useState(true);
     const [messageIndex, setMessageIndex] = useState(0);
     const [charIndex, setCharIndex] = useState(0);
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Restore pending query on mount (if user was redirected to login)
     // Note: For landing page → login → /projects/new flow, the quickCreateData is already set
@@ -107,7 +108,7 @@ const QuickCreateInput = ({
                 setPlaceholderText(currentMessage.slice(0, charIndex + 1));
                 setCharIndex(charIndex + 1);
             } else {
-                setTimeout(() => setIsTyping(false), PAUSE_DURATION);
+                typingTimeoutRef.current = setTimeout(() => setIsTyping(false), PAUSE_DURATION);
             }
         } else {
             if (charIndex > 0) {
@@ -121,12 +122,18 @@ const QuickCreateInput = ({
     }, [charIndex, isTyping, messageIndex]);
 
     useEffect(() => {
-        const timer = setTimeout(
+        // Clear any existing timeout when effect runs to ensure only one is active
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        
+        typingTimeoutRef.current = setTimeout(
             animatePlaceholder,
             isTyping ? TYPING_SPEED : DELETING_SPEED
         );
-        return () => clearTimeout(timer);
-    }, [animatePlaceholder, isTyping]);
+        
+        return () => {
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        };
+    }, [animatePlaceholder, isTyping, charIndex]); // Added charIndex dependency to re-trigger on update
 
     const handleSubmit = async () => {
         if (!input.trim() || isSubmitting) return;
@@ -196,7 +203,7 @@ const QuickCreateInput = ({
         }
 
         try {
-            const attachment = await uploadFile(file, "quick-create-temp");
+            const attachment = await uploadFileToStorageOnly(file);
             setAttachments(prev => [attachment, ...prev]);
         } catch (error) {
             console.error("Upload failed:", error);
@@ -205,25 +212,31 @@ const QuickCreateInput = ({
     };
 
     return (
-        <div className="flex flex-col items-center justify-center w-full max-w-2xl mx-auto mb-8 mt-6">
+        <div className={`flex flex-col items-center justify-center w-full max-w-2xl mx-auto mb-8 mt-6 ${className}`}>
             {/* Attachments Display - only when logged in */}
             {isLoggedIn && attachments.length > 0 && (
                 <div className="w-full mb-3 flex flex-wrap gap-2">
-                    {attachments.map((attachment: ChatAttachment) => {
+                    {attachments.map((attachment: ChatAttachment, index: number) => {
                         let text: string;
+                        let id: string;
+                        
                         if ("type" in attachment && attachment.type === 'file') {
                             text = attachment.name;
+                            id = attachment.id || `file-${attachment.name}-${index}`;
                         } else if ("title" in attachment) {
                             text = attachment.title;
+                            id = attachment.title || `card-${index}`;
                         } else if ("text" in attachment) {
                             text = attachment.text;
+                            id = `text-${attachment.text.substring(0, 10)}-${index}`;
                         } else {
                             text = "attachment";
+                            id = `unknown-${index}`;
                         }
 
                         return (
                             <div
-                                key={"id" in attachment ? attachment.id : crypto.randomUUID()}
+                                key={id}
                                 className="flex items-center justify-between px-3 py-1 bg-[var(--neutral-200)] border border-[var(--neutral-300)] rounded-full text-sm"
                             >
                                 <span className="truncate max-w-[150px]">{text}</span>
@@ -236,6 +249,7 @@ const QuickCreateInput = ({
                     })}
                 </div>
             )}
+
 
             {/* Input Container with Glow Effect */}
             <div className="relative w-full group">
