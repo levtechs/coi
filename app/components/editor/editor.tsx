@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Project, Card, ChatAttachment, CardFilter, DEFAULT_CARD_FILTER } from "@/lib/types";
+import { Project, Card, ChatAttachment, CardFilter, DEFAULT_CARD_FILTER, ChatPreferences } from "@/lib/types";
 import Modal from "../modal";
 import MenuBar from "./menu/menu";
 import ContentPanel from "./content";
@@ -16,6 +16,13 @@ interface EditorProps {
     addCollaborator: (projectId: string, email: string) => Promise<void>;
     setTitle: (projectId: string, newTitle: string) => Promise<void>;
     setProject: (project: Project) => void;
+    /** Quick create props - when set, auto-sends the initial message */
+    quickCreate?: {
+        message: string;
+        attachments: ChatAttachment[] | null;
+        preferences: ChatPreferences;
+        onProjectCreated: (projectId: string) => void;
+    };
 }
 
 const Editor = ({
@@ -24,6 +31,7 @@ const Editor = ({
     addCollaborator,
     setTitle,
     setProject,
+    quickCreate,
 }: EditorProps) => {
     const [tab, setTab] = useState<"content" | "cards">("content"); // "content" or "cards"
 
@@ -116,6 +124,7 @@ const Editor = ({
                         addFileAttachment={addFileAttachment}
                         setClickedCard={setCardPopup}
                         onFullscreenChange={setChatFullscreen}
+                        quickCreate={quickCreate}
                     />
                 </div>
             </div>

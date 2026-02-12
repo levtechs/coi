@@ -13,7 +13,7 @@ import { Project, Message, Card, StreamPhase, ChatAttachment, ChatPreferences } 
 import { ModalContents, noModal } from "../types";
 
 import { getChatHistory, getUserPreferences } from "@/app/views/chat";
-import { sendMessage } from "./helpers";
+import { sendMessage, sendQuickCreateMessage } from "./helpers";
 import { uploadFile } from "@/app/views/uploads";
 import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/uploadConstants";
 import { validateAndUploadFiles } from '@/lib/uploadUtils';
@@ -26,9 +26,16 @@ interface ChatPanelProps {
     addFileAttachment: (attachment: ChatAttachment) => void;
     setClickedCard: Dispatch<SetStateAction<Card | null>>;
     onFullscreenChange?: (isFullscreen: boolean) => void;
+    /** When provided, auto-sends the initial message via the quick create flow */
+    quickCreate?: {
+        message: string;
+        attachments: ChatAttachment[] | null;
+        preferences: ChatPreferences;
+        onProjectCreated: (projectId: string) => void;
+    };
 }
 
-const ChatPanel = ({ project, setModalContents, attachments, setAttachments, addFileAttachment, setClickedCard, onFullscreenChange }: ChatPanelProps) => {
+const ChatPanel = ({ project, setModalContents, attachments, setAttachments, addFileAttachment, setClickedCard, onFullscreenChange, quickCreate }: ChatPanelProps) => {
     const [chatToggled, setChatToggled] = useState(true);
 
     const [messages, setMessages] = useState<Message[]>([]);
@@ -143,7 +150,10 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
     }, [chatToggled, messages]);
 
     // Load chat history on mount or when project ID changes
+    // Skip for quick create - there's no history for a new project
     useEffect(() => {
+        if (quickCreate) return;
+
         const loadHistory = async () => {
             try {
                 const history = await getChatHistory(project.id);
@@ -160,10 +170,16 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
         };
 
         loadHistory();
-    }, [project.id]);
+    }, [project.id, quickCreate]);
 
     // Load user preferences on mount
+    // For quick create, use the provided preferences instead
     useEffect(() => {
+        if (quickCreate) {
+            setPreferences(quickCreate.preferences);
+            return;
+        }
+
         const loadPreferences = async () => {
             try {
                 const savedPreferences = await getUserPreferences();
@@ -176,7 +192,27 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
         };
 
         loadPreferences();
-    }, []);
+    }, [quickCreate]);
+
+    // Quick create: auto-send the initial message on mount
+    const quickCreateTriggered = useRef(false);
+    useEffect(() => {
+        if (!quickCreate || quickCreateTriggered.current) return;
+        quickCreateTriggered.current = true;
+
+        sendQuickCreateMessage(
+            quickCreate.message,
+            quickCreate.attachments,
+            project,
+            quickCreate.preferences,
+            addMessage,
+            setNewCards,
+            setStreamPhase,
+            setLoading,
+            setMessages,
+            quickCreate.onProjectCreated,
+        );
+    }, [quickCreate]);
 
     // Notify parent when fullscreen state changes
     useEffect(() => {
