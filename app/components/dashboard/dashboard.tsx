@@ -33,7 +33,6 @@ const Dashboard = ({ user, chatPreferences }: DashboardProps) => {
         return funFacts[randomIndex] as string;
     };
 
-    // Separate projects into regular and lesson projects
     const isLessonProject = (project: Project) => {
         return project.courseLesson !== undefined;
     };
@@ -41,7 +40,6 @@ const Dashboard = ({ user, chatPreferences }: DashboardProps) => {
     const regularProjects = projects.filter(p => !isLessonProject(p));
     const lessonProjects = projects.filter(p => isLessonProject(p));
 
-    // Group lesson projects by course
     const courseMap = courses.reduce((map, course) => {
         map[course.id] = course;
         return map;
@@ -79,10 +77,6 @@ const Dashboard = ({ user, chatPreferences }: DashboardProps) => {
         fetchData();
     }, [user]);
 
-    if (!user) return null;
-
-    if (isLoading) return <div className="mt-8 flex justify-center"><LoadingComponent small={true} /></div>;
-
     function openCreateModal() {
         setEditingProject(null);
         setModalVisible(true);
@@ -106,92 +100,94 @@ const Dashboard = ({ user, chatPreferences }: DashboardProps) => {
         setModalVisible(false);
         setEditingProject(null);
 
-        // Fetch updated projects and set state
         const updatedProjects = await getProjects();
         setProjects(updatedProjects);
     }
 
+    if (!user) return null;
+
     return (
         <>
-            {/* Quick Create Input */}
             <QuickCreateInput chatPreferences={chatPreferences} autoRedirectOnPending={true} />
 
-            {/* Create Project Card - Always shown */}
-            <div className="flex flex-wrap gap-6 mb-6 mt-6">
-                <div
-                    className="flex items-center justify-center border border-[var(--neutral-300)] rounded-lg p-6 cursor-pointer
-                            bg-[var(--neutral-100)]
-                            hover:bg-[var(--neutral-300)]
-                            transition-colors duration-200"
-                    onClick={openCreateModal}
-                >
-                    <span className="text-[var(--accent-500)] font-semibold text-lg">+ Create Project</span>
-                </div>
-            </div>
+            {isLoading && <div className="mt-8 flex justify-center"><LoadingComponent small={true} /></div>}
 
-            {/* Regular Projects Section */}
-            {regularProjects.length > 0 && (
-                <div className="mb-8">
-                    <p className="text-[var(--foreground)] text-lg mb-4 font-bold">
-                        Your projects
-                    </p>
-                                <div className="flex flex-wrap gap-6">
-                        {regularProjects.map((project) => (
-                            <ProjectCard
-                                key={project.id}
-                                project={project}
-                                onEdit={openEditModal}
-                                setProjects={setProjects}
-                            />
-                        ))}
+            {!isLoading && (
+                <>
+                    <div className="flex flex-wrap gap-6 mb-6 mt-6">
+                        <div
+                            className="flex items-center justify-center border border-[var(--neutral-300)] rounded-lg p-6 cursor-pointer
+                                    bg-[var(--neutral-100)]
+                                    hover:bg-[var(--neutral-300)]
+                                    transition-colors duration-200"
+                            onClick={openCreateModal}
+                        >
+                            <span className="text-[var(--accent-500)] font-semibold text-lg">+ Create Project</span>
+                        </div>
                     </div>
-                </div>
-            )}
 
-            {/* Lesson Projects Section */}
-            {Object.keys(lessonProjectsByCourse).length > 0 && (
-                <div>
-                    <p className="text-[var(--foreground)] text-lg mb-4 font-bold">
-                        Your lesson projects
-                    </p>
-                    {Object.entries(lessonProjectsByCourse).map(([courseId, courseProjects]) => {
-                        const course = courseMap[courseId];
-                        if (!course) return null;
-                        return (
-                            <div key={courseId} className="mb-4">
-                                <div className="mb-2">
-                                  <Link href={`/courses/${courseId}`} className="text-[var(--foreground)] text-sm">
-                                      {course.title}
-                                  </Link>
-                                </div>
-                    <div className="flex flex-wrap gap-6">
-                                    {courseProjects.map((project) => (
-                                        <ProjectCard
-                                            key={project.id}
-                                            project={project}
-                                            onEdit={openEditModal}
-                                            setProjects={setProjects}
-                                        />
-                                    ))}
-                                </div>
+                    {regularProjects.length > 0 && (
+                        <div className="mb-8">
+                            <p className="text-[var(--foreground)] text-lg mb-4 font-bold">
+                                Your projects
+                            </p>
+                            <div className="flex flex-wrap gap-6">
+                                {regularProjects.map((project) => (
+                                    <ProjectCard
+                                        key={project.id}
+                                        project={project}
+                                        onEdit={openEditModal}
+                                        setProjects={setProjects}
+                                    />
+                                ))}
                             </div>
-                        );
-                    })}
-                </div>
-            )}
+                        </div>
+                    )}
 
-            {/* Modal for Create/Edit */}
-            <Modal
-                isOpen={modalVisible}
-                type = "input"
-                initialValue={editingProject?.title || ""}
-                onClose={() => setModalVisible(false)}
-                onSubmit={handleModalSubmit}
-                title={editingProject ? "Edit Project" : "Create Project"}
-            />
-            <p className="text-center text-sm opacity-50 mt-12 pb-4 italic max-w-lg mx-auto px-6">
-                {getDailyFact()}
-            </p>
+                    {Object.keys(lessonProjectsByCourse).length > 0 && (
+                        <div>
+                            <p className="text-[var(--foreground)] text-lg mb-4 font-bold">
+                                Your lesson projects
+                            </p>
+                            {Object.entries(lessonProjectsByCourse).map(([courseId, courseProjects]) => {
+                                const course = courseMap[courseId];
+                                if (!course) return null;
+                                return (
+                                    <div key={courseId} className="mb-4">
+                                        <div className="mb-2">
+                                            <Link href={`/courses/${courseId}`} className="text-[var(--foreground)] text-sm">
+                                                {course.title}
+                                            </Link>
+                                        </div>
+                                        <div className="flex flex-wrap gap-6">
+                                            {courseProjects.map((project) => (
+                                                <ProjectCard
+                                                    key={project.id}
+                                                    project={project}
+                                                    onEdit={openEditModal}
+                                                    setProjects={setProjects}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    <Modal
+                        isOpen={modalVisible}
+                        type="input"
+                        initialValue={editingProject?.title || ""}
+                        onClose={() => setModalVisible(false)}
+                        onSubmit={handleModalSubmit}
+                        title={editingProject ? "Edit Project" : "Create Project"}
+                    />
+                    <p className="text-center text-sm opacity-50 mt-12 pb-4 italic max-w-lg mx-auto px-6">
+                        {getDailyFact()}
+                    </p>
+                </>
+            )}
         </>
     );
 };
