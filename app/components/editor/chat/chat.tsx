@@ -140,7 +140,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                 behavior: 'smooth'
             });
         }
-    }, [chatToggled, messages]);
+    }, [chatToggled, messages.length]);
 
     // Load chat history on mount or when project ID changes
     useEffect(() => {

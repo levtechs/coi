@@ -3,6 +3,7 @@ import React, { useState } from "react"
 import { FiLoader } from "react-icons/fi";
 
 import { Message, StreamPhase, ChatAttachment, Card } from "@/lib/types";
+import { useSmoothStream } from "@/app/hooks/use-smooth-stream";
 
 import MarkdownArticle from "../../md";
 import CardPopup from "../cards/card_popup";
@@ -70,6 +71,8 @@ interface ChatMessageParams {
 }
 
 const ChatMessage = ({ message, cards, onCardClick, onFollowUpClick }: ChatMessageParams) => {
+    const smoothContent = useSmoothStream(message.content, message.isResponse);
+
     return (
         <div className="flex flex-col mb-6">
             {/* Attachments of user-sent message*/}
@@ -140,7 +143,7 @@ const ChatMessage = ({ message, cards, onCardClick, onFollowUpClick }: ChatMessa
                     }`}
             >
                 {message.isResponse ? (
-                    <MarkdownArticle markdown={message.content} cards={cards} onCardClick={onCardClick} />
+                    <MarkdownArticle markdown={smoothContent} cards={cards} onCardClick={onCardClick} />
                 ) : (message.content)}
             </div>
 
