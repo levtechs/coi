@@ -3,8 +3,11 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { FiChevronDown } from "react-icons/fi";
+import { useAuth } from "@/lib/AuthContext";
+import QuickCreateInput from "@/app/components/quick_create_input";
 
 const HeroSection = React.forwardRef<HTMLDivElement, { onScrollDown?: () => void }>(({ onScrollDown }, ref) => {
+    const { user } = useAuth();
     const [isDark, setIsDark] = useState(false);
     const [buttonsVisible, setButtonsVisible] = useState(false);
 
@@ -70,6 +73,14 @@ const HeroSection = React.forwardRef<HTMLDivElement, { onScrollDown?: () => void
                         >
                         Go to Dashboard
                         </a>
+                        </div>
+
+                        {/* Quick Create Input */}
+                        <div className="w-full max-w-xl">
+                            <QuickCreateInput 
+                                isLoggedIn={!!user}
+                                className="w-full"
+                            />
                         </div>
 
                         <div className="bg-[var(--neutral-200)] rounded-lg p-4 border border-[var(--neutral-300)]">

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { User } from "firebase/auth";
-import { Project, Course } from "@/lib/types";
+import { Project, Course, ChatPreferences } from "@/lib/types";
 import { getProjects, saveProject, createProject } from "@/app/views/projects"
 import { getCourses } from "@/app/views/courses";
 import funFacts from "@/lib/fun-facts.json";
@@ -13,12 +13,14 @@ import LoadingComponent from "@/app/components/loading";
 
 import ProjectCard from "./project_card";
 import Modal from "@/app/components/modal";
+import QuickCreateInput from "@/app/components/quick_create_input";
 
 interface DashboardProps {
     user: User | null;
+    chatPreferences: ChatPreferences | null;
 }
 
-const Dashboard = ({ user }: DashboardProps) => {
+const Dashboard = ({ user, chatPreferences }: DashboardProps) => {
     const [isLoading, setLoading] = useState(false);
     const [projects, setProjects] = useState<Project[]>([]);
     const [courses, setCourses] = useState<Course[]>([]);
@@ -111,6 +113,9 @@ const Dashboard = ({ user }: DashboardProps) => {
 
     return (
         <>
+            {/* Quick Create Input */}
+            <QuickCreateInput chatPreferences={chatPreferences} autoRedirectOnPending={true} />
+
             {/* Create Project Card - Always shown */}
             <div className="flex flex-wrap gap-6 mb-6 mt-6">
                 <div
