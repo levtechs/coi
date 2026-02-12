@@ -151,10 +151,15 @@ export async function streamQuickCreate(
                     return result;
                 }
             } catch (err) {
-                if (err instanceof Error && err.message.includes("Error received from quick-create stream")) {
-                    throw err;
+                // Swallow only JSON parse errors; rethrow all other stream errors.
+                if (err instanceof SyntaxError) {
+                    console.warn("Failed to parse JSON update:", jsonStr, err);
+                    // Ignore malformed JSON chunk and continue processing the stream.
+                    continue;
                 }
-                console.warn("Failed to parse JSON update:", jsonStr, err);
+
+                // Non-parse errors (including stream error payloads) should propagate.
+                throw err;
             }
         }
 
