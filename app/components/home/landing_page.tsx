@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiChevronDown, FiChevronUp, FiExternalLink } from "react-icons/fi";
+import Image from "next/image";
 import { FlickeringGrid } from "../../components/flickering-grid";
 
 import HeroSection from "./hero_section";
@@ -161,6 +162,75 @@ const LandingPage = () => {
                 <div ref={aboutRef}>
                     <AboutUs />
                 </div>
+
+                <hr className="border-[var(--neutral-300)]" />
+
+                {/* Additional Student Resources */}
+                <section className="py-16 bg-[var(--neutral-400)]/20">
+                    <div className="max-w-7xl mx-auto px-6">
+                        <h2 className="text-3xl lg:text-4xl font-bold text-[var(--neutral-900)] text-center mb-12">
+                            Additional Student Resources Made By Me
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                            <a
+                                href="https://sat.coilearn.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block bg-[var(--neutral-100)] border border-[var(--neutral-300)] rounded-xl p-6 hover:border-[var(--accent-500)] hover:shadow-lg transition-all group"
+                            >
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className="w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden bg-white">
+                                        <Image
+                                            src="https://sat.coilearn.com/favicon.ico"
+                                            alt="SAT Practice"
+                                            width={32}
+                                            height={32}
+                                            className="w-8 h-8"
+                                        />
+                                    </div>
+                                    <FiExternalLink className="text-[var(--neutral-500)] group-hover:text-[var(--accent-500)] transition-colors" />
+                                </div>
+                                <h3 className="text-xl font-semibold text-[var(--neutral-900)] mb-2">
+                                    SAT Practice
+                                </h3>
+                                <p className="text-[var(--neutral-600)] mb-4">
+                                    Practice SAT questions for free with an adaptive algorithm and challenges. Track your progress and improve your score.
+                                </p>
+                                <span className="text-[var(--accent-500)] font-medium group-hover:text-[var(--accent-600)] transition-colors">
+                                    Visit sat.coilearn.com →
+                                </span>
+                            </a>
+                            <a
+                                href="https://thryftstore.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block bg-[var(--neutral-100)] border border-[var(--neutral-300)] rounded-xl p-6 hover:border-[var(--accent-500)] hover:shadow-lg transition-all group"
+                            >
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className="w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden bg-white">
+                                        <Image
+                                            src="https://thryftstore.com/favicon.ico"
+                                            alt="ThryftStore"
+                                            width={32}
+                                            height={32}
+                                            className="w-8 h-8"
+                                        />
+                                    </div>
+                                    <FiExternalLink className="text-[var(--neutral-500)] group-hover:text-[var(--accent-500)] transition-colors" />
+                                </div>
+                                <h3 className="text-xl font-semibold text-[var(--neutral-900)] mb-2">
+                                    ThryftStore
+                                </h3>
+                                <p className="text-[var(--neutral-600)] mb-4">
+                                    Student marketplace to buy and sell textbooks, notes, and school supplies. Save money and connect with other students.
+                                </p>
+                                <span className="text-[var(--accent-500)] font-medium group-hover:text-[var(--accent-600)] transition-colors">
+                                    Visit thryftstore.com →
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+                </section>
 
                 <hr className="border-[var(--neutral-300)]" />
 

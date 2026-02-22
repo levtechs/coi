@@ -26,6 +26,7 @@ const Dashboard = ({ user, chatPreferences }: DashboardProps) => {
     const [courses, setCourses] = useState<Course[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
+    const [showSatPromo, setShowSatPromo] = useState(true);
 
     const getDailyFact = () => {
         const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
@@ -186,6 +187,31 @@ const Dashboard = ({ user, chatPreferences }: DashboardProps) => {
                     <p className="text-center text-sm opacity-50 mt-12 pb-4 italic max-w-lg mx-auto px-6">
                         {getDailyFact()}
                     </p>
+
+                    {showSatPromo && (
+                        <div className="fixed bottom-6 right-6 max-w-sm bg-[var(--neutral-100)] border border-[var(--accent-500)] rounded-lg shadow-lg p-4 z-50">
+                            <button
+                                onClick={() => setShowSatPromo(false)}
+                                className="absolute top-2 right-2 text-[var(--neutral-500)] hover:text-[var(--foreground)]"
+                            >
+                                ×
+                            </button>
+                            <p className="text-[var(--foreground)] font-semibold mb-2 pr-6">
+                                Practice SAT for Free
+                            </p>
+                            <p className="text-sm text-[var(--neutral-600)] mb-3">
+                                Master the SAT with adaptive questions and challenges at sat.coilearn.com
+                            </p>
+                            <a
+                                href="https://sat.coilearn.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-block bg-[var(--accent-500)] text-white px-4 py-2 rounded hover:bg-[var(--accent-600)] transition-colors"
+                            >
+                                Start Practicing →
+                            </a>
+                        </div>
+                    )}
                 </>
             )}
         </>

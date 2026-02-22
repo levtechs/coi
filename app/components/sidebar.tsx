@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FiLogOut, FiUser, FiStar, FiBookOpen, FiHome } from "react-icons/fi";
+import { FiLogOut, FiUser, FiStar, FiBookOpen, FiHome, FiExternalLink } from "react-icons/fi";
 import { FaPaintbrush } from "react-icons/fa6";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -56,6 +56,10 @@ export default function Sidebar({ current }: SidebarProps) {
                                 ))}
                             </div>
                         )}
+                    </div>
+                    <div className="flex items-center w-full px-4 py-2 hover:bg-[var(--accent-100)] cursor-pointer" onClick={() => window.open('https://sat.coilearn.com', '_blank')}>
+                        <FiExternalLink className="h-6 w-6 flex-shrink-0 text-[var(--neutral-600)]" />
+                        <span className="ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">SAT Practice</span>
                     </div>
                     <div className="flex items-center w-full px-4 py-2 hover:bg-[var(--accent-100)] cursor-pointer" onClick={() => signOut(auth)}>
                         <FiLogOut className="h-6 w-6 flex-shrink-0 text-[var(--neutral-600)]" />

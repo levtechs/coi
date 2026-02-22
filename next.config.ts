@@ -4,6 +4,18 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'sat.coilearn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'thryftstore.com',
+      },
+    ],
+  },
   async rewrites() {
     return [
       {

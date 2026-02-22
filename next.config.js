@@ -3,8 +3,19 @@
 const isIsolatedBuild = process.env.ISOLATED_BUILD === 'true';
 
 const nextConfig = {
-    // Only redirect output to another folder if we're doing an isolated build
     distDir: isIsolatedBuild ? '.next-build' : '.next',
+    images: {
+        remotePatterns: [
+            {
+                protocol: 'https',
+                hostname: 'sat.coilearn.com',
+            },
+            {
+                protocol: 'https',
+                hostname: 'thryftstore.com',
+            },
+        ],
+    },
 };
 
 module.exports = nextConfig;
