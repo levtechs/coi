@@ -1,220 +1,107 @@
-"use client";
+import type { Metadata } from "next";
+import { adminDb } from "@/lib/firebaseAdmin";
+import InviteContentWrapper from "./invite_content";
 
-import React, { useState, useEffect, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { getAuth, onAuthStateChanged, User } from "firebase/auth";
-import { initializeApp, getApps, getApp } from "firebase/app";
+interface InvitePageProps {
+    searchParams: Promise<{ token?: string }>;
+}
 
-import { getTitleByToken, acceptInvitation } from "@/app/views/invite";
-import { getProject } from "@/app/views/projects";
-import { getCourse } from "@/app/views/courses";
-import Button from "@/app/components/button";
-import Error from "../components/error";
+export async function generateMetadata({ searchParams }: InvitePageProps): Promise<Metadata> {
+    const params = await searchParams;
+    const token = params.token;
 
-// These variables are provided by the hosting environment
-declare const __firebase_config: string;
-
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-
-// Check if a Firebase app is already initialized before creating a new one
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-
-function InvitePageContent() {
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [projectTitle, setProjectTitle] = useState<string | null>(null);
-    const [createdByName, setCreatedByName] = useState<string | null>(null);
-    const [itemId, setItemId] = useState<string | null>(null);
-    const [itemType, setItemType] = useState<'project' | 'course' | 'friend' | null>(null);
-    const [isFriendRequest, setIsFriendRequest] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [token, setToken] = useState<string | null>(null);
-    const [inputToken, setInputToken] = useState<string>("");
-
-    // Auth state listener and initial login
-    useEffect(() => {
-        document.title = "Invite - coi";
-    }, []);
-
-    useEffect(() => {
-        const urlToken = searchParams.get("token");
-        if (urlToken) {
-            setToken(urlToken);
-            fetchProjectTitle(urlToken);
-        } else {
-            setIsLoading(false);
-        }
-
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            if (currentUser) {
-                setUser(currentUser);
-            } else {
-                // If there is no signed-in user, redirect to the login page.
-                // This is a more direct approach for a page that requires authentication.
-                const forwardUrl = `/i${urlToken ? `?token=${urlToken}` : ""}`;
-                router.push(`/login?forward=${encodeURIComponent(forwardUrl)}`);
-            }
-        });
-
-        return () => unsubscribe();
-    }, [searchParams, router]);
-
-    const fetchProjectTitle = async (tkn: string) => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const data = await getTitleByToken(tkn);
-            setProjectTitle(data.title);
-            setCreatedByName(data.createdByName);
-            setItemId(data.id);
-            setItemType(data.type);
-
-            if (data.friendRequest || data.type === 'friend') {
-                setIsFriendRequest(true);
-                // Don't check project/course access for friend requests
-                return;
-            }
-
-            // Check if user is already in the project/course
-            if (user && data.id) {
-                let isAlreadyIn: boolean = false;
-                try {
-                    if (data.type === 'project') {
-                        const project = await getProject(data.id);
-                        if (project) {
-                            isAlreadyIn = project.ownerId === user.uid ||
-                                          Boolean(project.sharedWith && project.sharedWith.includes(user.uid)) ||
-                                          Boolean(user.email && project.collaborators && project.collaborators.includes(user.email));
-                        }
-                    } else if (data.type === 'course') {
-                        const result = await getCourse(data.id);
-                        if (result) {
-                            const course = result.course;
-                            isAlreadyIn = course.ownerId === user.uid ||
-                                          Boolean(course.sharedWith && course.sharedWith.includes(user.uid));
-                        }
-                    }
-                } catch (_) {
-                    // If access denied (404), assume not already in; don't set error
-                    isAlreadyIn = false;
-                }
-
-                if (isAlreadyIn) {
-                    router.push(data.type === 'project' ? `/projects/${data.id}` : `/courses/${data.id}`);
-                    return;
-                }
-            }
-        } catch (err) {
-            setError((err as Error).message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleAccept = async () => {
-        if (!user) {
-            router.push("/login?signup=true");
-            return;
-        }
-
-        if (!token) {
-            setError("No token provided to accept.");
-            return;
-        }
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const result = await acceptInvitation(token);
-            if (isFriendRequest || result?.friendRequest) {
-                // Friend request accepted — redirect to friends page
-                router.push("/friends");
-            } else {
-                router.push(itemType === 'project' ? `/projects/${itemId}` : `/courses/${itemId}`);
-            }
-        } catch (err) {
-            setError((err as Error).message);
-            setIsLoading(false);
-        }
-    };
-
-    const handleSubmitToken = () => {
-        if (inputToken.trim()) {
-            window.location.href = `/i?token=${inputToken.trim()}`;
-        }
-    };
-
-    if (isLoading) {
-        return <div className="flex justify-center items-center h-screen text-xl font-semibold">Loading...</div>;
+    if (!token) {
+        return {
+            title: "Enter Invitation Token - coi",
+            description: "Enter an invitation token to join a project, course, or accept a friend request on coi.",
+        };
     }
 
-    if (token) {
-        // Render after a token is found
-        return (
-            <>
-                {error ? (<Error h2="Could not accept invite" p={error}/>) : (
-                    <div className="flex flex-col items-center justify-center h-screen p-6 bg-[var(--neutral-100)] rounded-lg shadow-lg">
-                        <div className="text-center">
-                            {isFriendRequest ? (
-                                <>
-                                    <p className="text-[var(--foreground)] text-xl mb-4">{createdByName} wants to be your friend</p>
-                                    <Button
-                                        color="var(--accent-500)"
-                                        onClick={handleAccept}
-                                    >
-                                        Accept Friend Request
-                                    </Button>
-                                </>
-                            ) : (
-                                <>
-                                    <p className="text-[var(--foreground)] text-xl mb-4">{createdByName} invited you to join</p>
-                                    <h1 className="text-4xl font-bold text-[var(--accent-500)] mb-8">{projectTitle}</h1>
-                                    <Button
-                                        color="var(--accent-500)"
-                                        onClick={handleAccept}
-                                    >
-                                        Accept Invitation
-                                    </Button>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </>
-        );
-    }
+    try {
+        const invitationsSnap = await adminDb
+            .collection("invitations")
+            .where("token", "==", token)
+            .limit(1)
+            .get();
 
-    // Render for initial state with no token
-    return (
-        <div className="flex flex-col items-center justify-center h-screen p-6 bg-[var(--neutral-100)] rounded-lg shadow-lg">
-            <h1 className="text-2xl font-bold mb-4">Enter Invitation Token</h1>
-            <div className="flex gap-2">
-                <input
-                    type="text"
-                    value={inputToken}
-                    onChange={(e) => setInputToken(e.target.value)}
-                    placeholder="e.g., 123456"
-                    className="p-2 rounded-md border border-[var(--neutral-300)]"
-                />
-                <Button
-                    onClick={handleSubmitToken}
-                    color="var(--accent-500)"
-                >
-                    Submit
-                </Button>
-            </div>
-        </div>
-    );
+        if (invitationsSnap.empty) {
+            return {
+                title: "Invitation - coi",
+                description: "This invitation link may be invalid or expired.",
+            };
+        }
+
+        const invitationData = invitationsSnap.docs[0].data();
+        const createdBy = invitationData.createdBy;
+
+        // Get creator's name
+        let createdByName = "Someone";
+        if (createdBy) {
+            const userSnap = await adminDb.collection("users").doc(createdBy).get();
+            if (userSnap.exists) {
+                createdByName = userSnap.data()?.displayName || "Someone";
+            }
+        }
+
+        // Friend request
+        if (invitationData.friendRequest === true) {
+            return {
+                title: `${createdByName} wants to be your friend - coi`,
+                description: `Accept ${createdByName}'s friend request on coi.`,
+                openGraph: {
+                    title: `${createdByName} wants to be your friend`,
+                    description: `Accept ${createdByName}'s friend request on coi - Group learning with AI.`,
+                    url: `https://coilearn.com/i?token=${token}`,
+                    siteName: "coi",
+                },
+            };
+        }
+
+        // Project invitation
+        if (invitationData.projectId) {
+            const projectSnap = await adminDb.collection("projects").doc(invitationData.projectId).get();
+            const projectTitle = projectSnap.exists ? projectSnap.data()?.title : "a project";
+            return {
+                title: `Join "${projectTitle}" - coi`,
+                description: `${createdByName} invited you to join the project "${projectTitle}" on coi.`,
+                openGraph: {
+                    title: `Join "${projectTitle}"`,
+                    description: `${createdByName} invited you to collaborate on "${projectTitle}" - coi.`,
+                    url: `https://coilearn.com/i?token=${token}`,
+                    siteName: "coi",
+                },
+            };
+        }
+
+        // Course invitation
+        if (invitationData.courseId) {
+            const courseSnap = await adminDb.collection("courses").doc(invitationData.courseId).get();
+            const courseTitle = courseSnap.exists ? courseSnap.data()?.title : "a course";
+            return {
+                title: `Join "${courseTitle}" - coi`,
+                description: `${createdByName} invited you to join the course "${courseTitle}" on coi.`,
+                openGraph: {
+                    title: `Join "${courseTitle}"`,
+                    description: `${createdByName} invited you to the course "${courseTitle}" - coi.`,
+                    url: `https://coilearn.com/i?token=${token}`,
+                    siteName: "coi",
+                },
+            };
+        }
+
+        return {
+            title: "Invitation - coi",
+            description: "You've been invited to join something on coi.",
+        };
+    } catch (error) {
+        console.error("Error generating invite metadata:", error);
+        return {
+            title: "Invitation - coi",
+            description: "You've been invited to join something on coi.",
+        };
+    }
 }
 
 export default function InvitePage() {
-    return (
-        <Suspense fallback={<div>Loading...</div>}>
-            <InvitePageContent />
-        </Suspense>
-    )
+    return <InviteContentWrapper />;
 }
