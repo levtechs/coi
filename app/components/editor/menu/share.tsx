@@ -17,8 +17,6 @@ const ShareMenu = ({ project, user, setModalContents, addCollaborator }: ShareMe
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
-    const isOwner = user?.uid === project.ownerId;
-
     // Handles closing the menu when a click occurs outside of it.
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {

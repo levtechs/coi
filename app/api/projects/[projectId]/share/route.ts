@@ -38,9 +38,10 @@ export async function POST(req: NextRequest, context: { params: Promise<{ projec
 
     const { projectId } = await context.params;
     const body = await req.json();
-    const email = body.email;
+    const email = body.email as string | undefined;
+    const userId = body.userId as string | undefined;
 
-    if (!email) return NextResponse.json({ error: "No email provided" }, { status: 400 });
+    if (!email && !userId) return NextResponse.json({ error: "No email or userId provided" }, { status: 400 });
 
     try {
         const projectRef = doc(db, "projects", projectId);
@@ -51,18 +52,43 @@ export async function POST(req: NextRequest, context: { params: Promise<{ projec
 
         if (data.ownerId !== uid) return NextResponse.json({ error: "Only owner can add collaborators" }, { status: 403 });
 
-        // Add collaborator email to project
+        if (userId) {
+            // Add collaborator by userId directly
+            const targetUserRef = doc(db, "users", userId);
+            const targetUserSnap = await getDoc(targetUserRef);
+            if (!targetUserSnap.exists()) {
+                return NextResponse.json({ error: "UserNotFound" }, { status: 404 });
+            }
+            const targetUserData = targetUserSnap.data();
+
+            // Check if already shared
+            if ((data.sharedWith ?? []).includes(userId)) {
+                return NextResponse.json({ error: "User already has access" }, { status: 409 });
+            }
+
+            await updateDoc(projectRef, {
+                collaborators: arrayUnion(targetUserData.email),
+                sharedWith: arrayUnion(userId),
+            });
+            await updateDoc(targetUserRef, {
+                projectIds: arrayUnion(projectId),
+            });
+
+            return NextResponse.json({ success: true });
+        }
+
+        // Add collaborator by email (original flow)
         await updateDoc(projectRef, {
             collaborators: arrayUnion(email),
         });
 
         // Find user by email
-        const userRef = await getUserRefByEmail(email);
+        const userRef = await getUserRefByEmail(email!);
         if (!userRef) {
             return NextResponse.json({ error: "UserNotFound" }, { status: 404 });
         }
 
-        // Add projectId to user’s projectIds
+        // Add projectId to user's projectIds
         await updateDoc(userRef, {
             projectIds: arrayUnion(projectId),
         });
@@ -108,7 +134,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ proj
             return NextResponse.json({ error: "UserNotFound" }, { status: 404 });
         }
 
-        // Remove projectId from user’s projectIds
+        // Remove projectId from user's projectIds
         await updateDoc(userRef, {
             projectIds: arrayRemove(projectId),
         });

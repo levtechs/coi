@@ -25,7 +25,10 @@ export async function GET(req: NextRequest, context: { params: Promise<{ userId:
             email: user.email,
             displayName: user.displayName,
             starUser: user.starUser,
-            signUpResponses: user.signUpResponses
+            signUpResponses: user.signUpResponses,
+            actions: user.actions,
+            projectIds: user.projectIds,
+            friendIds: user.friendIds,
         };
 
         return NextResponse.json(userData);

@@ -79,11 +79,19 @@ export async function getCollaborators(projectId: string): Promise<string[]> {
     return project.collaborators;
 }
 
-/** Add collaborator to project */
+/** Add collaborator to project by email */
 export async function addCollaborator(projectId: string, email: string): Promise<void> {
     await apiFetch(`/api/projects/${projectId}/share`, {
         method: "POST",
         body: JSON.stringify({ email }),
+    });
+}
+
+/** Add collaborator to project by userId (for friends) */
+export async function addCollaboratorByUserId(projectId: string, userId: string): Promise<void> {
+    await apiFetch(`/api/projects/${projectId}/share`, {
+        method: "POST",
+        body: JSON.stringify({ userId }),
     });
 }
 

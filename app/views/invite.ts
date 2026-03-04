@@ -32,11 +32,12 @@ export async function createCourseInvitation(courseId: string): Promise<{ token:
  * @param token The invitation token to accept.
  * @returns A promise that resolves when the invitation is successfully accepted.
  */
-export async function acceptInvitation(token: string): Promise<void> {
-    await apiFetch(`/api/invite`, {
+export async function acceptInvitation(token: string): Promise<{ success: boolean; friendRequest?: boolean }> {
+    const data = await apiFetch<{ success: boolean; friendRequest?: boolean }>(`/api/invite`, {
         method: "PUT",
         body: JSON.stringify({ token }),
     });
+    return data;
 }
 
 /**
@@ -52,6 +53,18 @@ export async function getTitleByToken(token: string): Promise<{ title: string; t
         throw new Error(error.error || "Failed to fetch title.");
     }
     return response.json();
+}
+
+/**
+ * Creates a new friend request invitation link.
+ * @returns A promise that resolves to an object containing the new token.
+ */
+export async function createFriendInvitation(): Promise<{ token: string }> {
+    const data = await apiFetch<{ token: string }>(`/api/invite`, {
+        method: "POST",
+        body: JSON.stringify({ friendRequest: true }),
+    });
+    return data;
 }
 
 /**

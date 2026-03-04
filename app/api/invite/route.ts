@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, addDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, addDoc, setDoc } from "firebase/firestore";
 
 import { getVerifiedUid } from "@/app/api/helpers";
 import { getUserById } from "@/app/api/users/helpers";
@@ -22,7 +22,31 @@ export async function POST(req: NextRequest) {
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
     const body = await req.json();
-    const { projectId, courseId } = body as { projectId?: string; courseId?: string };
+    const { projectId, courseId, friendRequest } = body as { projectId?: string; courseId?: string; friendRequest?: boolean };
+
+    // Handle friend request invitation creation
+    if (friendRequest) {
+        try {
+            const invitationsRef = collection(db, "invitations");
+            const token = generateToken();
+            const createdAt = new Date().toISOString();
+
+            await addDoc(invitationsRef, {
+                token,
+                projectId: null,
+                courseId: null,
+                friendRequest: true,
+                requesterId: uid,
+                createdBy: uid,
+                createdAt,
+                acceptedBy: [],
+            });
+
+            return NextResponse.json({ token });
+        } catch (err) {
+            return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+        }
+    }
 
     if (!projectId && !courseId) return NextResponse.json({ error: "No projectId or courseId provided" }, { status: 400 });
 
@@ -136,6 +160,49 @@ export async function PUT(req: NextRequest) {
         const invitationData = invitationSnap.data();
         const projectId = invitationData.projectId;
         const courseId = invitationData.courseId;
+        const isFriendRequest = invitationData.friendRequest === true;
+
+        // Handle friend request acceptance
+        if (isFriendRequest) {
+            const requesterId = invitationData.requesterId || invitationData.createdBy;
+
+            if (requesterId === uid) {
+                return NextResponse.json({ error: "Cannot accept your own friend request" }, { status: 400 });
+            }
+
+            // Check if already friends
+            const friendshipsRef = collection(db, "friendships");
+            const sortedUsers = [uid, requesterId].sort();
+            const existingQuery = query(friendshipsRef, where("users", "==", sortedUsers));
+            const existingSnaps = await getDocs(existingQuery);
+
+            if (!existingSnaps.empty) {
+                return NextResponse.json({ success: true, message: "Already friends or request pending" });
+            }
+
+            // Create accepted friendship directly
+            const friendshipRef = doc(collection(db, "friendships"));
+            await setDoc(friendshipRef, {
+                users: sortedUsers,
+                status: "accepted",
+                requesterId: requesterId,
+                createdAt: new Date().toISOString(),
+                acceptedAt: new Date().toISOString(),
+            });
+
+            // Update both users' friendIds
+            const requesterRef = doc(db, "users", requesterId);
+            const accepterRef = doc(db, "users", uid);
+            await updateDoc(requesterRef, { friendIds: arrayUnion(uid) });
+            await updateDoc(accepterRef, { friendIds: arrayUnion(requesterId) });
+
+            // Mark invitation as accepted
+            await updateDoc(doc(db, "invitations", invitationSnap.id), {
+                acceptedBy: arrayUnion(uid),
+            });
+
+            return NextResponse.json({ success: true, friendRequest: true });
+        }
 
         if (!projectId && !courseId) return NextResponse.json({ error: "Invalid invitation" }, { status: 400 });
 
@@ -215,6 +282,19 @@ export async function GET(req: NextRequest) {
         const projectId = invitationData.projectId;
         const courseId = invitationData.courseId;
         const createdBy = invitationData.createdBy;
+
+        // Handle friend request token lookup
+        if (invitationData.friendRequest === true) {
+            const creator = await getUserById(createdBy);
+            const createdByName = creator ? creator.displayName : 'Unknown';
+            return NextResponse.json({
+                title: createdByName,
+                type: 'friend' as const,
+                createdByName,
+                id: createdBy,
+                friendRequest: true,
+            });
+        }
 
         let title: string;
         let type: 'project' | 'course';

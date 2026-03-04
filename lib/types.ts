@@ -75,6 +75,7 @@ export interface User {
     dailyActions?: number;
     weeklyActions?: number;
     projectIds?: string[];
+    friendIds?: string[]; // UIDs of accepted friends
     starUser?: boolean;
     chatPreferences?: ChatPreferences;
     signUpResponses?: SignUpResponses;
@@ -181,6 +182,19 @@ export type TutorAction =
     | { type: "delete_section"; title: string }
     | { type: "move_card"; cardId: string; toSection: string };
 
+// Friends
+
+export type FriendshipStatus = "pending" | "accepted";
+
+export interface Friendship {
+    id: string;
+    users: [string, string]; // sorted UIDs
+    status: FriendshipStatus;
+    requesterId: string; // who sent the request
+    createdAt: string;
+    acceptedAt?: string;
+}
+
 // Invites
 
 export interface Invite {
@@ -188,6 +202,8 @@ export interface Invite {
     token: string;
     projectId?: string;
     courseId?: string;
+    friendRequest?: boolean; // true if this invite is a friend request link
+    requesterId?: string; // UID of friend requester (for friend request invites)
     createdBy: string;
     createdAt: string;
     acceptedBy: string[];

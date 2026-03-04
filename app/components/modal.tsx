@@ -60,8 +60,22 @@ export default function Modal({
         // This is the new full-screen overlay container
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/50">
             {/* This is your existing modal content */}
-            <div className={`bg-[var(--neutral-100)] p-6 rounded-lg shadow-lg ${getWidthClass(width)} flex flex-col gap-4`}>
-                {title && <h2 className="text-[var(--foreground)] font-semibold text-xl">{title}</h2>}
+            <div className={`bg-[var(--neutral-100)] p-6 rounded-lg shadow-lg ${getWidthClass(width)} flex flex-col gap-4 relative`}>
+                {title && (
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-[var(--foreground)] font-semibold text-xl">{title}</h2>
+                        <button
+                            onClick={onClose}
+                            className="text-[var(--neutral-500)] hover:text-[var(--foreground)] transition-colors"
+                            aria-label="Close modal"
+                        >
+                            <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" height="20" width="20" xmlns="http://www.w3.org/2000/svg">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                )}
 
                 {(!type || type === "input") ? (
                     <form
