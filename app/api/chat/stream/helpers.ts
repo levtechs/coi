@@ -250,11 +250,17 @@ export async function streamChatResponse(
         }
 
         // Parse card references and add them as chat attachments
+        // Handles both single (card: id) and multi (card: id1, card: id2) formats
         const cardRefRegex = /\(card:\s*([^)]+)\)/g;
         let match;
         while ((match = cardRefRegex.exec(responseMessage)) !== null) {
-            const cardId = match[1].trim();
-            referencedCardIds.add(cardId);
+            const innerContent = match[1].trim();
+            // Split on ", card:" to handle multiple refs in one parenthetical
+            const cardRefs = innerContent.split(/,\s*card:\s*/);
+            for (const ref of cardRefs) {
+                const cardId = ref.trim();
+                referencedCardIds.add(cardId);
+            }
         }
 
         // Find referenced cards from previousCards and add them to chatAttachments

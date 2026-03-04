@@ -49,16 +49,31 @@ export function processCardReferences(markdown: string, cards?: Card[], onCardCl
 
     const cardMap = new Map(cards.map(card => [card.id, card]));
     
-    return markdown.replace(/\(card:\s*([^)]+)\)/g, (match, cardId) => {
-        const trimmedCardId = cardId.trim();
-        const card = cardMap.get(trimmedCardId);
-        if (card) {
-            if (onCardClick) {
-                return `<span class="card-reference cursor-pointer hover:text-[var(--accent-500)] transition-colors" data-card-id="${trimmedCardId}"><u>${card.title}</u></span>`;
+    return markdown.replace(/\(card:\s*([^)]+)\)/g, (match, innerContent) => {
+        // Handle multiple comma-separated card references: (card: id1, card: id2)
+        const cardRefs = innerContent.split(/,\s*card:\s*/);
+        const parts: string[] = [];
+        let allResolved = true;
+
+        for (const ref of cardRefs) {
+            const trimmedCardId = ref.trim();
+            const card = cardMap.get(trimmedCardId);
+            if (card) {
+                if (onCardClick) {
+                    parts.push(`<span class="card-reference" data-card-id="${trimmedCardId}">${card.title}</span>`);
+                } else {
+                    parts.push(`<span class="card-reference-static">${card.title}</span>`);
+                }
+            } else {
+                allResolved = false;
+                break;
             }
-            return `<u>${card.title}</u>`;
         }
-        return match; // Keep original if card not found
+
+        if (allResolved) {
+            return parts.join(', ');
+        }
+        return match; // Keep original if any card not found
     });
 }
 
@@ -120,13 +135,32 @@ export default function MarkdownArticle({ markdown, singleLine = false, cards, o
                             if (card && onCardClick) {
                                 return (
                                     <span 
-                                        className="card-reference cursor-pointer hover:text-[var(--accent-500)] transition-colors"
+                                        className="card-reference inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm font-medium bg-[var(--neutral-200)] text-[var(--neutral-700)] border border-[var(--neutral-300)] cursor-pointer hover:bg-[var(--accent-100)] hover:text-[var(--accent-700)] hover:border-[var(--accent-300)] transition-colors"
                                         onClick={() => onCardClick(card)}
                                     >
-                                        <u>{children}</u>
+                                        <svg className="w-3 h-3 shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                                            <rect x="2" y="2" width="12" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+                                            <line x1="5" y1="5.5" x2="11" y2="5.5" stroke="currentColor" strokeWidth="1.2"/>
+                                            <line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" strokeWidth="1.2"/>
+                                            <line x1="5" y1="10.5" x2="9" y2="10.5" stroke="currentColor" strokeWidth="1.2"/>
+                                        </svg>
+                                        {children}
                                     </span>
                                 );
                             }
+                        }
+                        if (className?.includes('card-reference-static')) {
+                            return (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm font-medium bg-[var(--neutral-200)] text-[var(--neutral-700)] border border-[var(--neutral-300)]">
+                                    <svg className="w-3 h-3 shrink-0" viewBox="0 0 16 16" fill="currentColor">
+                                        <rect x="2" y="2" width="12" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+                                        <line x1="5" y1="5.5" x2="11" y2="5.5" stroke="currentColor" strokeWidth="1.2"/>
+                                        <line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" strokeWidth="1.2"/>
+                                        <line x1="5" y1="10.5" x2="9" y2="10.5" stroke="currentColor" strokeWidth="1.2"/>
+                                    </svg>
+                                    {children}
+                                </span>
+                            );
                         }
                         return <span className={className} {...props}>{children}</span>;
                     },
