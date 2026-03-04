@@ -16,7 +16,7 @@ import { Friendship } from "@/lib/types";
  * GET /api/friends
  * Returns the current user's friends list and pending requests.
  * Query params:
- *   ?status=accepted (default) | pending | all
+ *   ?status=accepted | pending | all (default)
  */
 export async function GET(req: NextRequest) {
     try {
@@ -78,7 +78,8 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({ friendships: result });
     } catch (err) {
-        return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+        console.error("GET /api/friends error:", err);
+        return NextResponse.json({ error: "Failed to fetch friendships" }, { status: 500 });
     }
 }
 
@@ -136,6 +137,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ id: friendshipDoc.id, status: "pending" });
     } catch (err) {
-        return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+        console.error("POST /api/friends error:", err);
+        return NextResponse.json({ error: "Failed to send friend request" }, { status: 500 });
     }
 }

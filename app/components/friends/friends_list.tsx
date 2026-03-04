@@ -39,27 +39,37 @@ export default function FriendsList({ currentUserId }: FriendsListProps) {
     const handleAccept = async (id: string) => {
         try {
             await acceptFriendRequest(id);
-            await fetchFriendships();
+            // Optimistic update: move from pending to accepted
+            setFriendships((prev) =>
+                prev.map((f) =>
+                    f.id === id ? { ...f, status: "accepted" as const, acceptedAt: new Date().toISOString() } : f
+                )
+            );
         } catch (err) {
             console.error("Failed to accept friend request:", err);
+            await fetchFriendships(); // Revert on error
         }
     };
 
     const handleDecline = async (id: string) => {
         try {
+            // Optimistic update: remove from list
+            setFriendships((prev) => prev.filter((f) => f.id !== id));
             await removeFriend(id);
-            await fetchFriendships();
         } catch (err) {
             console.error("Failed to decline friend request:", err);
+            await fetchFriendships(); // Revert on error
         }
     };
 
     const handleRemove = async (id: string) => {
         try {
+            // Optimistic update: remove from list
+            setFriendships((prev) => prev.filter((f) => f.id !== id));
             await removeFriend(id);
-            await fetchFriendships();
         } catch (err) {
             console.error("Failed to remove friend:", err);
+            await fetchFriendships(); // Revert on error
         }
     };
 

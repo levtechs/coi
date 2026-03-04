@@ -66,7 +66,7 @@ function InvitePageContent() {
         setIsLoading(true);
         setError(null);
         try {
-            const data = await getTitleByToken(tkn) as { title: string; type: 'project' | 'course' | 'friend'; createdByName: string; id: string; friendRequest?: boolean };
+            const data = await getTitleByToken(tkn);
             setProjectTitle(data.title);
             setCreatedByName(data.createdByName);
             setItemId(data.id);
@@ -129,7 +129,7 @@ function InvitePageContent() {
         setError(null);
 
         try {
-            const result = await acceptInvitation(token) as { success?: boolean; friendRequest?: boolean } | undefined;
+            const result = await acceptInvitation(token);
             if (isFriendRequest || result?.friendRequest) {
                 // Friend request accepted — redirect to friends page
                 router.push("/friends");

@@ -29,7 +29,7 @@ export default function Sidebar({ current }: SidebarProps) {
                 const incoming = pending.filter((f) => f.requesterId !== firebaseUser.uid);
                 setPendingCount(incoming.length);
             })
-            .catch(() => {});
+            .catch((err) => console.error("Failed to fetch pending friend count:", err));
     }, [firebaseUser]);
 
     return (

@@ -276,7 +276,7 @@ export default function CourseSharePanel({ course, courseId, isOwner }: CourseSh
                             <li
                                 key={member.id}
                                 className="flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer transition-colors hover:bg-[var(--neutral-200)]"
-                                onClick={() => window.open(`/profile/user/${member.id}`, "_blank")}
+                                onClick={() => window.open(`/profile/user/${member.id}`, "_blank", "noopener,noreferrer")}
                             >
                                 <div
                                     className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"

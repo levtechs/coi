@@ -66,8 +66,13 @@ export async function POST(req: NextRequest, context: { params: Promise<{ projec
                 return NextResponse.json({ error: "User already has access" }, { status: 409 });
             }
 
+            const targetEmail = targetUserData.email;
+            if (!targetEmail || typeof targetEmail !== "string") {
+                return NextResponse.json({ error: "Target user has no valid email" }, { status: 400 });
+            }
+
             await updateDoc(projectRef, {
-                collaborators: arrayUnion(targetUserData.email),
+                collaborators: arrayUnion(targetEmail),
                 sharedWith: arrayUnion(userId),
             });
             await updateDoc(targetUserRef, {

@@ -6,19 +6,19 @@ import LessonCard from "@/app/components/courses/lesson_card"
 import { FlickeringGrid } from "@/app/components/flickering-grid";
 import Sidebar from "@/app/components/sidebar";
 import { FiArrowLeft, FiShare, FiPlay, FiSettings, FiBarChart } from "react-icons/fi";
-import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { getCourse } from "../../views/courses";
 import { getCards } from "../../views/cards";
 import { getQuiz } from "../../views/quiz";
 // createCourseInvitation is now handled inside CourseSharePanel
-import { Course, CourseLesson, Project, Quiz } from "@/lib/types";
+import { Course, Project, Quiz } from "@/lib/types";
 import LoadingComponent from "../../components/loading";
 import Button from "../../components/button";
 import Analytics from "../../components/courses/analytics/analytics";
 import CommentSection from "../../components/courses/comments/comment_section";
 import CourseSharePanel from "../../components/courses/course_share_panel";
+import Modal from "../../components/modal";
 
 export default function CoursePage({ params }: { params: Promise<{ courseId: string }> }) {
     const { user, loading: authLoading } = useAuth();
@@ -230,26 +230,19 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
                 <CommentSection courseId={courseId} isCourseOwner={isOwner} />
             </div>
 
-            {showSharePanel && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/50">
-                    <div className="bg-[var(--neutral-100)] p-6 rounded-lg shadow-lg w-[28rem] flex flex-col gap-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-[var(--foreground)] font-semibold text-xl">Share Course</h2>
-                            <button
-                                onClick={() => setShowSharePanel(false)}
-                                className="text-[var(--neutral-600)] hover:text-[var(--foreground)] transition-colors text-xl leading-none"
-                            >
-                                &times;
-                            </button>
-                        </div>
-                        <CourseSharePanel
-                            course={course}
-                            courseId={courseId}
-                            isOwner={isOwner}
-                        />
-                    </div>
-                </div>
-            )}
+            <Modal
+                isOpen={showSharePanel}
+                type="empty"
+                width="lg"
+                title="Share Course"
+                onClose={() => setShowSharePanel(false)}
+            >
+                <CourseSharePanel
+                    course={course}
+                    courseId={courseId}
+                    isOwner={isOwner}
+                />
+            </Modal>
         </div>
     );
  }

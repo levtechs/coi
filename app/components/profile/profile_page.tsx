@@ -11,7 +11,7 @@ import Error from "../error";
 import { User } from "@/lib/types";
 import { getUserFromId } from "@/app/views/users";
 import { useAuth } from "@/lib/AuthContext";
-import { getFriendships, sendFriendRequest, removeFriend, FriendshipResponse } from "@/app/views/friends";
+import { getFriendships, sendFriendRequest, acceptFriendRequest, removeFriend, FriendshipResponse } from "@/app/views/friends";
 
 interface ProfilePageProps {
     userId: string;
@@ -192,7 +192,6 @@ const ProfilePage = ({ userId }: ProfilePageProps) => {
                                     if (!friendshipData) return;
                                     setFriendLoading(true);
                                     try {
-                                        const { acceptFriendRequest } = await import("@/app/views/friends");
                                         await acceptFriendRequest(friendshipData.id);
                                         await fetchFriendStatus();
                                     } catch (err) {
@@ -261,7 +260,7 @@ const ProfilePage = ({ userId }: ProfilePageProps) => {
                     <div className="flex flex-col items-center p-3 rounded-lg"
                         style={{ backgroundColor: "var(--neutral-200)" }}>
                         <FiFolder size={20} style={{ color: "var(--accent-500)" }} />
-                        <span className="text-xl font-bold mt-1">{user.projectIds?.length ?? 0}</span>
+                        <span className="text-xl font-bold mt-1">{user.projectCount ?? user.projectIds?.length ?? 0}</span>
                         <span className="text-xs" style={{ color: "var(--neutral-600)" }}>Projects</span>
                     </div>
                     <div className="flex flex-col items-center p-3 rounded-lg"
@@ -273,7 +272,7 @@ const ProfilePage = ({ userId }: ProfilePageProps) => {
                     <div className="flex flex-col items-center p-3 rounded-lg"
                         style={{ backgroundColor: "var(--neutral-200)" }}>
                         <FiUsers size={20} style={{ color: "var(--accent-500)" }} />
-                        <span className="text-xl font-bold mt-1">{user.friendIds?.length ?? 0}</span>
+                        <span className="text-xl font-bold mt-1">{user.friendCount ?? user.friendIds?.length ?? 0}</span>
                         <span className="text-xs" style={{ color: "var(--neutral-600)" }}>Friends</span>
                     </div>
                 </div>

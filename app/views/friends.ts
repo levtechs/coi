@@ -1,14 +1,7 @@
 import { apiFetch } from "./helpers";
+import { LeaderboardEntry } from "@/lib/types";
 
-export interface LeaderboardEntry {
-    id: string;
-    displayName: string;
-    weeklyActions: number;
-    dailyActions: number;
-    actions: number;
-    projectCount: number;
-    isCurrentUser: boolean;
-}
+export type { LeaderboardEntry };
 
 export interface FriendshipResponse {
     id: string;

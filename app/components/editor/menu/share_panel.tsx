@@ -255,7 +255,7 @@ export default function SharePanel({ project, user, addCollaborator }: SharePane
                             <li
                                 key={collab.id}
                                 className="flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer transition-colors hover:bg-[var(--neutral-200)]"
-                                onClick={() => window.open(`/profile/user/${collab.id}`, "_blank")}
+                                onClick={() => window.open(`/profile/user/${collab.id}`, "_blank", "noopener,noreferrer")}
                             >
                                 <div
                                     className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
@@ -307,7 +307,6 @@ export default function SharePanel({ project, user, addCollaborator }: SharePane
                             />
                             <Button
                                 color="var(--accent-500)"
-                                onClick={() => {}}
                                 type="submit"
                                 disabled={emailLoading || !email.trim()}
                             >

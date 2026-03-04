@@ -63,7 +63,8 @@ export async function PUT(
 
         return NextResponse.json({ success: true, status: "accepted" });
     } catch (err) {
-        return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+        console.error("PUT /api/friends/[friendshipId] error:", err);
+        return NextResponse.json({ error: "Failed to accept friend request" }, { status: 500 });
     }
 }
 
@@ -108,6 +109,7 @@ export async function DELETE(
 
         return NextResponse.json({ success: true });
     } catch (err) {
-        return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+        console.error("DELETE /api/friends/[friendshipId] error:", err);
+        return NextResponse.json({ error: "Failed to remove friend" }, { status: 500 });
     }
 }

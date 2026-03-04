@@ -20,6 +20,8 @@ export async function GET(req: NextRequest, context: { params: Promise<{ userId:
         }
 
         // Return user info including sign-up responses for dashboard checks
+        // Return counts instead of full arrays to avoid leaking data
+        const isOwnProfile = uid === userId;
         const userData = {
             id: user.id,
             email: user.email,
@@ -27,8 +29,10 @@ export async function GET(req: NextRequest, context: { params: Promise<{ userId:
             starUser: user.starUser,
             signUpResponses: user.signUpResponses,
             actions: user.actions,
-            projectIds: user.projectIds,
-            friendIds: user.friendIds,
+            projectCount: user.projectIds?.length ?? 0,
+            friendCount: user.friendIds?.length ?? 0,
+            // Only include full arrays for the user's own profile (needed by dashboard)
+            ...(isOwnProfile ? { projectIds: user.projectIds, friendIds: user.friendIds } : {}),
         };
 
         return NextResponse.json(userData);

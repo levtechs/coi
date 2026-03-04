@@ -76,6 +76,8 @@ export interface User {
     weeklyActions?: number;
     projectIds?: string[];
     friendIds?: string[]; // UIDs of accepted friends
+    projectCount?: number; // count returned by API (avoids leaking full arrays)
+    friendCount?: number; // count returned by API (avoids leaking full arrays)
     starUser?: boolean;
     chatPreferences?: ChatPreferences;
     signUpResponses?: SignUpResponses;
@@ -183,6 +185,16 @@ export type TutorAction =
     | { type: "move_card"; cardId: string; toSection: string };
 
 // Friends
+
+export interface LeaderboardEntry {
+    id: string;
+    displayName: string;
+    weeklyActions: number;
+    dailyActions: number;
+    actions: number;
+    projectCount: number;
+    isCurrentUser: boolean;
+}
 
 export type FriendshipStatus = "pending" | "accepted";
 

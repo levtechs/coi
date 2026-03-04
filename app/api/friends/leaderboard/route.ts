@@ -9,17 +9,7 @@ import {
     getDoc,
 } from "firebase/firestore";
 import { getVerifiedUid } from "@/app/api/helpers";
-import { Friendship } from "@/lib/types";
-
-export interface LeaderboardEntry {
-    id: string;
-    displayName: string;
-    weeklyActions: number;
-    dailyActions: number;
-    actions: number;
-    projectCount: number;
-    isCurrentUser: boolean;
-}
+import { Friendship, LeaderboardEntry } from "@/lib/types";
 
 /**
  * GET /api/friends/leaderboard
@@ -49,32 +39,33 @@ export async function GET(req: NextRequest) {
         }
 
         // Fetch all user profiles
-        const entries: LeaderboardEntry[] = [];
-        await Promise.all(
+        const results = await Promise.all(
             Array.from(userIds).map(async (userId) => {
                 const userDoc = await getDoc(doc(db, "users", userId));
-                if (userDoc.exists()) {
-                    const data = userDoc.data();
-                    entries.push({
-                        id: userId,
-                        displayName: data.displayName || "Unknown",
-                        weeklyActions: data.weeklyActions || 0,
-                        dailyActions: data.dailyActions || 0,
-                        actions: data.actions || 0,
-                        projectCount: data.projectIds?.length || 0,
-                        isCurrentUser: userId === uid,
-                    });
-                }
+                if (!userDoc.exists()) return null;
+                const data = userDoc.data();
+                return {
+                    id: userId,
+                    displayName: data.displayName || "Unknown",
+                    weeklyActions: data.weeklyActions || 0,
+                    dailyActions: data.dailyActions || 0,
+                    actions: data.actions || 0,
+                    projectCount: data.projectIds?.length || 0,
+                    isCurrentUser: userId === uid,
+                } satisfies LeaderboardEntry;
             })
         );
 
-        // Sort by weekly actions descending
-        entries.sort((a, b) => b.weeklyActions - a.weeklyActions);
+        // Filter nulls and sort by weekly actions descending
+        const entries = results
+            .filter((e): e is LeaderboardEntry => e !== null)
+            .sort((a, b) => b.weeklyActions - a.weeklyActions);
 
         return NextResponse.json({ leaderboard: entries });
     } catch (err) {
+        console.error("GET /api/friends/leaderboard error:", err);
         return NextResponse.json(
-            { error: (err as Error).message },
+            { error: "Failed to fetch leaderboard" },
             { status: 500 }
         );
     }
