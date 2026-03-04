@@ -6,8 +6,7 @@ import { FiEdit2 } from "react-icons/fi";
 import { FiHome } from "react-icons/fi";
 
 import Button from "../../button";
-import CollaboratorsDropdown from "./collabs_dd";
-import ShareMenu from "./share";
+import SharePanel from "./share_panel";
 import ProjectDetailsPanel from "./project_details";
 import StudyPanel from "../study/study_panel";
 import UploadsPanel from "../uploads/uploads_panel";
@@ -322,16 +321,26 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                 >
                     Details
                 </Button>
-                <CollaboratorsDropdown 
-                    sharedWith={project.sharedWith || []} 
-                    ownerId={project.ownerId}
-                />
-                <ShareMenu 
-                    project={project} 
-                    user={user} 
-                    setModalContents={setModalContents}
-                    addCollaborator={addCollaborator}
-                />
+                <Button
+                    color="var(--accent-500)"
+                    onClick={() => {
+                        setModalContents({
+                            isOpen: true,
+                            type: "empty",
+                            width: "lg",
+                            title: "Share Project",
+                            children: (
+                                <SharePanel
+                                    project={project}
+                                    user={user}
+                                    addCollaborator={addCollaborator}
+                                />
+                            ),
+                        });
+                    }}
+                >
+                    Share
+                </Button>
             </div>
         </div>
 

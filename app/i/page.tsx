@@ -28,7 +28,8 @@ function InvitePageContent() {
     const [projectTitle, setProjectTitle] = useState<string | null>(null);
     const [createdByName, setCreatedByName] = useState<string | null>(null);
     const [itemId, setItemId] = useState<string | null>(null);
-    const [itemType, setItemType] = useState<'project' | 'course' | null>(null);
+    const [itemType, setItemType] = useState<'project' | 'course' | 'friend' | null>(null);
+    const [isFriendRequest, setIsFriendRequest] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [inputToken, setInputToken] = useState<string>("");
@@ -71,6 +72,12 @@ function InvitePageContent() {
             setItemId(data.id);
             setItemType(data.type);
 
+            if (data.friendRequest || data.type === 'friend') {
+                setIsFriendRequest(true);
+                // Don't check project/course access for friend requests
+                return;
+            }
+
             // Check if user is already in the project/course
             if (user && data.id) {
                 let isAlreadyIn: boolean = false;
@@ -109,7 +116,6 @@ function InvitePageContent() {
 
     const handleAccept = async () => {
         if (!user) {
-            // This case should ideally not be reached due to the auth listener redirect.
             router.push("/login?signup=true");
             return;
         }
@@ -123,8 +129,13 @@ function InvitePageContent() {
         setError(null);
 
         try {
-            await acceptInvitation(token);
-            router.push(itemType === 'project' ? `/projects/${itemId}` : `/courses/${itemId}`);
+            const result = await acceptInvitation(token);
+            if (isFriendRequest || result?.friendRequest) {
+                // Friend request accepted — redirect to friends page
+                router.push("/friends");
+            } else {
+                router.push(itemType === 'project' ? `/projects/${itemId}` : `/courses/${itemId}`);
+            }
         } catch (err) {
             setError((err as Error).message);
             setIsLoading(false);
@@ -148,15 +159,28 @@ function InvitePageContent() {
                 {error ? (<Error h2="Could not accept invite" p={error}/>) : (
                     <div className="flex flex-col items-center justify-center h-screen p-6 bg-[var(--neutral-100)] rounded-lg shadow-lg">
                         <div className="text-center">
-
-                            <p className="text-[var(--foreground)] text-xl mb-4">{createdByName} invited you to join</p>
-                            <h1 className="text-4xl font-bold text-[var(--accent-500)] mb-8">{projectTitle}</h1>
-                            <Button
-                                color="var(--accent-500)"
-                                onClick={handleAccept}
-                            >
-                                Accept Invitation
-                            </Button>
+                            {isFriendRequest ? (
+                                <>
+                                    <p className="text-[var(--foreground)] text-xl mb-4">{createdByName} wants to be your friend</p>
+                                    <Button
+                                        color="var(--accent-500)"
+                                        onClick={handleAccept}
+                                    >
+                                        Accept Friend Request
+                                    </Button>
+                                </>
+                            ) : (
+                                <>
+                                    <p className="text-[var(--foreground)] text-xl mb-4">{createdByName} invited you to join</p>
+                                    <h1 className="text-4xl font-bold text-[var(--accent-500)] mb-8">{projectTitle}</h1>
+                                    <Button
+                                        color="var(--accent-500)"
+                                        onClick={handleAccept}
+                                    >
+                                        Accept Invitation
+                                    </Button>
+                                </>
+                            )}
                         </div>
                     </div>
                 )}

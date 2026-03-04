@@ -27,31 +27,44 @@ export async function createCourseInvitation(courseId: string): Promise<{ token:
 }
 
 /**
- * Accepts an invitation to a project using a token.
+ * Accepts an invitation (project, course, or friend request) using a token.
  * This view requires the user to be authenticated.
  * @param token The invitation token to accept.
- * @returns A promise that resolves when the invitation is successfully accepted.
+ * @returns A promise that resolves to an object with success status and optional friendRequest flag.
  */
-export async function acceptInvitation(token: string): Promise<void> {
-    await apiFetch(`/api/invite`, {
+export async function acceptInvitation(token: string): Promise<{ success: boolean; friendRequest?: boolean }> {
+    const data = await apiFetch<{ success: boolean; friendRequest?: boolean }>(`/api/invite`, {
         method: "PUT",
         body: JSON.stringify({ token }),
     });
+    return data;
 }
 
 /**
  * Retrieves the title, type, and creator's name using only an invitation token.
  * This view does not require authentication.
  * @param token The invitation token.
- * @returns A promise that resolves to the title, type, and createdByName.
+ * @returns A promise that resolves to the title, type, createdByName, id, and optional friendRequest flag.
  */
-export async function getTitleByToken(token: string): Promise<{ title: string; type: 'project' | 'course'; createdByName: string; id: string }> {
+export async function getTitleByToken(token: string): Promise<{ title: string; type: 'project' | 'course' | 'friend'; createdByName: string; id: string; friendRequest?: boolean }> {
     const response = await fetch(`/api/invite?token=${token}`);
     if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || "Failed to fetch title.");
     }
     return response.json();
+}
+
+/**
+ * Creates a new friend request invitation link.
+ * @returns A promise that resolves to an object containing the new token.
+ */
+export async function createFriendInvitation(): Promise<{ token: string }> {
+    const data = await apiFetch<{ token: string }>(`/api/invite`, {
+        method: "POST",
+        body: JSON.stringify({ friendRequest: true }),
+    });
+    return data;
 }
 
 /**

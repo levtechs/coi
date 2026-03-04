@@ -5,19 +5,20 @@ import LoginPrompt from "../../components/login_prompt";
 import LessonCard from "@/app/components/courses/lesson_card"
 import { FlickeringGrid } from "@/app/components/flickering-grid";
 import Sidebar from "@/app/components/sidebar";
-import { FiArrowLeft, FiShare, FiPlay, FiSettings, FiBarChart, FiCopy } from "react-icons/fi";
-import Link from "next/link";
+import { FiArrowLeft, FiShare, FiPlay, FiSettings, FiBarChart } from "react-icons/fi";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { getCourse } from "../../views/courses";
 import { getCards } from "../../views/cards";
 import { getQuiz } from "../../views/quiz";
-import { createCourseInvitation } from "../../views/invite";
-import { Course, CourseLesson, Project, Quiz } from "@/lib/types";
+// createCourseInvitation is now handled inside CourseSharePanel
+import { Course, Project, Quiz } from "@/lib/types";
 import LoadingComponent from "../../components/loading";
 import Button from "../../components/button";
 import Analytics from "../../components/courses/analytics/analytics";
 import CommentSection from "../../components/courses/comments/comment_section";
+import CourseSharePanel from "../../components/courses/course_share_panel";
+import Modal from "../../components/modal";
 
 export default function CoursePage({ params }: { params: Promise<{ courseId: string }> }) {
     const { user, loading: authLoading } = useAuth();
@@ -29,12 +30,7 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
     const [courseQuizzes, setCourseQuizzes] = useState<Quiz[]>([]);
     const [loading, setLoading] = useState(false);
     const [courseId, setCourseId] = useState<string>("");
-    const [showInvitePanel, setShowInvitePanel] = useState(false);
-    const [showLinkPanel, setShowLinkPanel] = useState(false);
-    const [panelTitle, setPanelTitle] = useState("");
-    const [panelMessage, setPanelMessage] = useState("");
-    const [panelUrl, setPanelUrl] = useState("");
-    const [copied, setCopied] = useState(false);
+    const [showSharePanel, setShowSharePanel] = useState(false);
 
     useEffect(() => {
         const fetchParams = async () => {
@@ -203,18 +199,7 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
                         title="Share Course"
                         size={32}
                         className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
-                        onClick={() => {
-                            if (course?.public) {
-                                setPanelTitle("Share Course");
-                                setPanelMessage("Share this public course:");
-                                setPanelUrl(`${window.location.origin}/courses/${courseId}`);
-                                setShowLinkPanel(true);
-                            } else if (isOwner) {
-                                setShowInvitePanel(true);
-                            } else {
-                                alert("Only the owner can share this private course.");
-                            }
-                        }}
+                        onClick={() => setShowSharePanel(true)}
                     />
                     {nextLesson && (
                         <FiPlay
@@ -245,73 +230,19 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
                 <CommentSection courseId={courseId} isCourseOwner={isOwner} />
             </div>
 
-            {showInvitePanel && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/50">
-                    <div className="bg-[var(--neutral-100)] p-6 rounded-lg shadow-lg w-96 flex flex-col gap-4">
-                        <h2 className="text-[var(--foreground)] font-semibold text-xl">Share Course</h2>
-                        <p className="text-[var(--foreground)]">Create an invite link for this private course:</p>
-                        <Button
-                            color="var(--accent-500)"
-                            onClick={async () => {
-                                try {
-                                    const result = await createCourseInvitation(courseId);
-                                    setPanelTitle("Invite Link Created");
-                                    setPanelMessage("Share this invite link:");
-                                    setPanelUrl(`${window.location.origin}/l?token=${result.token}`);
-                                    setShowInvitePanel(false);
-                                    setShowLinkPanel(true);
-                                } catch (error) {
-                                    console.error("Failed to create invite link:", error);
-                                    alert("Failed to create invite link");
-                                }
-                            }}
-                        >
-                            Create Invite Link
-                        </Button>
-                        <Button
-                            color="var(--neutral-300)"
-                            onClick={() => setShowInvitePanel(false)}
-                        >
-                            Cancel
-                        </Button>
-                    </div>
-                </div>
-            )}
-            {showLinkPanel && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/50">
-                    <div className="bg-[var(--neutral-100)] p-6 rounded-lg shadow-lg w-96 flex flex-col gap-4">
-                        <h2 className="text-[var(--foreground)] font-semibold text-xl">{panelTitle}</h2>
-                        <p className="text-[var(--foreground)]">{panelMessage}</p>
-                        <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="text"
-                                    value={panelUrl}
-                                    readOnly
-                                    className="flex-1 border border-[var(--neutral-300)] rounded-md p-2 bg-[var(--neutral-100)] text-[var(--foreground)]"
-                                />
-                                <Button
-                                    color="var(--accent-500)"
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(panelUrl);
-                                        setCopied(true);
-                                        setTimeout(() => setCopied(false), 2000);
-                                    }}
-                                >
-                                    <FiCopy className="h-[20px] w-[20px]" />
-                                </Button>
-                            </div>
-                            {copied && <p className="text-[var(--accent-500)] text-sm">Copied!</p>}
-                        </div>
-                        <Button
-                            color="var(--neutral-300)"
-                            onClick={() => setShowLinkPanel(false)}
-                        >
-                            Close
-                        </Button>
-                    </div>
-                </div>
-            )}
+            <Modal
+                isOpen={showSharePanel}
+                type="empty"
+                width="lg"
+                title="Share Course"
+                onClose={() => setShowSharePanel(false)}
+            >
+                <CourseSharePanel
+                    course={course}
+                    courseId={courseId}
+                    isOwner={isOwner}
+                />
+            </Modal>
         </div>
     );
  }

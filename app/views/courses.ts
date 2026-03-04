@@ -84,6 +84,13 @@ export async function updateCourse(courseId: string, courseData: Omit<Course, "i
     }
 }
 
+export async function addCourseCollaboratorByUserId(courseId: string, userId: string): Promise<{ success: boolean }> {
+    return apiFetch<{ success: boolean }>(`/api/courses/${courseId}/share`, {
+        method: "POST",
+        body: JSON.stringify({ userId }),
+    });
+}
+
 export async function deleteCourse(courseId: string): Promise<boolean> {
     try {
         await apiFetch(`/api/courses/${courseId}`, {
