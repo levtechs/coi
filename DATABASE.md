@@ -33,8 +33,18 @@ To modify data, the frontend follows this sequence:
 - `storage.rules`: Defines authentication requirements for Storage.
 - `firebase.json`: Links these rules to the Firebase project.
 
-## 5. Deployment
-To apply security rules to the live project, run:
+## 5. Applying Security Rules
+Security rules are configuration files that live on the Firebase backend to protect your database and storage bucket, regardless of where your app is hosted.
+
+After this PR is merged, you can apply these rules in two ways:
+
+### Option A: Firebase CLI (Recommended)
+This command **only** uploads the security rules and does not affect your hosting or other services:
 ```bash
 firebase deploy --only firestore:rules,storage:rules
 ```
+
+### Option B: Firebase Console (Manual)
+1. Open your project in the [Firebase Console](https://console.firebase.google.com/).
+2. For Firestore: Go to **Firestore Database** > **Rules** and paste the contents of `firestore.rules`.
+3. For Storage: Go to **Storage** > **Rules** and paste the contents of `storage.rules`.
