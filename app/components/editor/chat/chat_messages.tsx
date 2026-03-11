@@ -74,10 +74,10 @@ const ChatMessage = ({ message, cards, onCardClick, onFollowUpClick }: ChatMessa
     const smoothContent = useSmoothStream(message.content, message.isResponse);
 
     return (
-        <div className="flex flex-col mb-6">
+        <div className="flex flex-col mb-4">
             {/* Attachments of user-sent message*/}
             {message.attachments && (
-                <div className={`flex items-center gap-2 overflow-auto mb-3 ${message.isResponse ? "ml-4 justify-start" : "justify-end"}`}>
+                <div className={`flex items-center gap-2 overflow-auto mb-2 ${message.isResponse ? "ml-4 justify-start" : "justify-end"}`}>
                      {message.attachments
                          .sort((a, b) => {
                              const isThinkA = 'time' in a;

@@ -47,6 +47,22 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
     const [showPreferences, setShowPreferences] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
+    // Close preferences when clicking outside
+    const preferencesRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (preferencesRef.current && !preferencesRef.current.contains(event.target as Node)) {
+                setShowPreferences(false);
+            }
+        };
+        if (showPreferences) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showPreferences]);
+
 
     const [preferences, setPreferences] = useState<ChatPreferences>({
         model: "normal",
@@ -221,195 +237,287 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
     return (
         <div className={`transition-all duration-300 ${isFullscreen ? 'absolute inset-0 z-50 bg-[var(--neutral-100)]' : ''}`}>
             {chatToggled ? (
-                <div className={`bg-[var(--neutral-200)] rounded-md p-3 flex flex-col h-[100%] ${isFullscreen ? 'w-full' : 'w-[45vw]'}`}>
-                    {/* Header */}
-                    <div className="flex justify-between items-center mb-2">
-                        <h2 className="text-[var(--foreground)] text-xl font-semibold">Chat</h2>
-                        <div className="flex items-center gap-2">
-                            <FiSettings
-                                size={20}
-                                className={`text-[var(--neutral-500)] cursor-pointer hover:text-[var(--foreground)] ${showPreferences ? 'text-[var(--accent-500)]' : ''}`}
-                                onClick={() => setShowPreferences(!showPreferences)}
-                            />
-                            {isFullscreen ? (
-                                <FiMinimize
-                                    size={20}
-                                    className="text-[var(--neutral-500)] cursor-pointer hover:text-[var(--foreground)]"
+                isFullscreen ? (
+                    <div className="flex flex-col h-full w-full">
+                        {/* Modern Fullscreen Header */}
+                        <div className="flex justify-between items-center px-8 py-4 border-b border-transparent bg-transparent relative">
+                            <div className="flex items-center gap-4">
+                                <h2 className="text-[var(--foreground)] text-xl font-bold opacity-80">{project.title}</h2>
+                                <span className="px-2 py-0.5 rounded bg-[var(--accent-100)] text-[var(--accent-700)] text-[10px] font-bold uppercase tracking-widest">Assistant</span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <button 
+                                    onClick={() => setShowPreferences(!showPreferences)}
+                                    className={`p-2 rounded-lg transition-colors hover:bg-[var(--neutral-200)] ${showPreferences ? 'text-[var(--accent-500)] bg-[var(--neutral-200)]' : 'text-[var(--neutral-500)]'}`}
+                                >
+                                    <FiSettings size={22} />
+                                </button>
+                                <button 
                                     onClick={() => setIsFullscreen(false)}
-                                />
-                            ) : (
-                                <FiMaximize
-                                    size={20}
-                                    className="text-[var(--neutral-500)] cursor-pointer hover:text-[var(--foreground)]"
-                                    onClick={() => setIsFullscreen(true)}
-                                />
-                            )}
-                            <FiX
-                                size={24}
-                                className="text-[var(--neutral-500)] cursor-pointer hover:text-[var(--foreground)]"
-                                onClick={() => {setChatToggled(false);}}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Preferences Panel */}
-                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${showPreferences ? 'max-h-96 mb-2' : 'max-h-0'}`}>
-                        <ChatPreferencesPanel
-                            preferences={preferences}
-                            onPreferencesChange={setPreferences}
-                        />
-                    </div>
-
-                    {/* This is the new scrollable container with the ref attached */}
-                     <div ref={messagesEndRef} className="flex-1 overflow-y-auto bg-[var(--neutral-100)] rounded-md p-2 mb-2 flex flex-col min-h-0">
-                        <ChatMessages
-                            messages={messages}
-                            isLoading={isLoading}
-                            phase={streamPhase}
-                            cards={project.cards}
-                            onFollowUpClick={setInput}
-                        />
-                    </div>
-
-
-                     {/* Input box */}
-                     <div className="flex flex-col bg-[var(--neutral-100)] rounded-md px-2 py-2">
-
-                        {/* Attachments */}
-                        {attachments && attachments.length > 0 && (
-                            <div>
-                                <p className="text-sm p-1">Asking about:</p>
-                                <div className="flex items-center gap-2 overflow-auto py-1">
-                                    {attachments.map((attachment: ChatAttachment) => {
-                                        // Determine display text based on type
-                                        let text: string;
-                                        if ("type" in attachment && attachment.type === 'file') {
-                                            text = attachment.name;
-                                        } else if ("title" in attachment) {
-                                            text = attachment.title;
-                                        } else if ("text" in attachment) {
-                                            text = attachment.text;
-                                        } else {
-                                            text = "attachment details not found";
-                                        }
-
-                                        return (
-                                            <div
-                                                key={"id" in attachment ? attachment.id : crypto.randomUUID()}
-                                                className="flex items-center justify-between w-32 h-8 bg-[var(--neutral-300)] rounded flex-shrink-0"
-                                            >
-                                                <p className="truncate ml-2 text-sm">{text}</p>
-                                                <FiX
-                                                    onClick={() =>
-                                                        setAttachments((prev) =>
-                                                            prev ? prev.filter((att) => att !== attachment) : []
-                                                        )
-                                                    }
-                                                    className="ml-2 h-[75%] w-[75%] cursor-pointer rounded transition-colors"
+                                    className="p-2 rounded-lg transition-colors hover:bg-[var(--neutral-200)] text-[var(--neutral-500)]"
+                                >
+                                    <FiMinimize size={22} />
+                                </button>
+                                
+                                {/* Modern Popup Settings */}
+                                {showPreferences && (
+                                    <div ref={preferencesRef} className="absolute right-8 top-[100%] mt-2 z-[60] shadow-2xl animate-in fade-in zoom-in duration-200">
+                                        <div className="w-80 p-1 bg-white dark:bg-[var(--neutral-100)] rounded-xl border border-[var(--neutral-200)] shadow-2xl">
+                                            <div className="p-4 bg-[var(--neutral-100)] rounded-xl">
+                                                <h3 className="text-sm font-bold mb-4 px-1">Chat Settings</h3>
+                                                <ChatPreferencesPanel
+                                                    preferences={preferences}
+                                                    onPreferencesChange={setPreferences}
                                                 />
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-                        
-                        <div className="flex flex-row items-center "> 
-                            {!isLoading ? (
-                                <>
-                                    <textarea
-                                        value={input}
-                                        onChange={(e) => setInput(e.target.value)}
-                                        onKeyDown={handleKeyDown}
-                                        onPaste={handlePaste}
-                                        placeholder="Type a message..."
-                                        className="flex-1 bg-transparent outline-none p-2 text-[var(--foreground)] resize-none max-h-100 overflow-y-auto"
-                                    />
-                                    <div className="flex flex-col gap-2">
-                                        <FiSend
-                                            size={20}
-                                            onClick={onSend}
-                                            className="text-[var(--neutral-500)] hover:text-[var(--accent-600)] cursor-pointer"
-                                        />
-                                        <MdFileUpload
-                                            size={20}
-                                            onClick={() => fileInputRef.current?.click()}
-                                            className="text-[var(--neutral-500)] hover:text-[var(--accent-600)] cursor-pointer"
-                                        />
+                                        </div>
                                     </div>
-                                </>
-                            ) : (
-                                <>
-                                    <textarea
-                                        value={input}
-                                        onChange={(e) => setInput(e.target.value)}
-                                        onKeyDown={handleKeyDown}
-                                        onPaste={handlePaste}
-                                        className="flex-1 bg-transparent outline-none p-2 text-[var(--foreground)] resize-none max-h-100 overflow-y-auto"
-                                    />
-                                    <FiCircle
-                                        size={20}
-                                        className="text-[var(--accent-500)] hover:text-[var(--accent-600)] cursor-pointer"
-                                    />
-                                </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Messages Area */}
+                        <div ref={messagesEndRef} className="flex-1 overflow-y-auto pt-4 pb-2">
+                            <div className="max-w-5xl mx-auto px-8">
+                                <ChatMessages
+                                    messages={messages}
+                                    isLoading={isLoading}
+                                    phase={streamPhase}
+                                    cards={project.cards}
+                                    onFollowUpClick={setInput}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Input Area */}
+                        <div className="pb-6 pt-2">
+                            <div className="max-w-5xl mx-auto px-8">
+                                <div className="flex flex-col bg-[var(--neutral-200)] rounded-2xl shadow-sm border border-[var(--neutral-300)] focus-within:border-[var(--accent-400)] transition-all overflow-hidden">
+                                    {/* Attachments */}
+                                    {attachments && attachments.length > 0 && (
+                                        <div className="px-4 pt-3">
+                                            <div className="flex items-center gap-2 overflow-auto pb-2">
+                                                {attachments.map((attachment: ChatAttachment) => {
+                                                    let text: string;
+                                                    if ("type" in attachment && attachment.type === 'file') {
+                                                        text = attachment.name;
+                                                    } else if ("title" in attachment) {
+                                                        text = attachment.title;
+                                                    } else if ("text" in attachment) {
+                                                        text = attachment.text;
+                                                    } else {
+                                                        text = "attachment";
+                                                    }
+
+                                                    return (
+                                                        <div
+                                                            key={"id" in attachment ? attachment.id : crypto.randomUUID()}
+                                                            className="flex items-center gap-2 px-3 py-1.5 bg-[var(--neutral-300)] rounded-lg flex-shrink-0 group"
+                                                        >
+                                                            <span className="text-xs font-medium truncate max-w-[120px]">{text}</span>
+                                                            <FiX
+                                                                onClick={() =>
+                                                                    setAttachments((prev) =>
+                                                                        prev ? prev.filter((att) => att !== attachment) : []
+                                                                    )
+                                                                }
+                                                                className="cursor-pointer text-[var(--neutral-500)] hover:text-red-500 transition-colors"
+                                                            />
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="flex items-end p-2 gap-2">
+                                        <button
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="p-2 text-[var(--neutral-500)] hover:text-[var(--accent-500)] hover:bg-[var(--neutral-300)] rounded-xl transition-all mb-1"
+                                            title="Upload file"
+                                        >
+                                            <MdFileUpload size={22} />
+                                        </button>
+                                        
+                                        <textarea
+                                            value={input}
+                                            onChange={(e) => setInput(e.target.value)}
+                                            onKeyDown={handleKeyDown}
+                                            onPaste={handlePaste}
+                                            placeholder="Message assistant..."
+                                            className="flex-1 bg-transparent outline-none py-3 px-2 text-[var(--foreground)] resize-none max-h-[40vh] min-h-[44px]"
+                                            rows={1}
+                                            style={{ height: 'auto' }}
+                                            onInput={(e) => {
+                                                const target = e.target as HTMLTextAreaElement;
+                                                target.style.height = 'auto';
+                                                target.style.height = `${target.scrollHeight}px`;
+                                            }}
+                                        />
+
+                                        <button
+                                            onClick={onSend}
+                                            disabled={isLoading || !input.trim()}
+                                            className={`p-2.5 rounded-xl transition-all mb-1 ${
+                                                !isLoading && input.trim() 
+                                                ? 'bg-[var(--accent-500)] text-white hover:bg-[var(--accent-600)] shadow-md' 
+                                                : 'text-[var(--neutral-400)] cursor-not-allowed'
+                                            }`}
+                                        >
+                                            {isLoading ? (
+                                                <FiCircle className="animate-spin" size={18} />
+                                            ) : (
+                                                <FiSend size={18} />
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-center mt-2 text-[var(--neutral-500)]">
+                                    Assistant can make mistakes. Check important info.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className={`bg-[var(--neutral-200)] rounded-xl p-2 flex flex-col h-[100%] w-[45vw] shadow-sm border border-[var(--neutral-300)]`}>
+                        {/* Header */}
+                        <div className="flex justify-between items-center mb-2 relative px-2 py-1">
+                            <div className="flex items-center gap-2">
+                                <h2 className="text-[var(--foreground)] text-base font-bold opacity-90 tracking-tight">Chat</h2>
+                                <span className="px-1.5 py-0.5 rounded bg-[var(--accent-100)] text-[var(--accent-700)] text-[9px] font-bold uppercase tracking-wider">AI</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <button 
+                                    onClick={() => setShowPreferences(!showPreferences)}
+                                    className={`p-1.5 rounded-lg transition-colors hover:bg-[var(--neutral-300)] ${showPreferences ? 'text-[var(--accent-500)] bg-[var(--neutral-300)]' : 'text-[var(--neutral-500)]'}`}
+                                >
+                                    <FiSettings size={16} />
+                                </button>
+                                <button 
+                                    onClick={() => setIsFullscreen(true)}
+                                    className="p-1.5 rounded-lg transition-colors hover:bg-[var(--neutral-300)] text-[var(--neutral-500)]"
+                                >
+                                    <FiMaximize size={16} />
+                                </button>
+                                <button 
+                                    onClick={() => setChatToggled(false)}
+                                    className="p-1.5 rounded-lg transition-colors hover:bg-[var(--neutral-300)] text-[var(--neutral-500)]"
+                                >
+                                    <FiX size={18} />
+                                </button>
+
+                                {/* Standard Mode Popup Settings */}
+                                {showPreferences && (
+                                    <div ref={preferencesRef} className="absolute right-0 top-[100%] mt-2 z-[60] shadow-2xl animate-in fade-in zoom-in duration-150">
+                                        <div className="w-72 p-1 bg-white dark:bg-[var(--neutral-100)] rounded-xl border border-[var(--neutral-300)] shadow-2xl">
+                                            <div className="p-3 bg-[var(--neutral-100)] rounded-xl">
+                                                <h3 className="text-xs font-bold mb-3 px-1 opacity-70 uppercase tracking-wider">Preferences</h3>
+                                                <ChatPreferencesPanel
+                                                    preferences={preferences}
+                                                    onPreferencesChange={setPreferences}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Message container */}
+                         <div ref={messagesEndRef} className="flex-1 overflow-y-auto bg-[var(--neutral-100)] rounded-xl p-2 mb-2 flex flex-col min-h-0 border border-[var(--neutral-300)]/50">
+                            <div className="px-1">
+                                <ChatMessages
+                                    messages={messages}
+                                    isLoading={isLoading}
+                                    phase={streamPhase}
+                                    cards={project.cards}
+                                    onFollowUpClick={setInput}
+                                />
+                            </div>
+                        </div>
+
+                         {/* Input Area */}
+                         <div className="flex flex-col bg-[var(--neutral-100)] rounded-xl shadow-sm border border-[var(--neutral-300)] focus-within:border-[var(--accent-400)] transition-all overflow-hidden">
+                            {/* Attachments */}
+                            {attachments && attachments.length > 0 && (
+                                <div className="px-3 pt-2">
+                                    <div className="flex items-center gap-2 overflow-auto pb-1">
+                                        {attachments.map((attachment: ChatAttachment) => {
+                                            let text: string;
+                                            if ("type" in attachment && attachment.type === 'file') {
+                                                text = attachment.name;
+                                            } else if ("title" in attachment) {
+                                                text = attachment.title;
+                                            } else if ("text" in attachment) {
+                                                text = attachment.text;
+                                            } else {
+                                                text = "attachment";
+                                            }
+
+                                            return (
+                                                <div
+                                                    key={"id" in attachment ? attachment.id : crypto.randomUUID()}
+                                                    className="flex items-center gap-1.5 px-2 py-1 bg-[var(--neutral-300)] rounded-lg flex-shrink-0"
+                                                >
+                                                    <span className="text-[11px] font-medium truncate max-w-[100px]">{text}</span>
+                                                    <FiX
+                                                        onClick={() =>
+                                                            setAttachments((prev) =>
+                                                                prev ? prev.filter((att) => att !== attachment) : []
+                                                            )
+                                                        }
+                                                        className="cursor-pointer text-[var(--neutral-500)] hover:text-red-500 transition-colors w-3 h-3"
+                                                    />
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             )}
+                            
+                            <div className="flex items-end p-1.5 gap-1"> 
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="p-1.5 text-[var(--neutral-500)] hover:text-[var(--accent-500)] hover:bg-[var(--neutral-200)] rounded-lg transition-all mb-0.5"
+                                >
+                                    <MdFileUpload size={18} />
+                                </button>
+                                
+                                <textarea
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    onPaste={handlePaste}
+                                    placeholder="Ask anything..."
+                                    className="flex-1 bg-transparent outline-none py-1.5 px-1 text-[var(--foreground)] text-sm resize-none max-h-40 overflow-y-auto"
+                                    rows={1}
+                                    style={{ height: 'auto' }}
+                                    onInput={(e) => {
+                                        const target = e.target as HTMLTextAreaElement;
+                                        target.style.height = 'auto';
+                                        target.style.height = `${target.scrollHeight}px`;
+                                    }}
+                                />
+
+                                <button
+                                    onClick={onSend}
+                                    disabled={isLoading || !input.trim()}
+                                    className={`p-1.5 rounded-lg transition-all mb-0.5 ${
+                                        !isLoading && input.trim() 
+                                        ? 'bg-[var(--accent-500)] text-white hover:bg-[var(--accent-600)] shadow-sm' 
+                                        : 'text-[var(--neutral-400)] cursor-not-allowed'
+                                    }`}
+                                >
+                                    {isLoading ? (
+                                        <FiCircle className="animate-spin" size={16} />
+                                    ) : (
+                                        <FiSend size={16} />
+                                    )}
+                                </button>
+                             </div>
                          </div>
-                          <input
-                              type="file"
-                              ref={fileInputRef}
-                              accept={ALLOWED_MIME_TYPES.map(type => type.endsWith('/') ? type + '*' : type).join(',')}
-                              style={{ display: 'none' }}
-                              onChange={async (e) => {
-                                 const file = e.target.files?.[0];
-                                 if (file) {
-                                     // Validate file type
-                                     if (!ALLOWED_MIME_TYPES.some(type => file.type.startsWith(type))) {
-                                         setModalContents({
-                                             isOpen: true,
-                                             type: "error",
-                                             width: "sm",
-                                             message: `File type ${file.type} not allowed. Only images and documents are permitted.`,
-                                             onClose: () => setModalContents(noModal),
-                                         });
-                                         return;
-                                     }
-
-                                     // Validate total size
-                                     const currentSize = (attachments || []).reduce((sum, att) => {
-                                         if ('type' in att && att.type === 'file') {
-                                             return sum + att.size;
-                                         }
-                                         return sum;
-                                     }, 0);
-                                     if (currentSize + file.size > MAX_UPLOAD_SIZE_BYTES) {
-                                         setModalContents({
-                                             isOpen: true,
-                                             type: "error",
-                                             width: "sm",
-                                             message: `Total attachment size would exceed ${MAX_UPLOAD_SIZE_MB}MB. Please remove some attachments.`,
-                                             onClose: () => setModalContents(noModal),
-                                         });
-                                         return;
-                                     }
-
-                                     try {
-                                         const attachment = await uploadFile(file, project.id);
-                                         addFileAttachment(attachment);
-                                     } catch (error) {
-                                         console.error('Upload failed:', error);
-                                         setModalContents({
-                                             isOpen: true,
-                                             type: "error",
-                                             width: "sm",
-                                             message: error instanceof Error ? error.message : 'Upload failed.',
-                                             onClose: () => setModalContents(noModal),
-                                         });
-                                     }
-                                 }
-                             }}
-                         />
                      </div>
-                 </div>
+                )
             ) : (
                 <div className="absolute top-12 right-2 m-4"> 
                     <BsFillChatRightTextFill 
@@ -418,6 +526,60 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                     />
                 </div>
             )}
+             <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept={ALLOWED_MIME_TYPES.map(type => type.endsWith('/') ? type + '*' : type).join(',')}
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                     const file = e.target.files?.[0];
+                     if (file) {
+                         // Validate file type
+                         if (!ALLOWED_MIME_TYPES.some(type => file.type.startsWith(type))) {
+                             setModalContents({
+                                 isOpen: true,
+                                 type: "error",
+                                 width: "sm",
+                                 message: `File type ${file.type} not allowed. Only images and documents are permitted.`,
+                                 onClose: () => setModalContents(noModal),
+                             });
+                             return;
+                         }
+
+                         // Validate total size
+                         const currentSize = (attachments || []).reduce((sum, att) => {
+                             if ('type' in att && att.type === 'file') {
+                                 return sum + att.size;
+                             }
+                             return sum;
+                         }, 0);
+                         if (currentSize + file.size > MAX_UPLOAD_SIZE_BYTES) {
+                             setModalContents({
+                                 isOpen: true,
+                                 type: "error",
+                                 width: "sm",
+                                 message: `Total attachment size would exceed ${MAX_UPLOAD_SIZE_MB}MB. Please remove some attachments.`,
+                                 onClose: () => setModalContents(noModal),
+                             });
+                             return;
+                         }
+
+                         try {
+                             const attachment = await uploadFile(file, project.id);
+                             addFileAttachment(attachment);
+                         } catch (error) {
+                             console.error('Upload failed:', error);
+                             setModalContents({
+                                 isOpen: true,
+                                 type: "error",
+                                 width: "sm",
+                                 message: error instanceof Error ? error.message : 'Upload failed.',
+                                 onClose: () => setModalContents(noModal),
+                             });
+                         }
+                     }
+                 }}
+             />
         </div>
     );
 };

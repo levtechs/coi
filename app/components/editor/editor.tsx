@@ -64,30 +64,32 @@ const Editor = ({
     return (
         <div className="flex flex-col h-dvh w-full bg-[var(--neutral-100)] text-[var(--foreground)]">
             {/* Main Layout Container */}
-            <div className="flex flex-col w-full h-full p-6">
+            <div className={`flex flex-col w-full h-full transition-all duration-300 ${chatFullscreen ? 'p-0' : 'px-4 py-3'}`}>
                 
                 {/* Top Menu Bar */}
-                <MenuBar
-                    project={project}
-                    user={user}
-                    addCollaborator={addCollaborator}
-                    setTitle={setTitle}
-                    setModalContents={setModalContents}
-                    tab={tab}
-                    setTab={setTab}
-                    cardFilters={cardFilters}
-                    filtersExpanded={filtersExpanded}
-                    setFiltersExpanded={setFiltersExpanded}
-                    toggleKnowledge={toggleKnowledge}
-                    toggleResource={toggleResource}
-                    toggleImportant={toggleImportant}
-                    addFileAttachment={addFileAttachment}
-                />
+                {!chatFullscreen && (
+                    <MenuBar
+                        project={project}
+                        user={user}
+                        addCollaborator={addCollaborator}
+                        setTitle={setTitle}
+                        setModalContents={setModalContents}
+                        tab={tab}
+                        setTab={setTab}
+                        cardFilters={cardFilters}
+                        filtersExpanded={filtersExpanded}
+                        setFiltersExpanded={setFiltersExpanded}
+                        toggleKnowledge={toggleKnowledge}
+                        toggleResource={toggleResource}
+                        toggleImportant={toggleImportant}
+                        addFileAttachment={addFileAttachment}
+                    />
+                )}
 
                 {/* Main Content Area */}
-                <div className="relative mt-4 flex flex-row flex-1 w-full overflow-hidden">
+                <div className={`relative flex flex-row flex-1 w-full overflow-hidden ${chatFullscreen ? '' : 'mt-4'}`}>
                     {/* Main Content Panel - occupies the available space */}
-                    <div className={`flex flex-col flex-1 h-full overflow-y-auto transition-all duration-300 ${chatFullscreen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                    <div className={`flex flex-col flex-1 h-full overflow-y-auto transition-all duration-300 ${chatFullscreen ? 'hidden' : 'opacity-100'}`}>
                             <ContentPanel
                                 hierarchy={project.hierarchy}
                                 cards={project.cards}
