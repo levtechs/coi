@@ -58,9 +58,15 @@ export default function Modal({
 
     return (
         // This is the new full-screen overlay container
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/50">
+        <div 
+            className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/50 animate-in fade-in duration-300"
+            onClick={onClose}
+        >
             {/* This is your existing modal content */}
-            <div className={`bg-[var(--neutral-100)] p-6 rounded-lg shadow-lg ${getWidthClass(width)} flex flex-col gap-4 relative`}>
+            <div 
+                className={`bg-[var(--neutral-100)] p-6 rounded-lg shadow-lg ${getWidthClass(width)} flex flex-col gap-4 relative animate-in zoom-in-95 slide-in-from-bottom-4 duration-300`}
+                onClick={(e) => e.stopPropagation()}
+            >
                 {title && (
                     <div className="flex items-center justify-between">
                         <h2 className="text-[var(--foreground)] font-semibold text-xl">{title}</h2>

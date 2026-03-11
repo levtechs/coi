@@ -7,6 +7,7 @@ import { MdFileUpload } from "react-icons/md";
 import ChatMessages from "./chat_messages";
 import NewCardsPopup from "./new_cards_popup";
 import ChatPreferencesPanel from "./chat_preferences_panel";
+import AttachmentsList from "./attachments_list";
 
 
 import { Project, Message, Card, StreamPhase, ChatAttachment, ChatPreferences } from "@/lib/types";
@@ -17,6 +18,7 @@ import { sendMessage, sendQuickCreateMessage } from "./helpers";
 import { uploadFile } from "@/app/views/uploads";
 import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/uploadConstants";
 import { validateAndUploadFiles } from '@/lib/uploadUtils';
+import { useAutoResize } from "@/app/hooks/use-auto-resize";
 
 interface ChatPanelProps {
     project: Project;
@@ -46,6 +48,9 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
 
     const [showPreferences, setShowPreferences] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
+
+    // Auto-resize for textarea
+    const { textareaRef } = useAutoResize(input);
 
     // Close preferences when clicking outside
     const preferencesRef = useRef<HTMLDivElement>(null);
@@ -249,19 +254,23 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                                 <button 
                                     onClick={() => setShowPreferences(!showPreferences)}
                                     className={`p-2 rounded-lg transition-colors hover:bg-[var(--neutral-200)] ${showPreferences ? 'text-[var(--accent-500)] bg-[var(--neutral-200)]' : 'text-[var(--neutral-500)]'}`}
+                                    aria-label="Chat settings"
+                                    title="Chat settings"
                                 >
                                     <FiSettings size={22} />
                                 </button>
                                 <button 
                                     onClick={() => setIsFullscreen(false)}
                                     className="p-2 rounded-lg transition-colors hover:bg-[var(--neutral-200)] text-[var(--neutral-500)]"
+                                    aria-label="Exit fullscreen"
+                                    title="Exit fullscreen"
                                 >
                                     <FiMinimize size={22} />
                                 </button>
                                 
                                 {/* Modern Popup Settings */}
                                 {showPreferences && (
-                                    <div ref={preferencesRef} className="absolute right-8 top-[100%] mt-2 z-[60] shadow-2xl animate-in fade-in zoom-in duration-200">
+                                    <div ref={preferencesRef} className="absolute right-8 top-[100%] mt-2 z-[60] shadow-2xl transition transform duration-200 ease-out origin-top-right">
                                         <div className="w-80 p-1 bg-white dark:bg-[var(--neutral-100)] rounded-xl border border-[var(--neutral-200)] shadow-2xl">
                                             <div className="p-4 bg-[var(--neutral-100)] rounded-xl">
                                                 <h3 className="text-sm font-bold mb-4 px-1">Chat Settings</h3>
@@ -295,51 +304,25 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                                 <div className="flex flex-col bg-[var(--neutral-200)] rounded-2xl shadow-sm border border-[var(--neutral-300)] focus-within:border-[var(--accent-400)] transition-all overflow-hidden">
                                     {/* Attachments */}
                                     {attachments && attachments.length > 0 && (
-                                        <div className="px-4 pt-3">
-                                            <div className="flex items-center gap-2 overflow-auto pb-2">
-                                                {attachments.map((attachment: ChatAttachment) => {
-                                                    let text: string;
-                                                    if ("type" in attachment && attachment.type === 'file') {
-                                                        text = attachment.name;
-                                                    } else if ("title" in attachment) {
-                                                        text = attachment.title;
-                                                    } else if ("text" in attachment) {
-                                                        text = attachment.text;
-                                                    } else {
-                                                        text = "attachment";
-                                                    }
-
-                                                    return (
-                                                        <div
-                                                            key={"id" in attachment ? attachment.id : crypto.randomUUID()}
-                                                            className="flex items-center gap-2 px-3 py-1.5 bg-[var(--neutral-300)] rounded-lg flex-shrink-0 group"
-                                                        >
-                                                            <span className="text-xs font-medium truncate max-w-[120px]">{text}</span>
-                                                            <FiX
-                                                                onClick={() =>
-                                                                    setAttachments((prev) =>
-                                                                        prev ? prev.filter((att) => att !== attachment) : []
-                                                                    )
-                                                                }
-                                                                className="cursor-pointer text-[var(--neutral-500)] hover:text-red-500 transition-colors"
-                                                            />
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
+                                        <AttachmentsList 
+                                            attachments={attachments} 
+                                            setAttachments={setAttachments} 
+                                            variant="fullscreen" 
+                                        />
                                     )}
 
                                     <div className="flex items-end p-2 gap-2">
                                         <button
                                             onClick={() => fileInputRef.current?.click()}
                                             className="p-2 text-[var(--neutral-500)] hover:text-[var(--accent-500)] hover:bg-[var(--neutral-300)] rounded-xl transition-all mb-1"
+                                            aria-label="Upload file"
                                             title="Upload file"
                                         >
                                             <MdFileUpload size={22} />
                                         </button>
                                         
                                         <textarea
+                                            ref={textareaRef}
                                             value={input}
                                             onChange={(e) => setInput(e.target.value)}
                                             onKeyDown={handleKeyDown}
@@ -347,12 +330,6 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                                             placeholder="Message assistant..."
                                             className="flex-1 bg-transparent outline-none py-3 px-2 text-[var(--foreground)] resize-none max-h-[40vh] min-h-[44px]"
                                             rows={1}
-                                            style={{ height: 'auto' }}
-                                            onInput={(e) => {
-                                                const target = e.target as HTMLTextAreaElement;
-                                                target.style.height = 'auto';
-                                                target.style.height = `${target.scrollHeight}px`;
-                                            }}
                                         />
 
                                         <button
@@ -363,6 +340,8 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                                                 ? 'bg-[var(--accent-500)] text-white hover:bg-[var(--accent-600)] shadow-md' 
                                                 : 'text-[var(--neutral-400)] cursor-not-allowed'
                                             }`}
+                                            aria-label="Send message"
+                                            title="Send message"
                                         >
                                             {isLoading ? (
                                                 <FiCircle className="animate-spin" size={18} />
@@ -390,25 +369,31 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                                 <button 
                                     onClick={() => setShowPreferences(!showPreferences)}
                                     className={`p-1.5 rounded-lg transition-colors hover:bg-[var(--neutral-300)] ${showPreferences ? 'text-[var(--accent-500)] bg-[var(--neutral-300)]' : 'text-[var(--neutral-500)]'}`}
+                                    aria-label="Open chat preferences"
+                                    title="Open chat preferences"
                                 >
                                     <FiSettings size={16} />
                                 </button>
                                 <button 
                                     onClick={() => setIsFullscreen(true)}
                                     className="p-1.5 rounded-lg transition-colors hover:bg-[var(--neutral-300)] text-[var(--neutral-500)]"
+                                    aria-label="Enter fullscreen mode"
+                                    title="Enter fullscreen mode"
                                 >
                                     <FiMaximize size={16} />
                                 </button>
                                 <button 
                                     onClick={() => setChatToggled(false)}
                                     className="p-1.5 rounded-lg transition-colors hover:bg-[var(--neutral-300)] text-[var(--neutral-500)]"
+                                    aria-label="Close chat"
+                                    title="Close chat"
                                 >
                                     <FiX size={18} />
                                 </button>
 
                                 {/* Standard Mode Popup Settings */}
                                 {showPreferences && (
-                                    <div ref={preferencesRef} className="absolute right-0 top-[100%] mt-2 z-[60] shadow-2xl animate-in fade-in zoom-in duration-150">
+                                    <div ref={preferencesRef} className="absolute right-0 top-[100%] mt-2 z-[60] shadow-2xl transition transform duration-150 ease-out origin-top-right">
                                         <div className="w-72 p-1 bg-white dark:bg-[var(--neutral-100)] rounded-xl border border-[var(--neutral-300)] shadow-2xl">
                                             <div className="p-3 bg-[var(--neutral-100)] rounded-xl">
                                                 <h3 className="text-xs font-bold mb-3 px-1 opacity-70 uppercase tracking-wider">Preferences</h3>
@@ -440,50 +425,25 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                          <div className="flex flex-col bg-[var(--neutral-100)] rounded-xl shadow-sm border border-[var(--neutral-300)] focus-within:border-[var(--accent-400)] transition-all overflow-hidden">
                             {/* Attachments */}
                             {attachments && attachments.length > 0 && (
-                                <div className="px-3 pt-2">
-                                    <div className="flex items-center gap-2 overflow-auto pb-1">
-                                        {attachments.map((attachment: ChatAttachment) => {
-                                            let text: string;
-                                            if ("type" in attachment && attachment.type === 'file') {
-                                                text = attachment.name;
-                                            } else if ("title" in attachment) {
-                                                text = attachment.title;
-                                            } else if ("text" in attachment) {
-                                                text = attachment.text;
-                                            } else {
-                                                text = "attachment";
-                                            }
-
-                                            return (
-                                                <div
-                                                    key={"id" in attachment ? attachment.id : crypto.randomUUID()}
-                                                    className="flex items-center gap-1.5 px-2 py-1 bg-[var(--neutral-300)] rounded-lg flex-shrink-0"
-                                                >
-                                                    <span className="text-[11px] font-medium truncate max-w-[100px]">{text}</span>
-                                                    <FiX
-                                                        onClick={() =>
-                                                            setAttachments((prev) =>
-                                                                prev ? prev.filter((att) => att !== attachment) : []
-                                                            )
-                                                        }
-                                                        className="cursor-pointer text-[var(--neutral-500)] hover:text-red-500 transition-colors w-3 h-3"
-                                                    />
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
+                                <AttachmentsList 
+                                    attachments={attachments} 
+                                    setAttachments={setAttachments} 
+                                    variant="standard" 
+                                />
                             )}
                             
                             <div className="flex items-end p-1.5 gap-1"> 
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
                                     className="p-1.5 text-[var(--neutral-500)] hover:text-[var(--accent-500)] hover:bg-[var(--neutral-200)] rounded-lg transition-all mb-0.5"
+                                    aria-label="Upload file"
+                                    title="Upload file"
                                 >
                                     <MdFileUpload size={18} />
                                 </button>
                                 
                                 <textarea
+                                    ref={textareaRef}
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={handleKeyDown}
@@ -491,12 +451,6 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                                     placeholder="Ask anything..."
                                     className="flex-1 bg-transparent outline-none py-1.5 px-1 text-[var(--foreground)] text-sm resize-none max-h-40 overflow-y-auto"
                                     rows={1}
-                                    style={{ height: 'auto' }}
-                                    onInput={(e) => {
-                                        const target = e.target as HTMLTextAreaElement;
-                                        target.style.height = 'auto';
-                                        target.style.height = `${target.scrollHeight}px`;
-                                    }}
                                 />
 
                                 <button
@@ -507,6 +461,8 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                                         ? 'bg-[var(--accent-500)] text-white hover:bg-[var(--accent-600)] shadow-sm' 
                                         : 'text-[var(--neutral-400)] cursor-not-allowed'
                                     }`}
+                                    aria-label="Send message"
+                                    title="Send message"
                                 >
                                     {isLoading ? (
                                         <FiCircle className="animate-spin" size={16} />
@@ -523,6 +479,8 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                     <BsFillChatRightTextFill 
                         className="text-[var(--accent-400)] text-xl cursor-pointer"
                         onClick={() => {setChatToggled(true)}}
+                        aria-label="Open chat"
+                        title="Open chat"
                     />
                 </div>
             )}
@@ -532,50 +490,58 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                   accept={ALLOWED_MIME_TYPES.map(type => type.endsWith('/') ? type + '*' : type).join(',')}
                   style={{ display: 'none' }}
                   onChange={async (e) => {
-                     const file = e.target.files?.[0];
-                     if (file) {
-                         // Validate file type
-                         if (!ALLOWED_MIME_TYPES.some(type => file.type.startsWith(type))) {
-                             setModalContents({
-                                 isOpen: true,
-                                 type: "error",
-                                 width: "sm",
-                                 message: `File type ${file.type} not allowed. Only images and documents are permitted.`,
-                                 onClose: () => setModalContents(noModal),
-                             });
-                             return;
-                         }
-
-                         // Validate total size
-                         const currentSize = (attachments || []).reduce((sum, att) => {
-                             if ('type' in att && att.type === 'file') {
-                                 return sum + att.size;
+                     const inputElement = e.target;
+                     const file = inputElement.files?.[0];
+                     try {
+                         if (file) {
+                             // Validate file type
+                             if (!ALLOWED_MIME_TYPES.some(type => file.type.startsWith(type))) {
+                                 setModalContents({
+                                     isOpen: true,
+                                     type: "error",
+                                     width: "sm",
+                                     message: `File type ${file.type} not allowed. Only images and documents are permitted.`,
+                                     onClose: () => setModalContents(noModal),
+                                 });
+                                 return;
                              }
-                             return sum;
-                         }, 0);
-                         if (currentSize + file.size > MAX_UPLOAD_SIZE_BYTES) {
-                             setModalContents({
-                                 isOpen: true,
-                                 type: "error",
-                                 width: "sm",
-                                 message: `Total attachment size would exceed ${MAX_UPLOAD_SIZE_MB}MB. Please remove some attachments.`,
-                                 onClose: () => setModalContents(noModal),
-                             });
-                             return;
-                         }
 
-                         try {
-                             const attachment = await uploadFile(file, project.id);
-                             addFileAttachment(attachment);
-                         } catch (error) {
-                             console.error('Upload failed:', error);
-                             setModalContents({
-                                 isOpen: true,
-                                 type: "error",
-                                 width: "sm",
-                                 message: error instanceof Error ? error.message : 'Upload failed.',
-                                 onClose: () => setModalContents(noModal),
-                             });
+                             // Validate total size
+                             const currentSize = (attachments || []).reduce((sum, att) => {
+                                 if ('type' in att && att.type === 'file') {
+                                     return sum + att.size;
+                                 }
+                                 return sum;
+                             }, 0);
+                             if (currentSize + file.size > MAX_UPLOAD_SIZE_BYTES) {
+                                 setModalContents({
+                                     isOpen: true,
+                                     type: "error",
+                                     width: "sm",
+                                     message: `Total attachment size would exceed ${MAX_UPLOAD_SIZE_MB}MB. Please remove some attachments.`,
+                                     onClose: () => setModalContents(noModal),
+                                 });
+                                 return;
+                             }
+
+                             try {
+                                 const attachment = await uploadFile(file, project.id);
+                                 addFileAttachment(attachment);
+                             } catch (error) {
+                                 console.error('Upload failed:', error);
+                                 setModalContents({
+                                     isOpen: true,
+                                     type: "error",
+                                     width: "sm",
+                                     message: error instanceof Error ? error.message : 'Upload failed.',
+                                     onClose: () => setModalContents(noModal),
+                                 });
+                             }
+                         }
+                     } finally {
+                         // Reset input value to allow re-uploading the same file
+                         if (inputElement) {
+                             inputElement.value = "";
                          }
                      }
                  }}
