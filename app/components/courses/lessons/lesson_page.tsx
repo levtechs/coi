@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { CourseLesson, Project, Card, Quiz } from "@/lib/types";
 import { takeLesson } from "@/app/views/lessons";
 import { getQuiz } from "@/app/views/quiz";
-import { fetchCardsFromProject } from "@/app/api/cards/helpers";
+import { getCards } from "@/app/views/cards";
 import Button from "../../button";
 import ProjectCard from "../../dashboard/project_card";
 import Modal from "../../modal";
@@ -43,7 +43,7 @@ const LessonPage = ({ lesson, courseId, lessonIdx, projects }: LessonPageProps) 
                     const allUnlockedIds = new Set<string>();
                     for (const project of projects) {
                         try {
-                            const cards = await fetchCardsFromProject(project.id);
+                            const cards = await getCards(project.id);
                             const unlockedCards = cards.filter((card) => card.isUnlocked);
                             unlockedCards.forEach(card => allUnlockedIds.add(card.id));
                             const unlockedCount = unlockedCards.length;

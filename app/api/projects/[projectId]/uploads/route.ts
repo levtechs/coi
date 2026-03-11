@@ -23,8 +23,8 @@ export async function POST(
         const savedUploads = await writeUploadsToDb(projectId, uploads);
         return NextResponse.json(savedUploads);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error in POST /api/projects/[projectId]/uploads:', error);
-        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: (error as Error).message || 'Internal Server Error' }, { status: 500 });
     }
 }

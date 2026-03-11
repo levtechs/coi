@@ -95,8 +95,8 @@ export async function GET(
         // Sort replies by creation time
         const sortReplies = (comments: CommentTree[]): void => {
             comments.sort((a, b) => {
-                const aTime = (a.createdAt as any).toMillis?.() || new Date(a.createdAt as any).getTime();
-                const bTime = (b.createdAt as any).toMillis?.() || new Date(b.createdAt as any).getTime();
+                const aTime = (a.createdAt as unknown as { toMillis?: () => number }).toMillis?.() || new Date(a.createdAt as unknown as string).getTime();
+                const bTime = (b.createdAt as unknown as { toMillis?: () => number }).toMillis?.() || new Date(b.createdAt as unknown as string).getTime();
                 return aTime - bTime;
             });
             comments.forEach(comment => sortReplies(comment.replies));
@@ -162,8 +162,8 @@ export async function POST(
         const commentData: Omit<Comment, 'id'> = {
             userId: uid,
             content: body.content.trim(),
-            createdAt: now as any,
-            updatedAt: now as any,
+            createdAt: now as unknown as Comment['createdAt'],
+            updatedAt: now as unknown as Comment['updatedAt'],
             parentId: body.parentId || null,
             upvotes: [],
             downvotes: [],
