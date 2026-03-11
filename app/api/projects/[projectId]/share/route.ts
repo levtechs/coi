@@ -74,9 +74,6 @@ export async function POST(req: NextRequest, context: { params: Promise<{ projec
         });
 
         // Find user by email
-        // Note: getUserRefByEmail currently returns a Client SDK DocumentReference. 
-        // We might need to adjust it or handle it manually here for Admin SDK.
-        // Let's check it first.
         const usersSnap = await adminDb.collection("users").where("email", "==", email!).get();
         if (usersSnap.empty) {
             return NextResponse.json({ error: "UserNotFound" }, { status: 404 });
