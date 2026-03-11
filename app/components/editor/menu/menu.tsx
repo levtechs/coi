@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Timestamp } from "firebase/firestore";
 
 import { FiEdit2 } from "react-icons/fi";
@@ -15,6 +15,7 @@ import { Project, Quiz, CardFilter, ChatAttachment } from "@/lib/types";
 import { getQuiz } from "@/app/views/quiz";
 import { fetchCardsFromProject } from "@/app/api/cards/helpers";
 import TabSelector from "../tab_selector";
+import { useOnClickOutside } from "@/app/hooks/use-on-click-outside";
 
 interface MenuBarProps {
     project: Project;
@@ -38,21 +39,8 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
     const [lessonProgress, setLessonProgress] = useState<number | null>(null);
 
     const filtersContainerRef = useRef<HTMLDivElement>(null);
-
-    // Close filters when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (filtersContainerRef.current && !filtersContainerRef.current.contains(event.target as Node)) {
-                setFiltersExpanded(false);
-            }
-        };
-        if (filtersExpanded) {
-            document.addEventListener("mousedown", handleClickOutside);
-        }
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, [filtersExpanded, setFiltersExpanded]);
+    const closeFilters = useCallback(() => setFiltersExpanded(false), [setFiltersExpanded]);
+    useOnClickOutside(filtersContainerRef, closeFilters, filtersExpanded);
 
     const truncatedTitle = project.title.length > 15 ? project.title.slice(0, 15) + '...' : project.title;
 
