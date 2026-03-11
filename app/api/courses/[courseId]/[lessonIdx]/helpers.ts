@@ -1,5 +1,4 @@
-import { db } from "@/lib/firebase";
-import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { CourseLesson, Card } from "@/lib/types";
 
 /**
@@ -12,14 +11,14 @@ import { CourseLesson, Card } from "@/lib/types";
  */
 export async function getLessonFromCourse(courseId: string, lessonIdx: number, uid: string): Promise<{ lesson: CourseLesson | null; hasAccess: boolean }> {
     try {
-        const courseRef = doc(db, 'courses', courseId);
-        const courseSnap = await getDoc(courseRef);
+        const courseRef = adminDb.collection('courses').doc(courseId);
+        const courseSnap = await courseRef.get();
 
-        if (!courseSnap.exists()) {
+        if (!courseSnap.exists) {
             return { lesson: null, hasAccess: false };
         }
 
-        const courseData = courseSnap.data();
+        const courseData = courseSnap.data()!;
 
         // Check access: owner, shared, or public
         const hasAccess =
@@ -32,8 +31,8 @@ export async function getLessonFromCourse(courseId: string, lessonIdx: number, u
         }
 
         // Fetch lessons subcollection
-        const lessonsRef = collection(db, 'courses', courseId, 'lessons');
-        const lessonsSnap = await getDocs(lessonsRef);
+        const lessonsRef = courseRef.collection('lessons');
+        const lessonsSnap = await lessonsRef.get();
         const lessons = lessonsSnap.docs.map((p) => ({
             id: p.id,
             courseId: courseId,
@@ -48,8 +47,8 @@ export async function getLessonFromCourse(courseId: string, lessonIdx: number, u
         }
 
         // Fetch cardsToUnlock subcollection
-        const cardsRef = collection(db, 'courses', courseId, 'lessons', lesson.id, 'cardsToUnlock');
-        const cardsSnap = await getDocs(cardsRef);
+        const cardsRef = lessonsRef.doc(lesson.id).collection('cardsToUnlock');
+        const cardsSnap = await cardsRef.get();
         const cardsToUnlock = cardsSnap.docs.map((c) => ({
             id: c.id,
             ...c.data(),

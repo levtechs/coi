@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import {
-    doc,
-    getDoc,
-    updateDoc,
-    deleteDoc,
-    arrayUnion,
-    arrayRemove,
-} from "firebase/firestore";
+import { adminDb } from "@/lib/firebaseAdmin";
+import * as admin from "firebase-admin";
 import { getVerifiedUid } from "@/app/api/helpers";
 import { Friendship } from "@/lib/types";
 
@@ -23,10 +16,10 @@ export async function PUT(
         const uid = await getVerifiedUid(req);
         const { friendshipId } = await params;
 
-        const friendshipRef = doc(db, "friendships", friendshipId);
-        const friendshipSnap = await getDoc(friendshipRef);
+        const friendshipRef = adminDb.collection("friendships").doc(friendshipId);
+        const friendshipSnap = await friendshipRef.get();
 
-        if (!friendshipSnap.exists()) {
+        if (!friendshipSnap.exists) {
             return NextResponse.json({ error: "Friendship not found" }, { status: 404 });
         }
 
@@ -49,7 +42,7 @@ export async function PUT(
         const now = new Date().toISOString();
 
         // Update friendship to accepted
-        await updateDoc(friendshipRef, {
+        await friendshipRef.update({
             status: "accepted",
             acceptedAt: now,
         });
@@ -57,8 +50,8 @@ export async function PUT(
         // Add each user to the other's friendIds
         const [userA, userB] = friendship.users;
         await Promise.all([
-            updateDoc(doc(db, "users", userA), { friendIds: arrayUnion(userB) }),
-            updateDoc(doc(db, "users", userB), { friendIds: arrayUnion(userA) }),
+            adminDb.collection("users").doc(userA).update({ friendIds: admin.firestore.FieldValue.arrayUnion(userB) }),
+            adminDb.collection("users").doc(userB).update({ friendIds: admin.firestore.FieldValue.arrayUnion(userA) }),
         ]);
 
         return NextResponse.json({ success: true, status: "accepted" });
@@ -81,10 +74,10 @@ export async function DELETE(
         const uid = await getVerifiedUid(req);
         const { friendshipId } = await params;
 
-        const friendshipRef = doc(db, "friendships", friendshipId);
-        const friendshipSnap = await getDoc(friendshipRef);
+        const friendshipRef = adminDb.collection("friendships").doc(friendshipId);
+        const friendshipSnap = await friendshipRef.get();
 
-        if (!friendshipSnap.exists()) {
+        if (!friendshipSnap.exists) {
             return NextResponse.json({ error: "Friendship not found" }, { status: 404 });
         }
 
@@ -99,13 +92,13 @@ export async function DELETE(
         if (friendship.status === "accepted") {
             const [userA, userB] = friendship.users;
             await Promise.all([
-                updateDoc(doc(db, "users", userA), { friendIds: arrayRemove(userB) }),
-                updateDoc(doc(db, "users", userB), { friendIds: arrayRemove(userA) }),
+                adminDb.collection("users").doc(userA).update({ friendIds: admin.firestore.FieldValue.arrayRemove(userB) }),
+                adminDb.collection("users").doc(userB).update({ friendIds: admin.firestore.FieldValue.arrayRemove(userA) }),
             ]);
         }
 
         // Delete the friendship document
-        await deleteDoc(friendshipRef);
+        await friendshipRef.delete();
 
         return NextResponse.json({ success: true });
     } catch (err) {

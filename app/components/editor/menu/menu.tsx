@@ -13,7 +13,7 @@ import UploadsPanel from "../uploads/uploads_panel";
 import { ModalContents } from "../types";
 import { Project, Quiz, CardFilter, ChatAttachment } from "@/lib/types";
 import { getQuiz } from "@/app/views/quiz";
-import { fetchCardsFromProject } from "@/app/api/cards/helpers";
+import { getCards } from "@/app/views/cards";
 import TabSelector from "../tab_selector";
 import { useOnClickOutside } from "@/app/hooks/use-on-click-outside";
 
@@ -102,7 +102,7 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
             if (!isLessonProject || !project.courseLesson?.cardsToUnlock) return;
 
             try {
-                const cards = await fetchCardsFromProject(project.id);
+                const cards = await getCards(project.id);
                 const unlockedCount = cards.filter(card => card.isUnlocked).length;
                 const totalCount = project.courseLesson.cardsToUnlock.length;
                 const progress = totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 100;

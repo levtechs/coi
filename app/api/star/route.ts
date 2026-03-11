@@ -1,7 +1,6 @@
 // app/api/star/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { doc, updateDoc } from "firebase/firestore";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { getVerifiedUid } from "../helpers";
 
 export async function POST(req: NextRequest) {
@@ -27,8 +26,8 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const userRef = doc(db, "users", uid);
-        await updateDoc(userRef, { starUser: true });
+        const userRef = adminDb.collection("users").doc(uid);
+        await userRef.update({ starUser: true });
         return NextResponse.json({ success: true });
     } catch (err) {
         console.error("Failed to upgrade user:", err);

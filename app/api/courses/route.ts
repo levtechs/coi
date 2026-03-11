@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { getVerifiedUid } from "../helpers";
-import { collection, getDocs, query, where, or } from "firebase/firestore";
 import { Course, CourseLesson } from "@/lib/types";
+import { Filter } from "firebase-admin/firestore";
 
 /*
  * Fetches all courses available to a user.
@@ -15,22 +15,21 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        const coursesRef = collection(db, 'courses');
-        const q = query(
-            coursesRef,
-            or(
-                where('ownerId', '==', uid),
-                where('sharedWith', 'array-contains', uid),
-                where('public', '==', true)
+        const coursesRef = adminDb.collection('courses');
+
+        const snapshot = await coursesRef.where(
+            Filter.or(
+                Filter.where('ownerId', '==', uid),
+                Filter.where('sharedWith', 'array-contains', uid),
+                Filter.where('public', '==', true)
             )
-        );
-        const snapshot = await getDocs(q);
+        ).get();
 
         const courses = await Promise.all(
             snapshot.docs.map(async (doc) => {
                 const data = doc.data();
-                const lessonsRef = collection(db, 'courses', doc.id, 'lessons');
-                const lessonsSnap = await getDocs(lessonsRef);
+                const lessonsRef = doc.ref.collection('lessons');
+                const lessonsSnap = await lessonsRef.get();
                 const lessons = lessonsSnap.docs.map((p) => ({
                     id: p.id,
                     courseId: doc.id,

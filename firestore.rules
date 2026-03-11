@@ -1,0 +1,80 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(resourceData) {
+      return isAuthenticated() && resourceData.ownerId == request.auth.uid;
+    }
+
+    function isShared(resourceData) {
+      return isAuthenticated() && request.auth.uid in resourceData.sharedWith;
+    }
+    
+    function isCollaborator(resourceData) {
+      return isAuthenticated() && request.auth.token.email in resourceData.collaborators;
+    }
+
+    function canReadProject(resourceData) {
+      return resourceData.public == true || isOwner(resourceData) || isShared(resourceData) || isCollaborator(resourceData);
+    }
+
+    function canReadCourse(resourceData) {
+      return resourceData.public == true || isOwner(resourceData) || isShared(resourceData);
+    }
+
+    // Default: Deny all writes from client
+    match /{document=**} {
+      allow write: if false;
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Projects
+    match /projects/{projectId} {
+      allow read: if canReadProject(resource.data);
+      
+      match /cards/{cardId} {
+        allow read: if canReadProject(get(/databases/$(database)/documents/projects/$(projectId)).data);
+      }
+      
+      match /chats/{userId} {
+        allow read: if isAuthenticated() && request.auth.uid == userId;
+      }
+    }
+
+    // Courses
+    match /courses/{courseId} {
+      allow read: if canReadCourse(resource.data);
+      
+      match /lessons/{lessonId} {
+        allow read: if canReadCourse(get(/databases/$(database)/documents/courses/$(courseId)).data);
+      }
+      
+      match /comments/{commentId} {
+        allow read: if canReadCourse(get(/databases/$(database)/documents/courses/$(courseId)).data);
+      }
+    }
+
+    // Quizzes — all access is via Admin SDK (API routes)
+    match /quizzes/{quizId} {
+      allow read: if false;
+    }
+
+    // Friendships
+    match /friendships/{friendshipId} {
+      allow read: if isAuthenticated() && request.auth.uid in resource.data.users;
+    }
+
+    // Invitations — all access is via Admin SDK (API routes / server components)
+    match /invitations/{invitationId} {
+      allow read: if false;
+    }
+  }
+}

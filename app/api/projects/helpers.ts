@@ -1,6 +1,6 @@
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebaseAdmin";
+import * as admin from "firebase-admin";
 import { Project } from "@/lib/types";
-import { doc, getDoc, collection, updateDoc, addDoc } from "firebase/firestore";
 import { fetchUploadsFromProject } from "../uploads/helpers";
 
 /**
@@ -12,12 +12,12 @@ import { fetchUploadsFromProject } from "../uploads/helpers";
  */
 export async function getProjectById(projectId: string, uid: string): Promise<Project | null> {
     try {
-        const projectRef = doc(db, "projects", projectId);
-        const snap = await getDoc(projectRef);
+        const projectRef = adminDb.collection("projects").doc(projectId);
+        const snap = await projectRef.get();
 
-        if (!snap.exists()) return null;
+        if (!snap.exists) return null;
 
-        const data = snap.data();
+        const data = snap.data()!;
         if (data.ownerId !== uid && !(data.sharedWith ?? []).includes(uid)) {
             return null; // Access denied
         }
@@ -47,12 +47,13 @@ export async function createProject(
         const { cards, ...docData } = projectData;
 
         // 1️⃣ Create the new project document
-        const projectsCol = collection(db, "projects");
-        const docRef = await addDoc(projectsCol, {
+        const projectsCol = adminDb.collection("projects");
+        const docRef = await projectsCol.add({
             ...docData,
             ownerId: uid,
             collaborators: [],
             sharedWith: [],
+            createdAt: new Date().toISOString()
         });
 
         // 2️⃣ Write cards to subcollection if provided
@@ -62,10 +63,10 @@ export async function createProject(
         }
 
         // 3️⃣ Add the projectId to the user's projectIds array
-        const userRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userRef);
-        const currentProjectIds = (userSnap.exists() ? userSnap.data().projectIds || [] : []);
-        await updateDoc(userRef, { projectIds: [...currentProjectIds, docRef.id] });
+        const userRef = adminDb.collection("users").doc(uid);
+        await userRef.update({
+            projectIds: admin.firestore.FieldValue.arrayUnion(docRef.id)
+        });
 
         return docRef.id;
     } catch (err) {

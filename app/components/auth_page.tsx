@@ -9,11 +9,11 @@ import {
     GoogleAuthProvider, 
     updateProfile 
 } from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { FcGoogle } from "react-icons/fc";
 import { Eye, EyeOff } from "lucide-react"; // Common icons for show/hide
+import { apiFetch } from "@/app/views/helpers";
 
 
 interface AuthPageParams {
@@ -40,10 +40,9 @@ export default function AuthPage({ signUpDefault, forward }: AuthPageParams) {
                 if (dn.trim()) {
                     await updateProfile(cred.user, { displayName: dn.trim() });
                 }
-                await setDoc(doc(db, "users", cred.user.uid), {
-                    email,
-                    displayName: dn.trim() || "",
-                    projectIds: [],
+                await apiFetch("/api/users/init", {
+                    method: "POST",
+                    body: JSON.stringify({ email, displayName: dn.trim() || "" }),
                 });
             } else {
                 await signInWithEmailAndPassword(auth, email, password);
@@ -65,15 +64,13 @@ export default function AuthPage({ signUpDefault, forward }: AuthPageParams) {
             const provider = new GoogleAuthProvider();
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
-            const userRef = doc(db, "users", user.uid);
-            const userSnap = await getDoc(userRef);
-            if (!userSnap.exists()) {
-                await setDoc(userRef, {
-                    email: user.email,
-                    displayName: user.displayName,
-                    projectIds: [],
-                });
-            }
+            await apiFetch("/api/users/init", {
+                method: "POST",
+                body: JSON.stringify({ 
+                    email: user.email, 
+                    displayName: user.displayName 
+                }),
+            });
             router.replace(window.location.origin + "/" + (forward ? forward : "dashboard"));
         } catch {
             setErrorMessage("Failed to sign in with Google.");

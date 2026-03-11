@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { getVerifiedUid } from "../../../helpers";
-import { doc, getDoc, collection, getDocs, query, where, or, and } from "firebase/firestore";
 import { Project } from "@/lib/types";
 import { getLessonFromCourse } from "./helpers";
 import { createProject } from "../../../projects/helpers";
+import { Filter } from "firebase-admin/firestore";
 
 /**
  * GET /api/courses/[courseId]/[lessonIdx]
@@ -36,20 +36,18 @@ export async function GET(
     // Fetch project IDs that belong to this lesson
     let projectIds: string[] = [];
     try {
-        const projectsRef = collection(db, 'projects');
-        const q = query(
-            projectsRef,
-            and(
-                where('courseLesson.id', '==', lesson.id),
-                or(
-                    where('ownerId', '==', uid),
-                    where('sharedWith', 'array-contains', uid),
-                    where('public', '==', true)
+        const projectsRef = adminDb.collection('projects');
+        const snapshot = await projectsRef.where(
+            Filter.and(
+                Filter.where('courseLesson.id', '==', lesson.id),
+                Filter.or(
+                    Filter.where('ownerId', '==', uid),
+                    Filter.where('sharedWith', 'array-contains', uid),
+                    Filter.where('public', '==', true)
                 )
             )
-        );
-        const projectsSnap = await getDocs(q);
-        projectIds = projectsSnap.docs.map(doc => doc.id);
+        ).get();
+        projectIds = snapshot.docs.map(doc => doc.id);
     } catch (error) {
         console.error("Error fetching lesson projects:", error);
         // Don't fail the request if project fetching fails
@@ -94,16 +92,14 @@ export async function POST(
         // Check for existing projects from this lesson to determine if we need a number suffix
         let projectCount = 0;
         try {
-            const projectsRef = collection(db, 'projects');
-            const q = query(
-                projectsRef,
-                and(
-                    where('courseLesson.id', '==', lesson.id),
-                    where('ownerId', '==', uid)
+            const projectsRef = adminDb.collection('projects');
+            const snapshot = await projectsRef.where(
+                Filter.and(
+                    Filter.where('courseLesson.id', '==', lesson.id),
+                    Filter.where('ownerId', '==', uid)
                 )
-            );
-            const projectsSnap = await getDocs(q);
-            projectCount = projectsSnap.size;
+            ).get();
+            projectCount = snapshot.size;
         } catch (error) {
             console.error("Error counting existing projects:", error);
         }
@@ -126,10 +122,10 @@ export async function POST(
         }, uid);
 
         // Fetch the created project to return it
-        const projectRef = doc(db, 'projects', projectId);
-        const projectSnap = await getDoc(projectRef);
+        const projectRef = adminDb.collection('projects').doc(projectId);
+        const projectSnap = await projectRef.get();
 
-        if (!projectSnap.exists()) {
+        if (!projectSnap.exists) {
             return NextResponse.json({ error: "Failed to retrieve created project" }, { status: 500 });
         }
 

@@ -1,7 +1,7 @@
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Card, CourseLesson } from "@/lib/types";
 import DetailCard from "../cards/detail_card";
-import { fetchCardsFromProject } from "@/app/api/cards/helpers";
+import { getCards } from "@/app/views/cards";
 import { FiExternalLink } from "react-icons/fi";
 import { BsTrophy } from "react-icons/bs";
 
@@ -28,7 +28,7 @@ const NewCardsPopup = ({ newCards, setClickedCard, projectId, courseLesson, cour
 
         const calculateProgress = async () => {
             try {
-                const allCards = await fetchCardsFromProject(projectId);
+                const allCards = await getCards(projectId);
                 const unlockedFromCards = allCards.filter((card) => card.isUnlocked);
                 const unlockedCount = unlockedFromCards.length;
                 const totalCards = courseLesson.cardsToUnlock.length;

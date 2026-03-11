@@ -1,7 +1,7 @@
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
 import { FileAttachment } from '@/lib/types';
-import { writeUploadsToDb } from '@/app/api/uploads/helpers';
+import { apiFetch } from './helpers';
 
 export async function uploadFile(file: File, projectId: string): Promise<FileAttachment> {
     const storageRef = ref(storage, `uploads/${crypto.randomUUID()}_${file.name}`);
@@ -14,7 +14,12 @@ export async function uploadFile(file: File, projectId: string): Promise<FileAtt
         size: file.size,
         mimeType: file.type,
     };
-    const saved = await writeUploadsToDb(projectId, [attachment]);
+    
+    const saved = await apiFetch<FileAttachment[]>(`/api/projects/${projectId}/uploads`, {
+        method: 'POST',
+        body: JSON.stringify({ uploads: [attachment] }),
+    });
+    
     return saved[0];
 }
 

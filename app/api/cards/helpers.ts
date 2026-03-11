@@ -1,32 +1,22 @@
-import {
-    collection,
-    getDocs,
-    doc,
-    addDoc,
-    writeBatch,
-    getDoc,
-    setDoc,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { Card, NewCard } from "@/lib/types";
 
 export const fetchCardsFromProject = async (projectId: string): Promise<Card[]> => {
     try {
-        const projectRef = doc(db, "projects", projectId);
-        const projectSnap = await getDoc(projectRef);
+        const projectRef = adminDb.collection("projects").doc(projectId);
+        const projectSnap = await projectRef.get();
 
-        if (!projectSnap.exists()) {
+        if (!projectSnap.exists) {
             throw new Error("Project not found");
         }
 
         // Reference the 'cards' subcollection within the project document.
-        const cardsCollectionRef = collection(db, "projects", projectId, "cards");
+        const cardsCollectionRef = projectRef.collection("cards");
 
         // Fetch all documents from the subcollection.
-        const querySnapshot = await getDocs(cardsCollectionRef);
+        const querySnapshot = await cardsCollectionRef.get();
 
         // Map the Firestore documents to the Card interface.
-        // It is critical to include the document's id in the returned object.
         const cards: Card[] = querySnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data() as NewCard
@@ -54,12 +44,12 @@ export const writeCardsToDb = async (
     newCards: NewCard[]
 ): Promise<Card[]> => {
     try {
-        const cardsCollectionRef = collection(db, "projects", projectId, "cards");
+        const cardsCollectionRef = adminDb.collection("projects").doc(projectId).collection("cards");
 
         const addedCards: Card[] = [];
 
         for (const card of newCards) {
-            const docRef = await addDoc(cardsCollectionRef, card);
+            const docRef = await cardsCollectionRef.add(card);
             addedCards.push({
                 id: docRef.id,
                 ...card,
@@ -85,11 +75,11 @@ export const copyCardsToDb = async (
     cards: Card[]
 ): Promise<Card[]> => {
     try {
-        const cardsCollectionRef = collection(db, "projects", projectId, "cards");
+        const cardsCollectionRef = adminDb.collection("projects").doc(projectId).collection("cards");
 
         for (const card of cards) {
-            const docRef = doc(cardsCollectionRef, card.id);
-            await setDoc(docRef, card);
+            const docRef = cardsCollectionRef.doc(card.id);
+            await docRef.set(card);
         }
 
         return cards;
@@ -155,7 +145,7 @@ const recursivelyFindCards = (obj: unknown, foundCards: NewCard[]) => {
  * @returns An array of Card objects with their assigned IDs, or null on error.
  */
 export const extractWriteCards = async (projectId: string, content: JSON): Promise<Card[] | null> => {
-    const batch = writeBatch(db);
+    const batch = adminDb.batch();
 
     try {
         // Step 1: Parse the JSON content and extract new cards.
@@ -164,8 +154,8 @@ export const extractWriteCards = async (projectId: string, content: JSON): Promi
         recursivelyFindCards(parsedContent, newExtractedCards);
 
         // Step 2: Fetch all existing cards from Firestore.
-        const cardsCollectionRef = collection(db, "projects", projectId, "cards");
-        const existingDocs = await getDocs(cardsCollectionRef);
+        const cardsCollectionRef = adminDb.collection("projects").doc(projectId).collection("cards");
+        const existingDocs = await cardsCollectionRef.get();
         
         // Use a Map for efficient lookup of existing cards.
         const existingCardMap = new Map<string, { id: string, details: string[] }>();
@@ -191,7 +181,7 @@ export const extractWriteCards = async (projectId: string, content: JSON): Promi
                 }
             } else {
                 // If the card is new, add it to the database.
-                const newDocRef = doc(cardsCollectionRef);
+                const newDocRef = cardsCollectionRef.doc();
                 batch.set(newDocRef, newCard);
                 updatedCardIds.add(newDocRef.id);
             }
@@ -207,7 +197,7 @@ export const extractWriteCards = async (projectId: string, content: JSON): Promi
 
         // Step 5: Perform the delete operations in the batch.
         deletedCardIds.forEach(id => {
-            const docRef = doc(cardsCollectionRef, id);
+            const docRef = cardsCollectionRef.doc(id);
             batch.delete(docRef);
         });
 
@@ -215,7 +205,7 @@ export const extractWriteCards = async (projectId: string, content: JSON): Promi
         await batch.commit();
 
         // For a final list of cards, fetch again or re-construct.
-        const finalCards = await getDocs(cardsCollectionRef);
+        const finalCards = await cardsCollectionRef.get();
         const allCards: Card[] = finalCards.docs.map(doc => ({
             id: doc.id,
             ...doc.data() as NewCard,

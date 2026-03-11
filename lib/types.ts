@@ -65,6 +65,7 @@ export type Project = {
     courseLesson?: CourseLesson; // if project is part of a courseLesson
     courseId?: string; // if project is part of a course
     uploads: FileAttachment[];
+    public?: boolean;
 };
 
 export interface User {
@@ -241,7 +242,7 @@ export type QuizQuestion = {
 
 export interface Quiz {
     id?: string;
-    createdAt?: string | Timestamp; // Optional createdAt timestamp
+    createdAt?: TimestampType;
     description: string;       // Quiz description
     questions: QuizQuestion[]; // List of questions
     title: string;             // Quiz title
@@ -288,14 +289,17 @@ export interface CourseLesson {
 export type NewLesson = Omit<CourseLesson, "id" | "courseId" | "cardsToUnlock"> & { cardsToUnlock: NewCard[]; content: string };
 export type NewCourse = Omit<Course, "id" | "lessons"> & { lessons: NewLesson[] };
 
+// Define a type that works for both Client and Admin SDK timestamps in serializable contexts
+export type TimestampType = Timestamp | { seconds: number; nanoseconds: number } | Date | string;
+
 // Comments
 
 export interface Comment {
     id: string;
     userId: string;
     content: string;
-    createdAt: Timestamp;
-    updatedAt: Timestamp;
+    createdAt: TimestampType;
+    updatedAt: TimestampType;
     parentId: string | null;
     upvotes: string[];
     downvotes: string[];

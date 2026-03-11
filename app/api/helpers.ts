@@ -1,12 +1,12 @@
-import { collection, query, where, getDocs, doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { adminAuth, adminDb } from "@/lib/firebaseAdmin"; // your admin SDK instance
 import { NextRequest } from "next/server";
-import { adminAuth } from "@/lib/firebaseAdmin"; // your admin SDK instance
+import { Project, Course } from "@/lib/types";
 
 // Utility function to fetch userRef by email
 export async function getUserRefByEmail(email: string) {
-    const q = query(collection(db, "users"), where("email", "==", email));
-    const snap = await getDocs(q);
+    const usersCollection = adminDb.collection("users");
+    const q = usersCollection.where("email", "==", email);
+    const snap = await q.get();
 
     if (snap.empty) {
         return null; // user not found
@@ -36,9 +36,9 @@ export async function getVerifiedUid(req: NextRequest): Promise<string> {
         const uid = decoded.uid;
 
         // Tally user action
-        const userDocRef = doc(db, "users", uid);
-        const userDoc = await getDoc(userDocRef);
-        const userData = userDoc.exists() ? userDoc.data() : {};
+        const userDocRef = adminDb.collection("users").doc(uid);
+        const userDoc = await userDocRef.get();
+        const userData = userDoc.exists ? userDoc.data() || {} : {};
         const now = Date.now();
 
         // Handle daily actions
@@ -61,7 +61,7 @@ export async function getVerifiedUid(req: NextRequest): Promise<string> {
 
         const totalActions = (userData.actions || 0) + 1;
 
-        await setDoc(userDocRef, {
+        await userDocRef.set({
             actions: totalActions,
             dailyActions,
             lastResetDaily,
@@ -83,9 +83,71 @@ export async function getVerifiedUid(req: NextRequest): Promise<string> {
  */
 export async function getVerifiedAdminUid(req: NextRequest): Promise<string> {
     const uid = await getVerifiedUid(req);
-    const userDoc = await getDoc(doc(db, "users", uid));
-    if (!userDoc.exists() || !userDoc.data()?.admin) {
+    const userDoc = await adminDb.collection("users").doc(uid).get();
+    if (!userDoc.exists || !userDoc.data()?.admin) {
         throw new Error("Access denied: Admin privileges required");
     }
+    return uid;
+}
+
+/**
+ * Verifies that the user has access to a specific project.
+ * Throws an error if the user is not authenticated or doesn't have access.
+ * @param req NextRequest from Next.js
+ * @param projectId ID of the project to check
+ * @param allowPublic Whether to allow access to public projects
+ * @returns Verified UID string
+ */
+export async function getVerifiedProjectAccess(req: NextRequest, projectId: string, allowPublic: boolean = false): Promise<string> {
+    const uid = await getVerifiedUid(req);
+    
+    // Fetch user email for collaborator check
+    const userDoc = await adminDb.collection("users").doc(uid).get();
+    const userEmail = userDoc.exists ? userDoc.data()?.email : null;
+
+    const projectDoc = await adminDb.collection("projects").doc(projectId).get();
+
+    if (!projectDoc.exists) {
+        throw new Error("Project not found");
+    }
+
+    const projectData = projectDoc.data() as Project;
+    const isOwner = projectData.ownerId === uid;
+    const isShared = projectData.sharedWith?.includes(uid);
+    const isCollaborator = userEmail && projectData.collaborators?.includes(userEmail);
+    const isPublic = allowPublic && projectData.public === true;
+
+    if (!isOwner && !isShared && !isCollaborator && !isPublic) {
+        throw new Error("Access denied: You do not have permission to access this project");
+    }
+
+    return uid;
+}
+
+/**
+ * Verifies that the user has access to a specific course.
+ * Throws an error if the user is not authenticated or doesn't have access.
+ * @param req NextRequest from Next.js
+ * @param courseId ID of the course to check
+ * @param allowPublic Whether to allow access to public courses
+ * @returns Verified UID string
+ */
+export async function getVerifiedCourseAccess(req: NextRequest, courseId: string, allowPublic: boolean = false): Promise<string> {
+    const uid = await getVerifiedUid(req);
+    const courseDoc = await adminDb.collection("courses").doc(courseId).get();
+
+    if (!courseDoc.exists) {
+        throw new Error("Course not found");
+    }
+
+    const courseData = courseDoc.data() as Course;
+    const isOwner = courseData.ownerId === uid;
+    const isShared = courseData.sharedWith?.includes(uid);
+    const isPublic = allowPublic && courseData.public === true;
+
+    if (!isOwner && !isShared && !isPublic) {
+        throw new Error("Access denied: You do not have permission to access this course");
+    }
+
     return uid;
 }

@@ -1,13 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import {
-    collection,
-    query,
-    where,
-    getDocs,
-    doc,
-    getDoc,
-} from "firebase/firestore";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { getVerifiedUid } from "@/app/api/helpers";
 import { Friendship, LeaderboardEntry } from "@/lib/types";
 
@@ -20,9 +12,9 @@ export async function GET(req: NextRequest) {
         const uid = await getVerifiedUid(req);
 
         // Get all accepted friendships
-        const friendshipsRef = collection(db, "friendships");
-        const q = query(friendshipsRef, where("users", "array-contains", uid));
-        const snap = await getDocs(q);
+        const friendshipsRef = adminDb.collection("friendships");
+        const q = friendshipsRef.where("users", "array-contains", uid);
+        const snap = await q.get();
 
         const friendships: Friendship[] = snap.docs.map((d) => ({
             id: d.id,
@@ -41,9 +33,9 @@ export async function GET(req: NextRequest) {
         // Fetch all user profiles
         const results = await Promise.all(
             Array.from(userIds).map(async (userId) => {
-                const userDoc = await getDoc(doc(db, "users", userId));
-                if (!userDoc.exists()) return null;
-                const data = userDoc.data();
+                const userDoc = await adminDb.collection("users").doc(userId).get();
+                if (!userDoc.exists) return null;
+                const data = userDoc.data()!;
                 return {
                     id: userId,
                     displayName: data.displayName || "Unknown",

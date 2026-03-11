@@ -1,14 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import {
-    collection,
-    query,
-    where,
-    getDocs,
-    addDoc,
-    doc,
-    getDoc,
-} from "firebase/firestore";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { getVerifiedUid } from "@/app/api/helpers";
 import { Friendship } from "@/lib/types";
 
@@ -25,9 +16,8 @@ export async function GET(req: NextRequest) {
         const statusFilter = searchParams.get("status") || "all";
 
         // Query friendships where the user is a participant
-        const friendshipsRef = collection(db, "friendships");
-        const q = query(friendshipsRef, where("users", "array-contains", uid));
-        const snap = await getDocs(q);
+        const friendshipsRef = adminDb.collection("friendships");
+        const snap = await friendshipsRef.where("users", "array-contains", uid).get();
 
         const friendships: Friendship[] = snap.docs.map((d) => ({
             id: d.id,
@@ -51,14 +41,16 @@ export async function GET(req: NextRequest) {
         const userProfiles: Record<string, { id: string; displayName: string; email: string }> = {};
         await Promise.all(
             Array.from(friendUids).map(async (friendUid) => {
-                const userDoc = await getDoc(doc(db, "users", friendUid));
-                if (userDoc.exists()) {
+                const userDoc = await adminDb.collection("users").doc(friendUid).get();
+                if (userDoc.exists) {
                     const data = userDoc.data();
-                    userProfiles[friendUid] = {
-                        id: friendUid,
-                        displayName: data.displayName || "Unknown",
-                        email: data.email || "",
-                    };
+                    if (data) {
+                        userProfiles[friendUid] = {
+                            id: friendUid,
+                            displayName: data.displayName || "Unknown",
+                            email: data.email || "",
+                        };
+                    }
                 }
             })
         );
@@ -103,19 +95,15 @@ export async function POST(req: NextRequest) {
         }
 
         // Check target user exists
-        const targetDoc = await getDoc(doc(db, "users", userId));
-        if (!targetDoc.exists()) {
+        const targetDoc = await adminDb.collection("users").doc(userId).get();
+        if (!targetDoc.exists) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
         // Check if a friendship already exists between these two users
         const sortedUsers = [uid, userId].sort() as [string, string];
-        const friendshipsRef = collection(db, "friendships");
-        const existingQuery = query(
-            friendshipsRef,
-            where("users", "==", sortedUsers)
-        );
-        const existingSnap = await getDocs(existingQuery);
+        const friendshipsRef = adminDb.collection("friendships");
+        const existingSnap = await friendshipsRef.where("users", "==", sortedUsers).get();
 
         if (!existingSnap.empty) {
             const existing = existingSnap.docs[0].data();
@@ -128,7 +116,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Create friendship document
-        const friendshipDoc = await addDoc(friendshipsRef, {
+        const friendshipDoc = await friendshipsRef.add({
             users: sortedUsers,
             status: "pending",
             requesterId: uid,

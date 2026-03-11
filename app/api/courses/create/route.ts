@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { getVerifiedUid } from "../../helpers";
 import { getUserById } from "../../users/helpers";
 import { Course, CourseLesson, Card, NewCourse, QuizSettings } from "@/lib/types";
-import { collection, addDoc, writeBatch, doc } from "firebase/firestore";
 import { createCourseFromText, createLessonFromText } from "./helpers";
 import { createQuizFromCards, writeQuizToDb } from "../../quiz/helpers";
 
@@ -32,28 +31,29 @@ export async function POST(req: NextRequest) {
         }
 
         // Create the course document
-        const courseRef = await addDoc(collection(db, 'courses'), {
+        const courseRef = await adminDb.collection('courses').add({
             title: courseData.title,
             description: courseData.description || "",
             public: courseData.public || false,
             sharedWith: courseData.sharedWith || [],
             quizIds: courseData.quizIds || [],
             category: courseData.category || "",
-            ownerId: uid
+            ownerId: uid,
+            createdAt: new Date().toISOString(),
         });
 
         const courseId = courseRef.id;
 
         // Create lessons subcollection
-        const batch = writeBatch(db);
+        const batch = adminDb.batch();
         const lessons: CourseLesson[] = [];
         for (const lesson of courseData.lessons) {
-            const lessonRef = doc(collection(db, 'courses', courseId, 'lessons'));
+            const lessonRef = adminDb.collection('courses').doc(courseId).collection('lessons').doc();
 
             const cardsToUnlock: Card[] = [];
-            const cardsColRef = collection(lessonRef, 'cardsToUnlock');
+            const cardsColRef = lessonRef.collection('cardsToUnlock');
             for (const card of lesson.cardsToUnlock) {
-                const cardRef = doc(cardsColRef);
+                const cardRef = cardsColRef.doc();
                 batch.set(cardRef, card);
                 cardsToUnlock.push({ ...card, id: cardRef.id });
             }

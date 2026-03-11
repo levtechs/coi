@@ -3,7 +3,7 @@
 import { Timestamp } from "firebase/firestore";
 import { Project, Quiz } from "@/lib/types";
 import { getQuiz } from "@/app/views/quiz";
-import { fetchCardsFromProject } from "@/app/api/cards/helpers";
+import { getCards } from "@/app/views/cards";
 import { useState, useEffect } from "react";
 
 interface ProjectDetailsPanelProps {
@@ -31,7 +31,7 @@ const ProjectDetailsPanel = ({ project, quizzes }: ProjectDetailsPanelProps) => 
         const fetchUnlockedCards = async () => {
             if (project.courseLesson?.cardsToUnlock) {
                 try {
-                    const cards = await fetchCardsFromProject(project.id);
+                    const cards = await getCards(project.id);
                     const unlocked = cards.filter(card => card.isUnlocked).length;
                     setUnlockedCards(unlocked);
                 } catch (error) {

@@ -1,5 +1,5 @@
-import { db } from "@/lib/firebase";
-import { collection, addDoc, doc, updateDoc, arrayUnion } from "firebase/firestore";
+import { adminDb } from "@/lib/firebaseAdmin";
+import * as admin from "firebase-admin";
 
 import { defaultGeneralConfig, llmModel, genAI } from "../gemini/config";
 import { createQuizFromCardsSystemInstruction } from "./prompts";
@@ -18,17 +18,17 @@ export const writeQuizToDb = async (quiz: object, projectId?: string): Promise<s
 
     try {
         // 1. Write quiz to quizzes collection
-        const quizzesColRef = collection(db, "quizzes");
-        const docRef = await addDoc(quizzesColRef, {
+        const quizzesColRef = adminDb.collection("quizzes");
+        const docRef = await quizzesColRef.add({
             ...quiz,
             createdAt: new Date().toISOString(),
         });
 
         // 2. Add quizId to the project document's quizIds array if projectId provided
         if (projectId) {
-            const projectRef = doc(db, "projects", projectId);
-            await updateDoc(projectRef, {
-                quizIds: arrayUnion(docRef.id),
+            const projectRef = adminDb.collection("projects").doc(projectId);
+            await projectRef.update({
+                quizIds: admin.firestore.FieldValue.arrayUnion(docRef.id),
             });
         }
 

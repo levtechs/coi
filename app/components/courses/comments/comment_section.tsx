@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { createComment } from "@/app/views/courses";
-import { CommentTree, CreateCommentData, Comment } from "@/lib/types";
+import { CommentTree, CreateCommentData, Comment, TimestampType } from "@/lib/types";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, onSnapshot, doc, getDoc } from "firebase/firestore";
 import CommentForm from "./comment_form";
@@ -82,10 +82,14 @@ export default function CommentSection({ courseId, isCourseOwner }: CommentSecti
                             return upvotesDiff;
                         }
                         // If upvotes are equal, sort by creation time (ascending)
-                        const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() :
-                                    a.createdAt.seconds ? a.createdAt.seconds * 1000 : 0;
-                        const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() :
-                                    b.createdAt.seconds ? b.createdAt.seconds * 1000 : 0;
+                        const getTime = (t: TimestampType) => {
+                            if (t instanceof Date) return t.getTime();
+                            if (typeof t === 'string') return new Date(t).getTime();
+                            if (t && typeof t === 'object' && 'seconds' in t) return t.seconds * 1000;
+                            return 0;
+                        };
+                        const aTime = getTime(a.createdAt);
+                        const bTime = getTime(b.createdAt);
                         return aTime - bTime;
                     });
                     comments.forEach(comment => sortComments(comment.replies));

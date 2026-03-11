@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebaseAdmin";
+import * as admin from "firebase-admin";
 import { getVerifiedUid } from "../../../helpers";
-import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 
 // POST: Add a user to a course by userId
 export async function POST(
@@ -23,14 +23,15 @@ export async function POST(
         }
 
         // Fetch the course
-        const courseRef = doc(db, "courses", courseId);
-        const courseSnap = await getDoc(courseRef);
+        const courseRef = adminDb.collection("courses").doc(courseId);
+        const courseSnap = await courseRef.get();
 
-        if (!courseSnap.exists()) {
+        if (!courseSnap.exists) {
             return NextResponse.json({ error: "Course not found" }, { status: 404 });
         }
 
         const courseData = courseSnap.data();
+        if (!courseData) return NextResponse.json({ error: "Course data is empty" }, { status: 404 });
 
         // Only owner can add users
         if (courseData.ownerId !== uid) {
@@ -38,10 +39,10 @@ export async function POST(
         }
 
         // Check if user exists
-        const userRef = doc(db, "users", userId);
-        const userSnap = await getDoc(userRef);
+        const userRef = adminDb.collection("users").doc(userId);
+        const userSnap = await userRef.get();
 
-        if (!userSnap.exists()) {
+        if (!userSnap.exists) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
@@ -51,8 +52,8 @@ export async function POST(
         }
 
         // Add user to course sharedWith
-        await updateDoc(courseRef, {
-            sharedWith: arrayUnion(userId),
+        await courseRef.update({
+            sharedWith: admin.firestore.FieldValue.arrayUnion(userId),
         });
 
         return NextResponse.json({ success: true });

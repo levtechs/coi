@@ -1,8 +1,7 @@
 // app/api/projects/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { Project } from "@/lib/types";
-import { doc, getDoc } from "firebase/firestore";
 import { getVerifiedUid } from "../helpers";
 import { createProject } from "./helpers";
 
@@ -14,10 +13,10 @@ export async function GET(req: NextRequest) {
 
     try {
         // 1) load user document
-        const userRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userRef);
+        const userRef = adminDb.collection("users").doc(uid);
+        const userSnap = await userRef.get();
 
-        if (!userSnap.exists()) {
+        if (!userSnap.exists) {
             // No user doc -> return empty list rather than throwing
             return NextResponse.json({ projects: [] });
         }
@@ -32,9 +31,9 @@ export async function GET(req: NextRequest) {
         // 2) fetch each project by id (use Promise.all so requests run in parallel)
         const projectPromises = projectIds.map(async (pid) => {
             try {
-                const pRef = doc(db, "projects", pid);
-                const pSnap = await getDoc(pRef);
-                if (!pSnap.exists()) return null;
+                const pRef = adminDb.collection("projects").doc(pid);
+                const pSnap = await pRef.get();
+                if (!pSnap.exists) return null;
                 return { id: pSnap.id, ...(pSnap.data() ?? {}) };
             } catch (e) {
                 // if a single project read fails, ignore it but log for debugging

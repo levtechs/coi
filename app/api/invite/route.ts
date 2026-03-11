@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, addDoc, setDoc } from "firebase/firestore";
+import { adminDb } from "@/lib/firebaseAdmin";
+import * as admin from "firebase-admin";
 
-import { getVerifiedUid } from "@/app/api/helpers";
+import { getVerifiedUid, getVerifiedProjectAccess, getVerifiedCourseAccess } from "@/app/api/helpers";
 import { getUserById } from "@/app/api/users/helpers";
 
 /**
@@ -27,11 +27,11 @@ export async function POST(req: NextRequest) {
     // Handle friend request invitation creation
     if (friendRequest) {
         try {
-            const invitationsRef = collection(db, "invitations");
+            const invitationsRef = adminDb.collection("invitations");
             const token = generateToken();
             const createdAt = new Date().toISOString();
 
-            await addDoc(invitationsRef, {
+            await invitationsRef.add({
                 token,
                 projectId: null,
                 courseId: null,
@@ -51,55 +51,27 @@ export async function POST(req: NextRequest) {
     if (!projectId && !courseId) return NextResponse.json({ error: "No projectId or courseId provided" }, { status: 400 });
 
     try {
-        let ownerId: string | undefined;
-
         let existingToken: string | null = null;
 
-        let hasAccess = false;
-
         if (projectId) {
-            const projectRef = doc(db, "projects", projectId);
-            const projectSnap = await getDoc(projectRef);
-            if (!projectSnap.exists()) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+            const uid = await getVerifiedProjectAccess(req, projectId);
+            const projectRef = adminDb.collection("projects").doc(projectId);
+            const projectSnap = await projectRef.get();
             const projectData = projectSnap.data();
-            ownerId = projectData?.ownerId;
-
-            // Get user email
-            const userRef = doc(db, "users", uid);
-            const userSnap = await getDoc(userRef);
-            const userEmail = userSnap.exists() ? userSnap.data()?.email : null;
-
-            // Check access: owner, sharedWith, or collaborators
-            if (ownerId === uid || projectData?.sharedWith?.includes(uid) || (userEmail && projectData?.collaborators?.includes(userEmail))) {
-                hasAccess = true;
-            }
 
             // Check if user has existing invite for this project
             const userInviteId = projectData?.inviteIds?.[uid];
             if (userInviteId) {
-                const inviteRef = doc(db, "invitations", userInviteId);
-                const inviteSnap = await getDoc(inviteRef);
-                if (inviteSnap.exists()) {
+                const inviteRef = adminDb.collection("invitations").doc(userInviteId);
+                const inviteSnap = await inviteRef.get();
+                if (inviteSnap.exists) {
                     existingToken = inviteSnap.data()?.token;
                 }
             }
         } else if (courseId) {
-            const courseRef = doc(db, "courses", courseId);
-            const courseSnap = await getDoc(courseRef);
-            if (!courseSnap.exists()) return NextResponse.json({ error: "Course not found" }, { status: 404 });
-            const courseData = courseSnap.data();
-            ownerId = courseData?.ownerId;
-
-            // Check access: owner or sharedWith
-            if (ownerId === uid || courseData?.sharedWith?.includes(uid)) {
-                hasAccess = true;
-            }
+            await getVerifiedCourseAccess(req, courseId);
         } else {
             return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-        }
-
-        if (!hasAccess) {
-            return NextResponse.json({ error: "Access denied" }, { status: 403 });
         }
 
         if (existingToken) {
@@ -107,11 +79,11 @@ export async function POST(req: NextRequest) {
         }
 
         // Create a new invitation in the top-level 'invitations' collection
-        const invitationsRef = collection(db, "invitations");
+        const invitationsRef = adminDb.collection("invitations");
         const token = generateToken();
         const createdAt = new Date().toISOString();
 
-        const inviteDocRef = await addDoc(invitationsRef, {
+        const inviteDocRef = await invitationsRef.add({
             token,
             projectId: projectId || null,
             courseId: courseId || null,
@@ -122,8 +94,8 @@ export async function POST(req: NextRequest) {
 
         // If it's a project, update the project with inviteIds map
         if (projectId) {
-            const projectRef = doc(db, "projects", projectId);
-            await updateDoc(projectRef, {
+            const projectRef = adminDb.collection("projects").doc(projectId);
+            await projectRef.update({
                 [`inviteIds.${uid}`]: inviteDocRef.id,
             });
         }
@@ -149,8 +121,8 @@ export async function PUT(req: NextRequest) {
 
     try {
         // Find the invitation document by the token
-        const invitationsQuery = query(collection(db, "invitations"), where("token", "==", token));
-        const invitationSnaps = await getDocs(invitationsQuery);
+        const invitationsRef = adminDb.collection("invitations");
+        const invitationSnaps = await invitationsRef.where("token", "==", token).get();
 
         if (invitationSnaps.empty) {
             return NextResponse.json({ error: "Invalid token" }, { status: 404 });
@@ -171,18 +143,17 @@ export async function PUT(req: NextRequest) {
             }
 
             // Check if already friends
-            const friendshipsRef = collection(db, "friendships");
+            const friendshipsRef = adminDb.collection("friendships");
             const sortedUsers = [uid, requesterId].sort();
-            const existingQuery = query(friendshipsRef, where("users", "==", sortedUsers));
-            const existingSnaps = await getDocs(existingQuery);
+            const existingSnaps = await friendshipsRef.where("users", "==", sortedUsers).get();
 
             if (!existingSnaps.empty) {
                 return NextResponse.json({ success: true, message: "Already friends or request pending" });
             }
 
             // Create accepted friendship directly
-            const friendshipRef = doc(collection(db, "friendships"));
-            await setDoc(friendshipRef, {
+            const friendshipRef = friendshipsRef.doc();
+            await friendshipRef.set({
                 users: sortedUsers,
                 status: "accepted",
                 requesterId: requesterId,
@@ -191,14 +162,14 @@ export async function PUT(req: NextRequest) {
             });
 
             // Update both users' friendIds
-            const requesterRef = doc(db, "users", requesterId);
-            const accepterRef = doc(db, "users", uid);
-            await updateDoc(requesterRef, { friendIds: arrayUnion(uid) });
-            await updateDoc(accepterRef, { friendIds: arrayUnion(requesterId) });
+            const requesterRef = adminDb.collection("users").doc(requesterId);
+            const accepterRef = adminDb.collection("users").doc(uid);
+            await requesterRef.update({ friendIds: admin.firestore.FieldValue.arrayUnion(uid) });
+            await accepterRef.update({ friendIds: admin.firestore.FieldValue.arrayUnion(requesterId) });
 
             // Mark invitation as accepted
-            await updateDoc(doc(db, "invitations", invitationSnap.id), {
-                acceptedBy: arrayUnion(uid),
+            await invitationsRef.doc(invitationSnap.id).update({
+                acceptedBy: admin.firestore.FieldValue.arrayUnion(uid),
             });
 
             return NextResponse.json({ success: true, friendRequest: true });
@@ -207,15 +178,15 @@ export async function PUT(req: NextRequest) {
         if (!projectId && !courseId) return NextResponse.json({ error: "Invalid invitation" }, { status: 400 });
 
         // Check if user is already shared with
-        const userRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) return NextResponse.json({ error: "User not found" }, { status: 404 });
+        const userRef = adminDb.collection("users").doc(uid);
+        const userSnap = await userRef.get();
+        if (!userSnap.exists) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
         const userEmail = userSnap.data()?.email;
 
         if (projectId) {
-            const projectRef = doc(db, "projects", projectId);
-            const projectSnap = await getDoc(projectRef);
+            const projectRef = adminDb.collection("projects").doc(projectId);
+            const projectSnap = await projectRef.get();
             const projectData = projectSnap.data();
 
             if (projectData?.sharedWith?.includes(uid)) {
@@ -224,18 +195,18 @@ export async function PUT(req: NextRequest) {
             }
 
             // Add user to project's collaborator lists
-            await updateDoc(projectRef, {
-                collaborators: arrayUnion(userEmail),
-                sharedWith: arrayUnion(uid),
+            await projectRef.update({
+                collaborators: admin.firestore.FieldValue.arrayUnion(userEmail),
+                sharedWith: admin.firestore.FieldValue.arrayUnion(uid),
             });
 
             // Add projectId to user’s projectIds
-            await updateDoc(userRef, {
-                projectIds: arrayUnion(projectId),
+            await userRef.update({
+                projectIds: admin.firestore.FieldValue.arrayUnion(projectId),
             });
         } else if (courseId) {
-            const courseRef = doc(db, "courses", courseId);
-            const courseSnap = await getDoc(courseRef);
+            const courseRef = adminDb.collection("courses").doc(courseId);
+            const courseSnap = await courseRef.get();
             const courseData = courseSnap.data();
 
             if (courseData?.sharedWith?.includes(uid)) {
@@ -244,16 +215,16 @@ export async function PUT(req: NextRequest) {
             }
 
             // Add user to course's sharedWith
-            await updateDoc(courseRef, {
-                sharedWith: arrayUnion(uid),
+            await courseRef.update({
+                sharedWith: admin.firestore.FieldValue.arrayUnion(uid),
             });
 
             // Note: courses don't have collaborators list like projects, so no email addition
         }
 
         // Add user to invitation's acceptedBy list
-        await updateDoc(doc(db, "invitations", invitationSnap.id), {
-            acceptedBy: arrayUnion(uid),
+        await invitationsRef.doc(invitationSnap.id).update({
+            acceptedBy: admin.firestore.FieldValue.arrayUnion(uid),
         });
 
         return NextResponse.json({ success: true });
@@ -273,8 +244,7 @@ export async function GET(req: NextRequest) {
     if (!token) return NextResponse.json({ error: "No token provided" }, { status: 400 });
 
     try {
-        const invitationsQuery = query(collection(db, "invitations"), where("token", "==", token));
-        const invitationSnaps = await getDocs(invitationsQuery);
+        const invitationSnaps = await adminDb.collection("invitations").where("token", "==", token).get();
         
         if (invitationSnaps.empty) return NextResponse.json({ error: "Invalid token" }, { status: 404 });
 
@@ -300,15 +270,15 @@ export async function GET(req: NextRequest) {
         let type: 'project' | 'course';
         if (projectId) {
             type = 'project';
-            const projectRef = doc(db, "projects", projectId);
-            const projectSnap = await getDoc(projectRef);
-            if (!projectSnap.exists()) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+            const projectRef = adminDb.collection("projects").doc(projectId);
+            const projectSnap = await projectRef.get();
+            if (!projectSnap.exists) return NextResponse.json({ error: "Project not found" }, { status: 404 });
             title = projectSnap.data()?.title;
         } else if (courseId) {
             type = 'course';
-            const courseRef = doc(db, "courses", courseId);
-            const courseSnap = await getDoc(courseRef);
-            if (!courseSnap.exists()) return NextResponse.json({ error: "Course not found" }, { status: 404 });
+            const courseRef = adminDb.collection("courses").doc(courseId);
+            const courseSnap = await courseRef.get();
+            if (!courseSnap.exists) return NextResponse.json({ error: "Course not found" }, { status: 404 });
             title = courseSnap.data()?.title;
         } else {
             return NextResponse.json({ error: "Invalid invitation" }, { status: 400 });

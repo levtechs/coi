@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-
-import { db } from "@/lib/firebase";
-import { collection, addDoc, doc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
-
+import { adminDb } from "@/lib/firebaseAdmin";
 import { Card, NewCard, Label } from "@/lib/types";
 
 import { fetchCardsFromProject } from "../helpers";
-import { getVerifiedUid } from "@/app/api/helpers";
+import { getVerifiedProjectAccess } from "@/app/api/helpers";
 
 // Helper function to migrate exclude boolean to label system
 const migrateCardLabels = (card: Card): Card => {
@@ -26,14 +23,10 @@ const migrateCardLabels = (card: Card): Card => {
 };
 
 export async function GET(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { projectId } = await context.params;
 
     try {
+        await getVerifiedProjectAccess(req, projectId);
         const cards = await fetchCardsFromProject(projectId);
         // Apply migration to ensure backward compatibility
         const migratedCards = cards.map(card => migrateCardLabels(card));
@@ -46,14 +39,10 @@ export async function GET(req: NextRequest, context: { params: Promise<{ project
 }
 
 export async function POST (req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { projectId } = await context.params;
 
     try {
+        const uid = await getVerifiedProjectAccess(req, projectId);
         const body: Partial<NewCard> = await req.json();
 
         const allowedFields = ['title', 'details', 'exclude', 'labels', 'url', 'refImageUrls', 'iconUrl'];
@@ -70,10 +59,10 @@ export async function POST (req: NextRequest, context: { params: Promise<{ proje
         }
 
         // Reference to the project's cards subcollection
-        const cardsCollectionRef = collection(db, "projects", projectId, "cards");
+        const cardsCollectionRef = adminDb.collection("projects").doc(projectId).collection("cards");
 
         // Add the new card to Firestore
-        const docRef = await addDoc(cardsCollectionRef, {
+        const docRef = await cardsCollectionRef.add({
             title: body.title,
             details: body.details || [],
             exclude: body.exclude ?? true, // default to true if not provided
@@ -101,14 +90,10 @@ export async function POST (req: NextRequest, context: { params: Promise<{ proje
 }
 
 export async function PUT(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { projectId } = await context.params;
 
     try {
+        const uid = await getVerifiedProjectAccess(req, projectId);
         const body = await req.json();
         const { cardId, title, details, exclude, labels, url, refImageUrls, iconUrl } = body;
 
@@ -125,11 +110,11 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ project
             return NextResponse.json({ error: `Invalid fields: ${invalidFields.join(', ')}` }, { status: 400 });
         }
 
-        const cardDocRef = doc(db, "projects", projectId, "cards", cardId);
+        const cardDocRef = adminDb.collection("projects").doc(projectId).collection("cards").doc(cardId);
 
         // Get current card data first
-        const cardDoc = await getDoc(cardDocRef);
-        if (!cardDoc.exists()) {
+        const cardDoc = await cardDocRef.get();
+        if (!cardDoc.exists) {
             return NextResponse.json({ error: "Card not found" }, { status: 404 });
         }
 
@@ -150,7 +135,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ project
         if (refImageUrls !== undefined) updateData.refImageUrls = refImageUrls;
         if (iconUrl !== undefined) updateData.iconUrl = iconUrl;
 
-        await updateDoc(cardDocRef, updateData);
+        await cardDocRef.update(updateData);
 
         // Construct updated card with merged data
         const updatedCard: Card = {
@@ -172,14 +157,10 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ project
 }
 
 export async function DELETE(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { projectId } = await context.params;
 
     try {
+        await getVerifiedProjectAccess(req, projectId);
         const body = await req.json();
         const { cardId } = body;
 
@@ -187,9 +168,9 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ proj
             return NextResponse.json({ error: "Card ID is required" }, { status: 400 });
         }
 
-        const cardDocRef = doc(db, "projects", projectId, "cards", cardId);
+        const cardDocRef = adminDb.collection("projects").doc(projectId).collection("cards").doc(cardId);
 
-        await deleteDoc(cardDocRef);
+        await cardDocRef.delete();
 
         return NextResponse.json({ success: true });
     } catch (err) {
