@@ -9,7 +9,6 @@ import {
     GoogleAuthProvider, 
     updateProfile 
 } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { FcGoogle } from "react-icons/fc";

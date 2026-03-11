@@ -1,48 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import * as admin from "firebase-admin";
-import { getUserRefByEmail, getVerifiedUid } from "@/app/api/helpers"
+import { getVerifiedUid, getVerifiedProjectAccess } from "@/app/api/helpers"
 
 // Same result as if you were to get the project, then check who it's shared with 
 export async function GET(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
-
     const { projectId } = await context.params;
 
     try {
+        await getVerifiedProjectAccess(req, projectId);
         const projectRef = adminDb.collection("projects").doc(projectId);
         const snap = await projectRef.get();
-
-        if (!snap.exists)
-            return NextResponse.json({ error: "Project not found" }, { status: 404 });
-
+        // snap is guaranteed to exist by getVerifiedProjectAccess
         const data = snap.data();
-        if (!data) return NextResponse.json({ error: "Project data is empty" }, { status: 404 });
-
-        // Only owner or shared users can view collaborators
-        if (data.ownerId !== uid && !(data.sharedWith ?? []).includes(uid)) {
-            return NextResponse.json({ error: "Access denied" }, { status: 403 });
-        }
-
-        return NextResponse.json({ collaborators: data.collaborators || [] });
+        return NextResponse.json({ collaborators: data?.collaborators || [] });
     } catch (err) {
         return NextResponse.json({ error: (err as Error).message }, { status: 500 });
     }
 }
 
 export async function POST(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
-
     const { projectId } = await context.params;
-    const body = await req.json();
-    const email = body.email as string | undefined;
-    const userId = body.userId as string | undefined;
-
-    if (!email && !userId) return NextResponse.json({ error: "No email or userId provided" }, { status: 400 });
-
     try {
+        const uid = await getVerifiedUid(req);
+        const body = await req.json();
+        const email = body.email as string | undefined;
+        const userId = body.userId as string | undefined;
+
+        if (!email && !userId) return NextResponse.json({ error: "No email or userId provided" }, { status: 400 });
+
         const projectRef = adminDb.collection("projects").doc(projectId);
         const snap = await projectRef.get();
 
@@ -114,16 +100,15 @@ export async function POST(req: NextRequest, context: { params: Promise<{ projec
 }
 
 export async function DELETE(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
-
     const { projectId } = await context.params;
-    const body = await req.json();
-    const email = body.email;
-
-    if (!email) return NextResponse.json({ error: "No email provided" }, { status: 400 });
 
     try {
+        const uid = await getVerifiedUid(req);
+        const body = await req.json();
+        const email = body.email;
+
+        if (!email) return NextResponse.json({ error: "No email provided" }, { status: 400 });
+
         const projectRef = adminDb.collection("projects").doc(projectId);
         const snap = await projectRef.get();
 

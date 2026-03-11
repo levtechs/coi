@@ -2,19 +2,15 @@ import { adminDb } from "@/lib/firebaseAdmin";
 import * as admin from "firebase-admin";
 
 import { Message, Card, NewCard, ContentNode, ContentHierarchy, ChatAttachment, GroundingChunk, ChatPreferences, TutorAction} from "@/lib/types"; // { content: string; isResponse: boolean }
-import { Contents } from "./types";
 
 import {
     genAI,
-    defaultGeneralConfig,
-    limitedGeneralConfig,
 } from "../gemini/config";
 
-import { Content, GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
+import { Content, GenerationConfig, Tool } from "@google/genai";
 
 type MyConfig = {
   generationConfig: GenerationConfig;
-  thinkingConfig?: ThinkingConfig;
   tools?: Tool[];
 };
 
@@ -27,12 +23,7 @@ import {
     getChatResponseSystemInstruction,
     generateCardsSystemInstruction,
     generateHierarchySystemInstruction,
-    //  === \/ below is depricated \/
-    firstChatResponseSystemInstruction,
-    genContentSystemInstruction,
-    updateContentSystemInstruction,
 } from "./prompts"
-import { callGeminiApi } from "../gemini/helpers";
 import { writeCardsToDb } from "../cards/helpers";
 import { getYoutubeData } from "../youtube/helpers";
 

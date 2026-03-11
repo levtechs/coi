@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
-import { CommentTree } from "@/lib/types";
+import { CommentTree, TimestampType } from "@/lib/types";
 import { updateComment, deleteComment, voteOnComment } from "@/app/views/courses";
 import { Timestamp } from "firebase/firestore";
 import { FiThumbsUp, FiThumbsDown, FiMessageSquare, FiEdit2, FiTrash2, FiMoreVertical } from "react-icons/fi";
@@ -84,7 +84,7 @@ export default function CommentItem({
         }
     };
 
-    const formatDate = (timestamp: Timestamp | Date | { seconds: number; nanoseconds?: number }) => {
+    const formatDate = (timestamp: TimestampType) => {
         let date: Date;
 
         if (timestamp instanceof Timestamp) {
@@ -94,9 +94,11 @@ export default function CommentItem({
             date = new Date(timestamp.seconds * 1000);
         } else if (timestamp instanceof Date) {
             date = timestamp;
-        } else {
-            // Fallback for invalid dates
+        } else if (typeof timestamp === 'string') {
             date = new Date(timestamp);
+        } else {
+            // Fallback for invalid dates or other types
+            date = new Date(timestamp as string | number | Date);
         }
 
         if (isNaN(date.getTime())) {
@@ -106,7 +108,7 @@ export default function CommentItem({
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
-    const getTimeMillis = (timestamp: Timestamp | Date | { seconds: number; nanoseconds?: number }) => {
+    const getTimeMillis = (timestamp: TimestampType) => {
         if (timestamp instanceof Timestamp) {
             return timestamp.toMillis();
         } else if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp) {
@@ -114,8 +116,10 @@ export default function CommentItem({
             return timestamp.seconds * 1000;
         } else if (timestamp instanceof Date) {
             return timestamp.getTime();
-        } else {
+        } else if (typeof timestamp === 'string') {
             return new Date(timestamp).getTime();
+        } else {
+            return new Date(timestamp as string | number | Date).getTime();
         }
     };
 

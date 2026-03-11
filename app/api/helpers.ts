@@ -1,5 +1,6 @@
 import { adminAuth, adminDb } from "@/lib/firebaseAdmin"; // your admin SDK instance
 import { NextRequest } from "next/server";
+import { Project, Course } from "@/lib/types";
 
 // Utility function to fetch userRef by email
 export async function getUserRefByEmail(email: string) {
@@ -86,5 +87,67 @@ export async function getVerifiedAdminUid(req: NextRequest): Promise<string> {
     if (!userDoc.exists || !userDoc.data()?.admin) {
         throw new Error("Access denied: Admin privileges required");
     }
+    return uid;
+}
+
+/**
+ * Verifies that the user has access to a specific project.
+ * Throws an error if the user is not authenticated or doesn't have access.
+ * @param req NextRequest from Next.js
+ * @param projectId ID of the project to check
+ * @param allowPublic Whether to allow access to public projects
+ * @returns Verified UID string
+ */
+export async function getVerifiedProjectAccess(req: NextRequest, projectId: string, allowPublic: boolean = false): Promise<string> {
+    const uid = await getVerifiedUid(req);
+    
+    // Fetch user email for collaborator check
+    const userDoc = await adminDb.collection("users").doc(uid).get();
+    const userEmail = userDoc.exists ? userDoc.data()?.email : null;
+
+    const projectDoc = await adminDb.collection("projects").doc(projectId).get();
+
+    if (!projectDoc.exists) {
+        throw new Error("Project not found");
+    }
+
+    const projectData = projectDoc.data() as Project;
+    const isOwner = projectData.ownerId === uid;
+    const isShared = projectData.sharedWith?.includes(uid);
+    const isCollaborator = userEmail && projectData.collaborators?.includes(userEmail);
+    const isPublic = allowPublic && projectData.public === true;
+
+    if (!isOwner && !isShared && !isCollaborator && !isPublic) {
+        throw new Error("Access denied: You do not have permission to access this project");
+    }
+
+    return uid;
+}
+
+/**
+ * Verifies that the user has access to a specific course.
+ * Throws an error if the user is not authenticated or doesn't have access.
+ * @param req NextRequest from Next.js
+ * @param courseId ID of the course to check
+ * @param allowPublic Whether to allow access to public courses
+ * @returns Verified UID string
+ */
+export async function getVerifiedCourseAccess(req: NextRequest, courseId: string, allowPublic: boolean = false): Promise<string> {
+    const uid = await getVerifiedUid(req);
+    const courseDoc = await adminDb.collection("courses").doc(courseId).get();
+
+    if (!courseDoc.exists) {
+        throw new Error("Course not found");
+    }
+
+    const courseData = courseDoc.data() as Course;
+    const isOwner = courseData.ownerId === uid;
+    const isShared = courseData.sharedWith?.includes(uid);
+    const isPublic = allowPublic && courseData.public === true;
+
+    if (!isOwner && !isShared && !isPublic) {
+        throw new Error("Access denied: You do not have permission to access this course");
+    }
+
     return uid;
 }

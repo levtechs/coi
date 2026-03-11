@@ -3,7 +3,7 @@ import { adminDb } from "@/lib/firebaseAdmin";
 import { Card, NewCard, Label } from "@/lib/types";
 
 import { fetchCardsFromProject } from "../helpers";
-import { getVerifiedUid } from "@/app/api/helpers";
+import { getVerifiedProjectAccess } from "@/app/api/helpers";
 
 // Helper function to migrate exclude boolean to label system
 const migrateCardLabels = (card: Card): Card => {
@@ -23,14 +23,10 @@ const migrateCardLabels = (card: Card): Card => {
 };
 
 export async function GET(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { projectId } = await context.params;
 
     try {
+        await getVerifiedProjectAccess(req, projectId);
         const cards = await fetchCardsFromProject(projectId);
         // Apply migration to ensure backward compatibility
         const migratedCards = cards.map(card => migrateCardLabels(card));
@@ -43,14 +39,10 @@ export async function GET(req: NextRequest, context: { params: Promise<{ project
 }
 
 export async function POST (req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { projectId } = await context.params;
 
     try {
+        const uid = await getVerifiedProjectAccess(req, projectId);
         const body: Partial<NewCard> = await req.json();
 
         const allowedFields = ['title', 'details', 'exclude', 'labels', 'url', 'refImageUrls', 'iconUrl'];
@@ -98,14 +90,10 @@ export async function POST (req: NextRequest, context: { params: Promise<{ proje
 }
 
 export async function PUT(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { projectId } = await context.params;
 
     try {
+        const uid = await getVerifiedProjectAccess(req, projectId);
         const body = await req.json();
         const { cardId, title, details, exclude, labels, url, refImageUrls, iconUrl } = body;
 
@@ -169,14 +157,10 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ project
 }
 
 export async function DELETE(req: NextRequest, context: { params: Promise<{ projectId: string }> }) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { projectId } = await context.params;
 
     try {
+        await getVerifiedProjectAccess(req, projectId);
         const body = await req.json();
         const { cardId } = body;
 

@@ -243,8 +243,6 @@ export async function POST(req: NextRequest) {
                             finalResponseMessage += "\n\n*Note: Content hierarchy generation failed. Cards were created but organization may be incomplete.*";
                         }
 
-                        const allCards = previousCards ? [...previousCards, ...newCards, ...unlockedCards] : [...newCards, ...unlockedCards];
-
                         finalObj = {
                             type: "final",
                             responseMessage: finalResponseMessage,

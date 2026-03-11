@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getVerifiedUid } from '@/app/api/helpers';
+import { getVerifiedProjectAccess } from '@/app/api/helpers';
 import { writeUploadsToDb } from '@/app/api/uploads/helpers';
 import { FileAttachment } from '@/lib/types';
 
@@ -9,10 +9,7 @@ export async function POST(
 ) {
     try {
         const { projectId } = await params;
-        const uid = await getVerifiedUid(request);
-        if (!uid) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+        await getVerifiedProjectAccess(request, projectId);
 
         const { uploads }: { uploads: Omit<FileAttachment, 'id'>[] } = await request.json();
 

@@ -1,41 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import * as admin from "firebase-admin";
-import { getVerifiedUid } from "../../../helpers";
+import { getVerifiedCourseAccess } from "../../../helpers";
 import { Comment, CommentTree, CreateCommentData } from "@/lib/types";
 
 export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ courseId: string }> }
 ) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { courseId } = await params;
 
     try {
-        // Check course access
+        await getVerifiedCourseAccess(req, courseId, true);
         const courseRef = adminDb.collection('courses').doc(courseId);
-        const courseSnap = await courseRef.get();
-
-        if (!courseSnap.exists) {
-            return NextResponse.json({ error: "Course not found" }, { status: 404 });
-        }
-
-        const courseData = courseSnap.data();
-        if (!courseData) return NextResponse.json({ error: "Course data is empty" }, { status: 404 });
-
-        const hasAccess =
-            courseData.ownerId === uid ||
-            (courseData.sharedWith && courseData.sharedWith.includes(uid)) ||
-            courseData.public === true;
-
-        if (!hasAccess) {
-            return NextResponse.json({ error: "Access denied" }, { status: 403 });
-        }
-
+        
         // Fetch all comments
         const commentsRef = courseRef.collection('comments');
         const commentsSnap = await commentsRef.orderBy('createdAt', 'desc').get();
@@ -115,39 +93,18 @@ export async function POST(
     req: NextRequest,
     { params }: { params: Promise<{ courseId: string }> }
 ) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { courseId } = await params;
 
     try {
+        const uid = await getVerifiedCourseAccess(req, courseId, true);
         const body: CreateCommentData = await req.json();
 
         if (!body.content || body.content.trim().length === 0) {
             return NextResponse.json({ error: "Comment content is required" }, { status: 400 });
         }
 
-        // Check course access
         const courseRef = adminDb.collection('courses').doc(courseId);
-        const courseSnap = await courseRef.get();
-
-        if (!courseSnap.exists) {
-            return NextResponse.json({ error: "Course not found" }, { status: 404 });
-        }
-
-        const courseData = courseSnap.data();
-        if (!courseData) return NextResponse.json({ error: "Course data is empty" }, { status: 404 });
-        const hasAccess =
-            courseData.ownerId === uid ||
-            (courseData.sharedWith && courseData.sharedWith.includes(uid)) ||
-            courseData.public === true;
-
-        if (!hasAccess) {
-            return NextResponse.json({ error: "Access denied" }, { status: 403 });
-        }
-
+        
         // If replying to a comment, verify parent exists
         if (body.parentId) {
             const parentRef = courseRef.collection('comments').doc(body.parentId);

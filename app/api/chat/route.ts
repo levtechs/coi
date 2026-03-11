@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { Message } from "@/lib/types";
-import { getVerifiedUid } from "../helpers";
+import { getVerifiedProjectAccess } from "../helpers";
 
 
 export async function GET(req: NextRequest) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
-
     try {
         const url = new URL(req.url);
         const projectId = url.searchParams.get("projectId");
         if (!projectId) return NextResponse.json({ error: "projectId query parameter required" }, { status: 400 });
+
+        const uid = await getVerifiedProjectAccess(req, projectId);
 
         const chatDocRef = adminDb.collection("projects").doc(projectId).collection("chats").doc(uid);
         const chatSnap = await chatDocRef.get();
@@ -24,52 +23,6 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ messages });
     } catch (err) {
         console.error("Error fetching chat history:", err);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+        return NextResponse.json({ error: (err as Error).message }, { status: 500 });
     }
 }
-
-
-/*
- * ========================================================
- * ========================================================
- * ============ EVERYTHING BELOW IS DEPRICATED ============
- * ========================================================
- * ========================================================
- */
-
-
-/*
-
-export async function POST(req: NextRequest) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
-
-    try {
-        const body = await req.json();
-        const { message, messageHistory, projectId } = body as { message: , messageHistory: Message[], projectId: string };
-    
-        const previousContent = await getPreviousContent(projectId);
-
-        const chatResponse = await getChatResponse(message, messageHistory, previousContent) || {responseMessage: "Sorry, I couldn't generate a response.", hasNewInfo: false};
-        const responseMessage = chatResponse.responseMessage;
-        writeChatPairToDb(message, messageresponseMessage, projectId, uid);
-
-        if (chatResponse.hasNewInfo) {
-            const newContent: JSON = await getUpdatedContent(previousContent, message, responseMessage);
-            writeNewContentToDb(newContent, projectId);
-            const allCards: Card[] = await extractWriteCards(projectId, newContent) || [];
-
-            return NextResponse.json({ response: responseMessage , newContent, allCards});
-        }
-        else {
-            return NextResponse.json({ response: responseMessage });
-        }
-
-        
-    } catch (err) {
-        console.error("Error in /api/chat:", err);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-    }
-}
-
-*/

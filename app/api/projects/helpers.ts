@@ -1,4 +1,5 @@
 import { adminDb } from "@/lib/firebaseAdmin";
+import * as admin from "firebase-admin";
 import { Project } from "@/lib/types";
 import { fetchUploadsFromProject } from "../uploads/helpers";
 
@@ -63,9 +64,9 @@ export async function createProject(
 
         // 3️⃣ Add the projectId to the user's projectIds array
         const userRef = adminDb.collection("users").doc(uid);
-        const userSnap = await userRef.get();
-        const currentProjectIds = (userSnap.exists ? userSnap.data()?.projectIds || [] : []);
-        await userRef.update({ projectIds: [...currentProjectIds, docRef.id] });
+        await userRef.update({
+            projectIds: admin.firestore.FieldValue.arrayUnion(docRef.id)
+        });
 
         return docRef.id;
     } catch (err) {

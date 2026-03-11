@@ -1,39 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { getVerifiedUid } from "../../helpers";
+import { Filter } from "firebase-admin/firestore";
+import { getVerifiedUid, getVerifiedCourseAccess } from "../../helpers";
 import { Course, CourseLesson, Project, Card } from "@/lib/types";
 
 export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ courseId: string }> }
 ) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { courseId } = await params;
 
     try {
+        const uid = await getVerifiedCourseAccess(req, courseId, true);
         const courseRef = adminDb.collection('courses').doc(courseId);
         const courseSnap = await courseRef.get();
-
-        if (!courseSnap.exists) {
-            return NextResponse.json({ error: "Course not found" }, { status: 404 });
-        }
-
         const courseData = courseSnap.data();
         if (!courseData) return NextResponse.json({ error: "Course data is empty" }, { status: 404 });
-
-        // Check access: owner, shared, or public
-        const hasAccess =
-            courseData.ownerId === uid ||
-            (courseData.sharedWith && courseData.sharedWith.includes(uid)) ||
-            courseData.public === true;
-
-        if (!hasAccess) {
-            return NextResponse.json({ error: "Access denied" }, { status: 403 });
-        }
 
         // Fetch lessons subcollection
         const lessonsRef = courseRef.collection('lessons');
@@ -65,21 +47,21 @@ export async function GET(
             lessons.map(async (lesson) => {
                 try {
                     const projectsRef = adminDb.collection('projects');
-                    const q = projectsRef.where('courseLesson.id', '==', lesson.id);
-                    // Firestore Admin SDK doesn't support complex OR filters as easily as Client SDK in some versions,
-                    // but we can query by lesson ID and then filter in memory for simplicity or use multiple queries.
-                    // Given the existing structure, we filter the results.
+                    const q = projectsRef
+                        .where('courseLesson.id', '==', lesson.id)
+                        .where(
+                            Filter.or(
+                                Filter.where('ownerId', '==', uid),
+                                Filter.where('sharedWith', 'array-contains', uid),
+                                Filter.where('public', '==', true)
+                            )
+                        );
+                    
                     const projectsSnap = await q.get();
-                    const allProjects = projectsSnap.docs.map(doc => ({
+                    const filteredProjects = projectsSnap.docs.map(doc => ({
                         id: doc.id,
                         ...doc.data(),
                     })) as Project[];
-                    
-                    const filteredProjects = allProjects.filter(p => 
-                        p.ownerId === uid || 
-                        (p.sharedWith && p.sharedWith.includes(uid)) || 
-                        p.public === true
-                    );
                     
                     lessonProjects[lesson.id] = filteredProjects;
                 } catch (error) {
@@ -112,14 +94,10 @@ export async function PUT(
     req: NextRequest,
     { params }: { params: Promise<{ courseId: string }> }
 ) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { courseId } = await params;
 
     try {
+        const uid = await getVerifiedCourseAccess(req, courseId);
         const courseData: Course = await req.json();
 
         // Validate required fields
@@ -220,14 +198,10 @@ export async function DELETE(
     req: NextRequest,
     { params }: { params: Promise<{ courseId: string }> }
 ) {
-    const uid = await getVerifiedUid(req);
-    if (!uid) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { courseId } = await params;
 
     try {
+        const uid = await getVerifiedUid(req);
         const courseRef = adminDb.collection('courses').doc(courseId);
         const courseSnap = await courseRef.get();
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import * as admin from "firebase-admin";
 
-import { getVerifiedUid } from "@/app/api/helpers";
+import { getVerifiedUid, getVerifiedProjectAccess, getVerifiedCourseAccess } from "@/app/api/helpers";
 import { getUserById } from "@/app/api/users/helpers";
 
 /**
@@ -51,28 +51,13 @@ export async function POST(req: NextRequest) {
     if (!projectId && !courseId) return NextResponse.json({ error: "No projectId or courseId provided" }, { status: 400 });
 
     try {
-        let ownerId: string | undefined;
-
         let existingToken: string | null = null;
 
-        let hasAccess = false;
-
         if (projectId) {
+            const uid = await getVerifiedProjectAccess(req, projectId);
             const projectRef = adminDb.collection("projects").doc(projectId);
             const projectSnap = await projectRef.get();
-            if (!projectSnap.exists) return NextResponse.json({ error: "Project not found" }, { status: 404 });
             const projectData = projectSnap.data();
-            ownerId = projectData?.ownerId;
-
-            // Get user email
-            const userRef = adminDb.collection("users").doc(uid);
-            const userSnap = await userRef.get();
-            const userEmail = userSnap.exists ? userSnap.data()?.email : null;
-
-            // Check access: owner, sharedWith, or collaborators
-            if (ownerId === uid || projectData?.sharedWith?.includes(uid) || (userEmail && projectData?.collaborators?.includes(userEmail))) {
-                hasAccess = true;
-            }
 
             // Check if user has existing invite for this project
             const userInviteId = projectData?.inviteIds?.[uid];
@@ -84,22 +69,9 @@ export async function POST(req: NextRequest) {
                 }
             }
         } else if (courseId) {
-            const courseRef = adminDb.collection("courses").doc(courseId);
-            const courseSnap = await courseRef.get();
-            if (!courseSnap.exists) return NextResponse.json({ error: "Course not found" }, { status: 404 });
-            const courseData = courseSnap.data();
-            ownerId = courseData?.ownerId;
-
-            // Check access: owner or sharedWith
-            if (ownerId === uid || courseData?.sharedWith?.includes(uid)) {
-                hasAccess = true;
-            }
+            await getVerifiedCourseAccess(req, courseId);
         } else {
             return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-        }
-
-        if (!hasAccess) {
-            return NextResponse.json({ error: "Access denied" }, { status: 403 });
         }
 
         if (existingToken) {
