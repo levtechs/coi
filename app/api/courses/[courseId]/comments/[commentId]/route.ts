@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebaseAdmin";
+import * as admin from "firebase-admin";
 import { getVerifiedUid } from "../../../../helpers";
-import { doc, getDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, Timestamp } from "firebase/firestore";
 import { UpdateCommentData } from "@/lib/types";
 
 export async function PUT(
@@ -23,18 +23,18 @@ export async function PUT(
         }
 
         // Check course access
-        const courseRef = doc(db, 'courses', courseId);
-        const courseSnap = await getDoc(courseRef);
+        const courseRef = adminDb.collection('courses').doc(courseId);
+        const courseSnap = await courseRef.get();
 
-        if (!courseSnap.exists()) {
+        if (!courseSnap.exists) {
             return NextResponse.json({ error: "Course not found" }, { status: 404 });
         }
 
         // Check comment ownership
-        const commentRef = doc(db, 'courses', courseId, 'comments', commentId);
-        const commentSnap = await getDoc(commentRef);
+        const commentRef = courseRef.collection('comments').doc(commentId);
+        const commentSnap = await commentRef.get();
 
-        if (!commentSnap.exists()) {
+        if (!commentSnap.exists) {
             return NextResponse.json({ error: "Comment not found" }, { status: 404 });
         }
 
@@ -44,9 +44,9 @@ export async function PUT(
         }
 
         // Update comment
-        await updateDoc(commentRef, {
+        await commentRef.update({
             content: body.content.trim(),
-            updatedAt: Timestamp.now(),
+            updatedAt: admin.firestore.Timestamp.now(),
         });
 
         return NextResponse.json({ success: true });
@@ -69,10 +69,10 @@ export async function DELETE(
 
     try {
         // Check course access and ownership
-        const courseRef = doc(db, 'courses', courseId);
-        const courseSnap = await getDoc(courseRef);
+        const courseRef = adminDb.collection('courses').doc(courseId);
+        const courseSnap = await courseRef.get();
 
-        if (!courseSnap.exists()) {
+        if (!courseSnap.exists) {
             return NextResponse.json({ error: "Course not found" }, { status: 404 });
         }
 
@@ -80,10 +80,10 @@ export async function DELETE(
         const isOwner = courseData?.ownerId === uid;
 
         // Check comment ownership
-        const commentRef = doc(db, 'courses', courseId, 'comments', commentId);
-        const commentSnap = await getDoc(commentRef);
+        const commentRef = courseRef.collection('comments').doc(commentId);
+        const commentSnap = await commentRef.get();
 
-        if (!commentSnap.exists()) {
+        if (!commentSnap.exists) {
             return NextResponse.json({ error: "Comment not found" }, { status: 404 });
         }
 
@@ -97,25 +97,25 @@ export async function DELETE(
         // If this comment has replies, we should either delete them too or mark as deleted
         // For now, we'll do a soft delete by marking the content as deleted
         if (commentData?.replies && commentData.replies.length > 0) {
-            await updateDoc(commentRef, {
+            await commentRef.update({
                 content: "[deleted]",
-                updatedAt: Timestamp.now(),
+                updatedAt: admin.firestore.Timestamp.now(),
             });
         } else {
             // Remove from parent's replies array if it's a reply
             if (commentData?.parentId) {
-                const parentRef = doc(db, 'courses', courseId, 'comments', commentData.parentId);
-                const parentSnap = await getDoc(parentRef);
+                const parentRef = courseRef.collection('comments').doc(commentData.parentId);
+                const parentSnap = await parentRef.get();
 
-                if (parentSnap.exists()) {
+                if (parentSnap.exists) {
                     const parentData = parentSnap.data();
                     const updatedReplies = (parentData?.replies || []).filter((id: string) => id !== commentId);
-                    await updateDoc(parentRef, { replies: updatedReplies });
+                    await parentRef.update({ replies: updatedReplies });
                 }
             }
 
             // Delete the comment
-            await deleteDoc(commentRef);
+            await commentRef.delete();
         }
 
         return NextResponse.json({ success: true });

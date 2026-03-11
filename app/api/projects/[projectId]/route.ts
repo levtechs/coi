@@ -1,7 +1,5 @@
-// app/api/projects/[projectId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { getVerifiedUid } from "../../helpers";
 import { getProjectById } from "../helpers";
 
@@ -30,12 +28,13 @@ export async function POST(req: NextRequest, context: { params: Promise<{ projec
     const body = await req.json();
 
     try {
-        const projectRef = doc(db, "projects", projectId);
-        const snap = await getDoc(projectRef);
+        const projectRef = adminDb.collection("projects").doc(projectId);
+        const snap = await projectRef.get();
 
-        if (!snap.exists()) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+        if (!snap.exists) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
         const data = snap.data();
+        if (!data) return NextResponse.json({ error: "Project data is empty" }, { status: 404 });
 
         if (data.ownerId !== uid && !(data.sharedWith ?? []).includes(uid)) {
             return NextResponse.json({ error: "Access denied" }, { status: 403 });
@@ -46,7 +45,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ projec
         if (body.title) updates.title = body.title;
         if (body.content) updates.content = body.content;
 
-        await updateDoc(projectRef, updates);
+        await projectRef.update(updates);
 
         return NextResponse.json({ success: true });
     } catch (err) {
@@ -61,27 +60,27 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ proj
     const { projectId } = await context.params;  // <- await here
 
     try {
-        const projectRef = doc(db, "projects", projectId);
-        const snap = await getDoc(projectRef);
+        const projectRef = adminDb.collection("projects").doc(projectId);
+        const snap = await projectRef.get();
 
-        if (!snap.exists()) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+        if (!snap.exists) return NextResponse.json({ error: "Project not found" }, { status: 404 });
         const data = snap.data();
 
-        if (data.ownerId !== uid) {
+        if (data?.ownerId !== uid) {
             return NextResponse.json({ error: "Only the owner can delete a project" }, { status: 403 });
         }
 
         // Delete the project document
-        await deleteDoc(projectRef);
+        await projectRef.delete();
 
         // Remove the projectId from the user's projectIds array
-        const userRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
+        const userRef = adminDb.collection("users").doc(uid);
+        const userSnap = await userRef.get();
+        if (userSnap.exists) {
             const userData = userSnap.data();
-            const currentProjectIds = userData.projectIds || [];
+            const currentProjectIds = userData?.projectIds || [];
             const updatedProjectIds = currentProjectIds.filter((id: string) => id !== projectId);
-            await updateDoc(userRef, { projectIds: updatedProjectIds });
+            await userRef.update({ projectIds: updatedProjectIds });
         }
 
         return NextResponse.json({ success: true });

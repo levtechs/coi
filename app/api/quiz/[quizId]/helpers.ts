@@ -1,17 +1,15 @@
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-
+import { adminDb } from "@/lib/firebaseAdmin";
 import { Quiz, QuizQuestion } from "@/lib/types";
 import { genAI } from "../../gemini/config";
 import { gradeFRQsSystemInstruction } from "../prompts";
-import { Content, GenerationConfig, ThinkingConfig, Tool, Type } from "@google/genai";
+import { Content, Type } from "@google/genai";
 import { MyConfig, MyGenerateContentParameters } from "../../gemini/types";
 
 export async function fetchQuiz(quizId: string) {
-    const quizDocRef = doc(db, "quizzes", quizId);
-    const quizDocSnap = await getDoc(quizDocRef);
+    const quizDocRef = adminDb.collection("quizzes").doc(quizId);
+    const quizDocSnap = await quizDocRef.get();
 
-    if (!quizDocSnap.exists()) {
+    if (!quizDocSnap.exists) {
         throw new Error("Quiz not found");
     }
 

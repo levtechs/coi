@@ -7,8 +7,10 @@ if (!admin.apps.length) {
             clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
             privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n") || "",
         }),
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET || `${process.env.FIREBASE_PROJECT_ID}.firebasestorage.app`,
     });
 }
 
 export const adminAuth = admin.auth();
 export const adminDb = admin.firestore();
+export const adminStorage = admin.storage();

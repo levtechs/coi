@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { adminDb } from "@/lib/firebaseAdmin";
 
 import { getVerifiedUid } from "@/app/api/helpers";
 import { getUserById } from "@/app/api/users/helpers";
@@ -13,9 +12,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cour
 
     try {
         // Fetch the course to check ownership and get sharedWith
-        const courseRef = doc(db, "courses", courseId);
-        const courseSnap = await getDoc(courseRef);
-        if (!courseSnap.exists()) return NextResponse.json({ error: "Course not found" }, { status: 404 });
+        const courseRef = adminDb.collection("courses").doc(courseId);
+        const courseSnap = await courseRef.get();
+        if (!courseSnap.exists) return NextResponse.json({ error: "Course not found" }, { status: 404 });
 
         const courseData = courseSnap.data();
         if (courseData?.ownerId !== uid) {
@@ -26,8 +25,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cour
         const totalUsers = sharedWith.length;
 
         // Fetch invitations for this course
-        const invitationsQuery = query(collection(db, "invitations"), where("courseId", "==", courseId));
-        const invitationSnaps = await getDocs(invitationsQuery);
+        const invitationsQuery = adminDb.collection("invitations").where("courseId", "==", courseId);
+        const invitationSnaps = await invitationsQuery.get();
 
         const invitations = await Promise.all(invitationSnaps.docs.map(async (doc) => {
             const data = doc.data();

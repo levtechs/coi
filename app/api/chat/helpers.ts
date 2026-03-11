@@ -1,5 +1,5 @@
-import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, setDoc, addDoc, deleteDoc, collection, serverTimestamp } from "firebase/firestore";
+import { adminDb } from "@/lib/firebaseAdmin";
+import * as admin from "firebase-admin";
 
 import { Message, Card, NewCard, ContentNode, ContentHierarchy, ChatAttachment, GroundingChunk, ChatPreferences, TutorAction} from "@/lib/types"; // { content: string; isResponse: boolean }
 import { Contents } from "./types";
@@ -102,15 +102,15 @@ export const getPreviousHierarchy = async (
     projectId: string,
 ): Promise<ContentHierarchy | null> => {
     try {
-        const projectDocRef = doc(db, "projects", projectId);
-        const projectSnap = await getDoc(projectDocRef);
+        const projectDocRef = adminDb.collection("projects").doc(projectId);
+        const projectSnap = await projectDocRef.get();
 
-        if (!projectSnap.exists()) {
+        if (!projectSnap.exists) {
             console.warn(`Project with ID ${projectId} does not exist.`);
             return null;
         }
 
-        const data = projectSnap.data();
+        const data = projectSnap.data()!;
 
         if (!data.hierarchy) {
             console.warn(`Project ${projectId} has no hierarchy field.`);
@@ -143,10 +143,10 @@ export const writeHierarchy = async (
     hierarchy: ContentHierarchy
 ): Promise<void> => {
     try {
-        const projectDocRef = doc(db, "projects", projectId);
+        const projectDocRef = adminDb.collection("projects").doc(projectId);
 
         // Store hierarchy as an object (Firestore supports nested objects)
-        await updateDoc(projectDocRef, {
+        await projectDocRef.update({
             hierarchy: hierarchy
         });
     } catch (err) {
@@ -457,8 +457,7 @@ export const groundingChunksToCardsAndWrite = async (
 };
 
 /**
- * Deduplicates cards under each category in the hierarchy by removing duplicate card IDs.
- * Keeps the first occurrence of each card ID.
+ * Deduplicate hierarchy categories by removing duplicate card IDs.
  */
 const deduplicateHierarchy = (hierarchy: ContentHierarchy): ContentHierarchy => {
     const seenCards = new Set<string>();
@@ -507,10 +506,7 @@ const deduplicateHierarchy = (hierarchy: ContentHierarchy): ContentHierarchy => 
 
 
 /**
- * Parses the JSON response from Gemini for hierarchy generation and applies actions if modified.
- * @param jsonString The JSON string from Gemini.
- * @param oldHierarchy The existing hierarchy to modify if type is "modified".
- * @returns The new ContentHierarchy.
+ * Parses JSON response from Gemini for hierarchy generation.
  */
 const parseHierarchyResponse = (jsonString: string, oldHierarchy: ContentHierarchy | null): ContentHierarchy => {
     try {
@@ -645,12 +641,7 @@ const parseHierarchyResponse = (jsonString: string, oldHierarchy: ContentHierarc
 };
 
 /**
- * Generates a new content hierarchy from cards using Gemini.
- *
- * @param oldHierarchy - Existing content hierarchy, if any (can be null).
- * @param previousCards - Previously processed cards.
- * @param newCards - Newly added or changed cards.
- * @returns The new ContentHierarchy object.
+ * Generates new content hierarchy from cards using Gemini.
  */
 export const generateNewHierarchyFromCards = async (
     oldHierarchy: ContentHierarchy | null,
@@ -712,13 +703,13 @@ export const writeChatPairToDb = async (
     followUpQuestions?: string[]
 ) => {
     try {
-        const chatRef = doc(db, "projects", projectId, "chats", uid);
+        const chatRef = adminDb.collection("projects").doc(projectId).collection("chats").doc(uid);
 
-        const chatSnap = await getDoc(chatRef);
+        const chatSnap = await chatRef.get();
 
         let existingMessages: Message[] = [];
-        if (chatSnap.exists()) {
-            existingMessages = chatSnap.data().messages || [];
+        if (chatSnap.exists) {
+            existingMessages = chatSnap.data()?.messages || [];
         }
 
         const newMessages: Message[] = [
@@ -736,10 +727,10 @@ export const writeChatPairToDb = async (
             }
         ];
 
-        if (chatSnap.exists()) {
-            await updateDoc(chatRef, { messages: newMessages });
+        if (chatSnap.exists) {
+            await chatRef.update({ messages: newMessages });
         } else {
-            await setDoc(chatRef, { messages: newMessages });
+            await chatRef.set({ messages: newMessages });
         }
     } catch (err) {
         console.error("Error writing chat to DB:", err);
@@ -749,18 +740,15 @@ export const writeChatPairToDb = async (
 
 
 /**
- * Updates the user's chat preferences in the database.
- *
- * @param uid - The user ID.
- * @param preferences - The chat preferences to store.
+ * Updates user's chat preferences in the database.
  */
 export const updatePreferences = async (
     uid: string,
     preferences: ChatPreferences
 ): Promise<void> => {
     try {
-        const userDocRef = doc(db, "users", uid);
-        await updateDoc(userDocRef, {
+        const userDocRef = adminDb.collection("users").doc(uid);
+        await userDocRef.update({
             chatPreferences: preferences
         });
     } catch (err) {
@@ -770,20 +758,17 @@ export const updatePreferences = async (
 };
 
 /**
- * Loads the user's chat preferences from the database.
- *
- * @param uid - The user ID.
- * @returns The user's chat preferences, or null if not found.
+ * Loads user's chat preferences from the database.
  */
 export const getUserPreferences = async (
     uid: string
 ): Promise<ChatPreferences | null> => {
     try {
-        const userDocRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userDocRef);
+        const userDocRef = adminDb.collection("users").doc(uid);
+        const userSnap = await userDocRef.get();
 
-        if (userSnap.exists()) {
-            const data = userSnap.data();
+        if (userSnap.exists) {
+            const data = userSnap.data()!;
             const storedPreferences = data.chatPreferences;
             if (storedPreferences) {
                 // Merge with defaults for any missing fields
@@ -811,7 +796,7 @@ export const getUserPreferences = async (
 // ==== Tutor Action Helpers ====
 
 /**
- * Renames a section in the hierarchy tree. Returns true if found and renamed.
+ * Renames a section in hierarchy tree.
  */
 function renameSectionInHierarchy(hierarchy: ContentHierarchy, oldTitle: string, newTitle: string): boolean {
     if (hierarchy.title === oldTitle) {
@@ -827,8 +812,7 @@ function renameSectionInHierarchy(hierarchy: ContentHierarchy, oldTitle: string,
 }
 
 /**
- * Creates a new section in the hierarchy. If parentSection is specified, creates it as a child of that section.
- * Otherwise creates it at the top level. Returns true if successful.
+ * Creates new section in hierarchy.
  */
 function createSectionInHierarchy(hierarchy: ContentHierarchy, title: string, parentSection?: string): boolean {
     const newSection: ContentNode = { type: "subcontent", content: { title, children: [] } };
@@ -852,7 +836,7 @@ function createSectionInHierarchy(hierarchy: ContentHierarchy, title: string, pa
 }
 
 /**
- * Deletes a section from the hierarchy. Returns true if found and deleted.
+ * Deletes section from hierarchy.
  */
 function deleteSectionFromHierarchy(hierarchy: ContentHierarchy, title: string): boolean {
     for (let i = 0; i < hierarchy.children.length; i++) {
@@ -871,7 +855,7 @@ function deleteSectionFromHierarchy(hierarchy: ContentHierarchy, title: string):
 }
 
 /**
- * Removes a card node from anywhere in the hierarchy. Returns true if found and removed.
+ * Removes card node from hierarchy.
  */
 function removeCardFromHierarchy(hierarchy: ContentHierarchy, cardId: string): boolean {
     for (let i = 0; i < hierarchy.children.length; i++) {
@@ -888,7 +872,7 @@ function removeCardFromHierarchy(hierarchy: ContentHierarchy, cardId: string): b
 }
 
 /**
- * Adds a card to a specific section in the hierarchy. Returns true if section found and card added.
+ * Adds card to specific section in hierarchy.
  */
 function addCardToSection(hierarchy: ContentHierarchy, cardId: string, sectionTitle: string): boolean {
     if (hierarchy.title === sectionTitle) {
@@ -904,8 +888,7 @@ function addCardToSection(hierarchy: ContentHierarchy, cardId: string, sectionTi
 }
 
 /**
- * Executes tutor actions on the project. Returns the modified hierarchy (or null if unchanged)
- * and a list of deleted card IDs.
+ * Executes tutor actions on project.
  */
 export async function executeTutorActions(
     actions: TutorAction[],
@@ -932,8 +915,8 @@ export async function executeTutorActions(
             switch (action.type) {
                 case "delete_card": {
                     // Delete card from Firestore
-                    const cardRef = doc(db, "projects", projectId, "cards", action.cardId);
-                    await deleteDoc(cardRef);
+                    const cardRef = adminDb.collection("projects").doc(projectId).collection("cards").doc(action.cardId);
+                    await cardRef.delete();
                     deletedCardIds.push(action.cardId);
                     // Also remove from hierarchy
                     removeCardFromHierarchy(currentHierarchy, action.cardId);
@@ -981,7 +964,7 @@ export async function executeTutorActions(
         }
     }
 
-    // If regeneration is requested, call the hierarchy generation AI
+    // If regeneration is requested, call hierarchy generation AI
     if (needsRegeneration) {
         try {
             // Filter out deleted cards
@@ -1010,9 +993,7 @@ export async function executeTutorActions(
 
 
 /**
- * Writes a new content entry to the project's content collection.
- * @param newContent The content string to store.
- * @param projectId The ID of the project where this content belongs.
+ * Writes new content entry to project's content collection.
  */
 export const writeNewContentToDb = async (
     newContent: JSON,
@@ -1021,16 +1002,16 @@ export const writeNewContentToDb = async (
     if (!newContent || !projectId) throw new Error("Missing content or projectId");
 
     try {
-        const contentHistoryColRef = collection(db, "projects", projectId, "content");
-        await addDoc(contentHistoryColRef, {
+        const contentHistoryColRef = adminDb.collection("projects").doc(projectId).collection("content");
+        await contentHistoryColRef.add({
             content: newContent,
-            createdAt: serverTimestamp()
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        const mainContentDocRef = doc(db, "projects", projectId);
-        await setDoc(mainContentDocRef, {
+        const mainContentDocRef = adminDb.collection("projects").doc(projectId);
+        await mainContentDocRef.set({
              content: newContent,
-             updatedAt: serverTimestamp()
+             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
     } catch (err) {
         console.error("Error writing new content to DB:", err);
@@ -1040,11 +1021,11 @@ export const writeNewContentToDb = async (
 
 export const getPreviousContent = async (projectId: string): Promise<string | null> => {
     try {
-        const docRef = doc(db, "projects", projectId);
-        const docSnap = await getDoc(docRef);
+        const docRef = adminDb.collection("projects").doc(projectId);
+        const docSnap = await docRef.get();
 
-        if (docSnap.exists()) {
-            const data = docSnap.data();
+        if (docSnap.exists) {
+            const data = docSnap.data()!;
             return data.content || null;
         } else {
             return null;
@@ -1052,124 +1033,5 @@ export const getPreviousContent = async (projectId: string): Promise<string | nu
     } catch (err) {
         console.error("Error getting previous content:", err);
         throw err;
-    }
-};
-
-/**
- * Calls the Gemini API to get a structured JSON response.
- * @param message The user's current message.
- * @param messageHistory The history of the conversation.
- * @returns A promise that resolves to an object with a response message and a boolean indicating new information.
- */
-export const getChatResponse = async (message: string, messageHistory: Message[], prevContent: string | null) => {
-    if (!message || message.trim() === "") {
-        throw new Error("Message is required.");
-    }
-
-    const contents = (messageHistory || [])
-        .filter((msg) => msg.content && msg.content.trim() !== "")
-        .map((msg) => ({
-            role: msg.isResponse ? "model" : "user",
-            parts: [{ text: msg.content }]
-        }));
-
-    contents.push({
-        role: "user",
-        parts: [{ text: message }]
-    });
-
-    if (prevContent) {
-        contents.push({
-            role: "user",
-            parts: [{text: `EXISTING NOTES: ${JSON.stringify(prevContent)}`}]
-        })
-    }
-
-    // Define the schema for the expected JSON response.
-    const generationConfig = {
-        ...limitedGeneralConfig,
-        responseMimeType: "application/json",
-        responseSchema: {
-            type: "OBJECT",
-            properties: {
-                "responseMessage": { "type": "STRING" },
-                "hasNewInfo": { "type": "BOOLEAN" }
-            },
-            propertyOrdering: ["responseMessage", "hasNewInfo"]
-        },
-    };
-    const body = {
-        contents,
-        systemInstruction: (prevContent ? getChatResponseSystemInstruction("default", "auto", "auto") : firstChatResponseSystemInstruction),
-        generationConfig: generationConfig,
-    };
-
-    try {
-        const response = await callGeminiApi(body);
-        const jsonString = JSON.parse(response?.candidates?.[0]?.content?.parts?.[0]?.text);
-
-        if (!jsonString) {
-            console.error("No JSON content found in API response.");
-            return null;
-        }
-
-        const parsedResponse = jsonString;
-
-        // Return the structured object directly.
-        return {
-            responseMessage: parsedResponse.responseMessage,
-            hasNewInfo: parsedResponse.hasNewInfo,
-        };
-    } catch (err) {
-        console.error("Error calling Gemini API or parsing response:", err);
-        return null;
-    }
-};
-
-export const getUpdatedContent = async (previousContent: string | null, message: string, response: string): Promise<JSON> => {
-    let body: object = {}
-    if (previousContent) {
-        // We add the previous content to the history to give the model full context.
-        const contents: Contents = [
-            { role: "user", parts: [{ text: message }] },
-            { role: "model", parts: [{ text: response }] }
-        ];
-
-        body = {
-            contents,
-            systemInstruction: updateContentSystemInstruction(JSON.stringify(previousContent)),
-            generationConfig: {
-                ...defaultGeneralConfig,
-                responseMimeType: "application/json",
-            },
-        };
-    }
-    else {
-        const contents: Contents = [
-            { role: "user", parts: [{ text: message }] },
-            { role: "model", parts: [{ text: response }] }
-        ];
-
-        body = {
-            contents,
-            systemInstruction: genContentSystemInstruction,
-            generationConfig: {
-                ...defaultGeneralConfig,
-                responseMimeType: "application/json",
-            },
-        };
-    }
-
-    const apiResponse = await callGeminiApi(body);
-    if (!apiResponse) {
-        throw new Error("No response from Gemini API");
-    }
-    try {
-        const jsonResponseText = JSON.parse(apiResponse?.candidates?.[0]?.content?.parts?.[0]?.text);
-        return jsonResponseText;
-    }
-    catch {
-        console.error("Failed to parse Gemini output as JSON:", apiResponse?.candidates?.[0]?.content?.parts?.[0]?.text);
-        throw new Error("Invalid JSON returned from Gemini");
     }
 };

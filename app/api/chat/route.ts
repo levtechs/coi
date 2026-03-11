@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { Message } from "@/lib/types";
 import { getVerifiedUid } from "../helpers";
 
@@ -14,13 +13,13 @@ export async function GET(req: NextRequest) {
         const projectId = url.searchParams.get("projectId");
         if (!projectId) return NextResponse.json({ error: "projectId query parameter required" }, { status: 400 });
 
-        const chatDocRef = doc(db, "projects", projectId, "chats", uid);
-        const chatSnap = await getDoc(chatDocRef);
+        const chatDocRef = adminDb.collection("projects").doc(projectId).collection("chats").doc(uid);
+        const chatSnap = await chatDocRef.get();
 
-        if (!chatSnap.exists()) return NextResponse.json({ messages: [] }); // No messages yet
+        if (!chatSnap.exists) return NextResponse.json({ messages: [] }); // No messages yet
 
         const data = chatSnap.data();
-        const messages: Message[] = data.messages || [];
+        const messages: Message[] = data?.messages || [];
 
         return NextResponse.json({ messages });
     } catch (err) {

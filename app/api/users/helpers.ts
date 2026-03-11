@@ -1,17 +1,16 @@
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { User } from "@/lib/types";
 
 export async function getUserById(userId: string): Promise<User | null> {
     try {
-        const userRef = doc(db, "users", userId);
-        const snap = await getDoc(userRef);
+        const userRef = adminDb.collection("users").doc(userId);
+        const snap = await userRef.get();
 
-        if (!snap.exists()) {
+        if (!snap.exists) {
             return null;
         }
 
-        const data = snap.data();
+        const data = snap.data()!;
         const user: User = {
             id: userId,
             email: data.email,

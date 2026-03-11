@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { getVerifiedUid } from "../../../../../helpers";
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 
 export async function POST(
     req: NextRequest,
@@ -23,10 +22,10 @@ export async function POST(
         }
 
         // Check course access
-        const courseRef = doc(db, 'courses', courseId);
-        const courseSnap = await getDoc(courseRef);
+        const courseRef = adminDb.collection('courses').doc(courseId);
+        const courseSnap = await courseRef.get();
 
-        if (!courseSnap.exists()) {
+        if (!courseSnap.exists) {
             return NextResponse.json({ error: "Course not found" }, { status: 404 });
         }
 
@@ -41,10 +40,10 @@ export async function POST(
         }
 
         // Check comment exists
-        const commentRef = doc(db, 'courses', courseId, 'comments', commentId);
-        const commentSnap = await getDoc(commentRef);
+        const commentRef = courseRef.collection('comments').doc(commentId);
+        const commentSnap = await commentRef.get();
 
-        if (!commentSnap.exists()) {
+        if (!commentSnap.exists) {
             return NextResponse.json({ error: "Comment not found" }, { status: 404 });
         }
 
@@ -65,7 +64,7 @@ export async function POST(
         // If type is 'remove', we just remove existing votes
 
         // Update comment
-        await updateDoc(commentRef, {
+        await commentRef.update({
             upvotes: newUpvotes,
             downvotes: newDownvotes,
         });

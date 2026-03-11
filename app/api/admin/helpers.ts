@@ -1,5 +1,4 @@
-import { collection, getDocs, limit, query, startAfter, orderBy, getDoc, doc, where } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { Project, User } from "@/lib/types";
 
 /**
@@ -10,11 +9,11 @@ import { Project, User } from "@/lib/types";
  */
 export async function getProjects(limitNum: number, lastId?: string): Promise<Project[]> {
     try {
-        let q = query(collection(db, "projects"), orderBy("__name__"), limit(limitNum));
+        let q = adminDb.collection("projects").orderBy("__name__").limit(limitNum);
         if (lastId) {
-            q = query(collection(db, "projects"), orderBy("__name__"), startAfter(lastId), limit(limitNum));
+            q = adminDb.collection("projects").orderBy("__name__").startAfter(lastId).limit(limitNum);
         }
-        const snapshot = await getDocs(q);
+        const snapshot = await q.get();
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
     } catch (err) {
         console.error("Error fetching projects:", err);
@@ -31,8 +30,7 @@ export async function getProjects(limitNum: number, lastId?: string): Promise<Pr
 export async function getUsers(limitNum: number, lastId?: string): Promise<User[]> {
     try {
         // Fetch all users since orderBy excludes documents without the field
-        const q = query(collection(db, "users"));
-        const snapshot = await getDocs(q);
+        const snapshot = await adminDb.collection("users").get();
         const allUsers = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -69,14 +67,14 @@ export async function getUsers(limitNum: number, lastId?: string): Promise<User[
 export async function getAdminStats(): Promise<{ totalUsers: number; totalProjects: number; totalActions: number; usersWithSignUp: number }> {
     try {
         // Fetch all users
-        const usersSnap = await getDocs(collection(db, "users"));
+        const usersSnap = await adminDb.collection("users").get();
         const users = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
         const totalUsers = users.length;
         const totalActions = users.reduce((sum, user) => sum + (user.actions || 0), 0);
         const usersWithSignUp = users.filter(user => user.signUpResponses).length;
 
         // Fetch all projects
-        const projectsSnap = await getDocs(collection(db, "projects"));
+        const projectsSnap = await adminDb.collection("projects").get();
         const totalProjects = projectsSnap.size;
 
         return { totalUsers, totalProjects, totalActions, usersWithSignUp };
@@ -94,16 +92,16 @@ export async function getAdminStats(): Promise<{ totalUsers: number; totalProjec
 export async function getProjectsForUser(userId: string): Promise<Project[]> {
     try {
         // First, get the user email
-        const userDoc = await getDoc(doc(db, "users", userId));
-        if (!userDoc.exists()) throw new Error("User not found");
+        const userDoc = await adminDb.collection("users").doc(userId).get();
+        if (!userDoc.exists) throw new Error("User not found");
         const userEmail = userDoc.data()?.email;
         if (!userEmail) throw new Error("User email not found");
 
         // Query projects where ownerId == userId or collaborators includes userEmail
-        const q1 = query(collection(db, "projects"), where("ownerId", "==", userId));
-        const q2 = query(collection(db, "projects"), where("collaborators", "array-contains", userEmail));
+        const q1 = adminDb.collection("projects").where("ownerId", "==", userId);
+        const q2 = adminDb.collection("projects").where("collaborators", "array-contains", userEmail);
 
-        const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+        const [snap1, snap2] = await Promise.all([q1.get(), q2.get()]);
 
         const projectsMap = new Map<string, Project>();
         snap1.docs.forEach(doc => projectsMap.set(doc.id, { id: doc.id, ...doc.data() } as Project));

@@ -1,7 +1,6 @@
 // app/api/users/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { adminDb } from "@/lib/firebaseAdmin";
 
 export async function GET(req: NextRequest) {
     const email = req.url ? new URL(req.url).searchParams.get("email") : null;
@@ -10,9 +9,9 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        const usersCol = collection(db, "users");
-        const q = query(usersCol, where("email", "==", email));
-        const querySnapshot = await getDocs(q);
+        const usersCol = adminDb.collection("users");
+        const q = usersCol.where("email", "==", email);
+        const querySnapshot = await q.get();
 
         if (querySnapshot.empty) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });

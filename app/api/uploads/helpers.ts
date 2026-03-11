@@ -1,32 +1,22 @@
-import {
-    collection,
-    getDocs,
-    doc,
-    addDoc,
-    writeBatch,
-    getDoc,
-    setDoc,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { FileAttachment } from "@/lib/types";
 
 export const fetchUploadsFromProject = async (projectId: string): Promise<FileAttachment[]> => {
     try {
-        const projectRef = doc(db, "projects", projectId);
-        const projectSnap = await getDoc(projectRef);
+        const projectRef = adminDb.collection("projects").doc(projectId);
+        const projectSnap = await projectRef.get();
 
-        if (!projectSnap.exists()) {
+        if (!projectSnap.exists) {
             throw new Error("Project not found");
         }
 
         // Reference the 'uploads' subcollection within the project document.
-        const uploadsCollectionRef = collection(db, "projects", projectId, "uploads");
+        const uploadsCollectionRef = projectRef.collection("uploads");
 
         // Fetch all documents from the subcollection.
-        const querySnapshot = await getDocs(uploadsCollectionRef);
+        const querySnapshot = await uploadsCollectionRef.get();
 
         // Map the Firestore documents to the FileAttachment interface.
-        // It is critical to include the document's id in the returned object.
         const uploads: FileAttachment[] = querySnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data() as Omit<FileAttachment, 'id'>
@@ -54,10 +44,10 @@ export const writeUploadsToDb = async (
     newUploads: Omit<FileAttachment, 'id'>[]
 ): Promise<FileAttachment[]> => {
     try {
-        const uploadsCollectionRef = collection(db, "projects", projectId, "uploads");
+        const uploadsCollectionRef = adminDb.collection("projects").doc(projectId).collection("uploads");
 
         const addedUploads = await Promise.all(newUploads.map(async (upload) => {
-            const docRef = await addDoc(uploadsCollectionRef, upload);
+            const docRef = await uploadsCollectionRef.add(upload);
             return {
                 id: docRef.id,
                 ...upload,
@@ -83,11 +73,12 @@ export const copyUploadsToDb = async (
     uploads: FileAttachment[]
 ): Promise<FileAttachment[]> => {
     try {
-        const uploadsCollectionRef = collection(db, "projects", projectId, "uploads");
+        const uploadsCollectionRef = adminDb.collection("projects").doc(projectId).collection("uploads");
 
-        const batch = writeBatch(db);
+        const batch = adminDb.batch();
         for (const upload of uploads) {
-            const docRef = doc(uploadsCollectionRef, upload.id);
+            if (!upload.id) continue;
+            const docRef = uploadsCollectionRef.doc(upload.id);
             batch.set(docRef, upload);
         }
         await batch.commit();

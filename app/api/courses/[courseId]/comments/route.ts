@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebaseAdmin";
+import * as admin from "firebase-admin";
 import { getVerifiedUid } from "../../../helpers";
-import { doc, getDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, Timestamp } from "firebase/firestore";
-import { Comment, CommentTree, CreateCommentData, UpdateCommentData } from "@/lib/types";
+import { Comment, CommentTree, CreateCommentData } from "@/lib/types";
 
 export async function GET(
     req: NextRequest,
@@ -17,14 +17,16 @@ export async function GET(
 
     try {
         // Check course access
-        const courseRef = doc(db, 'courses', courseId);
-        const courseSnap = await getDoc(courseRef);
+        const courseRef = adminDb.collection('courses').doc(courseId);
+        const courseSnap = await courseRef.get();
 
-        if (!courseSnap.exists()) {
+        if (!courseSnap.exists) {
             return NextResponse.json({ error: "Course not found" }, { status: 404 });
         }
 
         const courseData = courseSnap.data();
+        if (!courseData) return NextResponse.json({ error: "Course data is empty" }, { status: 404 });
+
         const hasAccess =
             courseData.ownerId === uid ||
             (courseData.sharedWith && courseData.sharedWith.includes(uid)) ||
@@ -35,8 +37,8 @@ export async function GET(
         }
 
         // Fetch all comments
-        const commentsRef = collection(db, 'courses', courseId, 'comments');
-        const commentsSnap = await getDocs(query(commentsRef, orderBy('createdAt', 'desc')));
+        const commentsRef = courseRef.collection('comments');
+        const commentsSnap = await commentsRef.orderBy('createdAt', 'desc').get();
 
         const comments: Comment[] = commentsSnap.docs.map(doc => ({
             id: doc.id,
@@ -54,8 +56,8 @@ export async function GET(
                 continue;
             }
             // Fetch author info
-            const userRef = doc(db, 'users', comment.userId);
-            const userSnap = await getDoc(userRef);
+            const userRef = adminDb.collection('users').doc(comment.userId);
+            const userSnap = await userRef.get();
             const userData = userSnap.data();
 
             const commentTree: CommentTree = {
@@ -92,7 +94,11 @@ export async function GET(
 
         // Sort replies by creation time
         const sortReplies = (comments: CommentTree[]): void => {
-            comments.sort((a, b) => a.createdAt.toMillis() - b.createdAt.toMillis());
+            comments.sort((a, b) => {
+                const aTime = (a.createdAt as any).toMillis?.() || new Date(a.createdAt as any).getTime();
+                const bTime = (b.createdAt as any).toMillis?.() || new Date(b.createdAt as any).getTime();
+                return aTime - bTime;
+            });
             comments.forEach(comment => sortReplies(comment.replies));
         };
 
@@ -124,14 +130,15 @@ export async function POST(
         }
 
         // Check course access
-        const courseRef = doc(db, 'courses', courseId);
-        const courseSnap = await getDoc(courseRef);
+        const courseRef = adminDb.collection('courses').doc(courseId);
+        const courseSnap = await courseRef.get();
 
-        if (!courseSnap.exists()) {
+        if (!courseSnap.exists) {
             return NextResponse.json({ error: "Course not found" }, { status: 404 });
         }
 
         const courseData = courseSnap.data();
+        if (!courseData) return NextResponse.json({ error: "Course data is empty" }, { status: 404 });
         const hasAccess =
             courseData.ownerId === uid ||
             (courseData.sharedWith && courseData.sharedWith.includes(uid)) ||
@@ -143,20 +150,20 @@ export async function POST(
 
         // If replying to a comment, verify parent exists
         if (body.parentId) {
-            const parentRef = doc(db, 'courses', courseId, 'comments', body.parentId);
-            const parentSnap = await getDoc(parentRef);
+            const parentRef = courseRef.collection('comments').doc(body.parentId);
+            const parentSnap = await parentRef.get();
 
-            if (!parentSnap.exists()) {
+            if (!parentSnap.exists) {
                 return NextResponse.json({ error: "Parent comment not found" }, { status: 404 });
             }
         }
 
-        const now = Timestamp.now();
+        const now = admin.firestore.Timestamp.now();
         const commentData: Omit<Comment, 'id'> = {
             userId: uid,
             content: body.content.trim(),
-            createdAt: now,
-            updatedAt: now,
+            createdAt: now as any,
+            updatedAt: now as any,
             parentId: body.parentId || null,
             upvotes: [],
             downvotes: [],
@@ -164,24 +171,24 @@ export async function POST(
         };
 
         // Add comment
-        const commentsRef = collection(db, 'courses', courseId, 'comments');
-        const docRef = await addDoc(commentsRef, commentData);
+        const commentsRef = courseRef.collection('comments');
+        const docRef = await commentsRef.add(commentData);
 
         // If this is a reply, add to parent's replies array
         if (body.parentId) {
-            const parentRef = doc(db, 'courses', courseId, 'comments', body.parentId);
-            const parentSnap = await getDoc(parentRef);
+            const parentRef = commentsRef.doc(body.parentId);
+            const parentSnap = await parentRef.get();
 
-            if (parentSnap.exists()) {
-                const parentData = parentSnap.data();
-                const updatedReplies = [...(parentData?.replies || []), docRef.id];
-                await updateDoc(parentRef, { replies: updatedReplies });
+            if (parentSnap.exists) {
+                await parentRef.update({
+                    replies: admin.firestore.FieldValue.arrayUnion(docRef.id)
+                });
             }
         }
 
         // Fetch current user info for the response
-        const userRef = doc(db, 'users', uid);
-        const userSnap = await getDoc(userRef);
+        const userRef = adminDb.collection('users').doc(uid);
+        const userSnap = await userRef.get();
         const userData = userSnap.data();
 
         return NextResponse.json({

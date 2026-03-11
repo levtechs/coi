@@ -65,6 +65,7 @@ export type Project = {
     courseLesson?: CourseLesson; // if project is part of a courseLesson
     courseId?: string; // if project is part of a course
     uploads: FileAttachment[];
+    public?: boolean;
 };
 
 export interface User {

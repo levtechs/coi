@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebaseAdmin";
 
 import { getVerifiedUid } from "../../helpers";
 import { getUserById } from "../helpers";
@@ -62,8 +61,8 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ userI
         }
 
         // Update the user document with sign-up responses
-        const userRef = doc(db, "users", userId);
-        await updateDoc(userRef, {
+        const userRef = adminDb.collection("users").doc(userId);
+        await userRef.update({
             signUpResponses: signUpResponses as SignUpResponses
         });
 

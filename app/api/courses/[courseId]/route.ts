@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
+import { adminDb } from "@/lib/firebaseAdmin";
 import { getVerifiedUid } from "../../helpers";
-import { doc, getDoc, collection, getDocs, updateDoc, deleteDoc, setDoc, addDoc, query, where, or, and, orderBy } from "firebase/firestore";
 import { Course, CourseLesson, Project, Card } from "@/lib/types";
 
 export async function GET(
@@ -16,14 +15,15 @@ export async function GET(
     const { courseId } = await params;
 
     try {
-        const courseRef = doc(db, 'courses', courseId);
-        const courseSnap = await getDoc(courseRef);
+        const courseRef = adminDb.collection('courses').doc(courseId);
+        const courseSnap = await courseRef.get();
 
-        if (!courseSnap.exists()) {
+        if (!courseSnap.exists) {
             return NextResponse.json({ error: "Course not found" }, { status: 404 });
         }
 
         const courseData = courseSnap.data();
+        if (!courseData) return NextResponse.json({ error: "Course data is empty" }, { status: 404 });
 
         // Check access: owner, shared, or public
         const hasAccess =
@@ -36,13 +36,13 @@ export async function GET(
         }
 
         // Fetch lessons subcollection
-        const lessonsRef = collection(db, 'courses', courseId, 'lessons');
-        const lessonsSnap = await getDocs(query(lessonsRef, orderBy('index')));
+        const lessonsRef = courseRef.collection('lessons');
+        const lessonsSnap = await lessonsRef.orderBy('index').get();
         const lessons = await Promise.all(lessonsSnap.docs.map(async (p) => {
             const lessonData = p.data();
             // Fetch cardsToUnlock subcollection
-            const cardsRef = collection(db, 'courses', courseId, 'lessons', p.id, 'cardsToUnlock');
-            const cardsSnap = await getDocs(cardsRef);
+            const cardsRef = p.ref.collection('cardsToUnlock');
+            const cardsSnap = await cardsRef.get();
             let cardsToUnlock = cardsSnap.docs.map(cardDoc => ({
                 id: cardDoc.id,
                 ...cardDoc.data()
@@ -64,24 +64,24 @@ export async function GET(
         await Promise.all(
             lessons.map(async (lesson) => {
                 try {
-                    const projectsRef = collection(db, 'projects');
-                    const q = query(
-                        projectsRef,
-                        and(
-                            where('courseLesson.id', '==', lesson.id),
-                            or(
-                                where('ownerId', '==', uid),
-                                where('sharedWith', 'array-contains', uid),
-                                where('public', '==', true)
-                            )
-                        )
-                    );
-                    const projectsSnap = await getDocs(q);
-                    const projects = projectsSnap.docs.map(doc => ({
+                    const projectsRef = adminDb.collection('projects');
+                    const q = projectsRef.where('courseLesson.id', '==', lesson.id);
+                    // Firestore Admin SDK doesn't support complex OR filters as easily as Client SDK in some versions,
+                    // but we can query by lesson ID and then filter in memory for simplicity or use multiple queries.
+                    // Given the existing structure, we filter the results.
+                    const projectsSnap = await q.get();
+                    const allProjects = projectsSnap.docs.map(doc => ({
                         id: doc.id,
                         ...doc.data(),
                     })) as Project[];
-                    lessonProjects[lesson.id] = projects;
+                    
+                    const filteredProjects = allProjects.filter(p => 
+                        p.ownerId === uid || 
+                        (p.sharedWith && p.sharedWith.includes(uid)) || 
+                        p.public === true
+                    );
+                    
+                    lessonProjects[lesson.id] = filteredProjects;
                 } catch (error) {
                     console.error(`Failed to fetch projects for lesson ${lesson.id}:`, error);
                     lessonProjects[lesson.id] = [];
@@ -127,22 +127,22 @@ export async function PUT(
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        const courseRef = doc(db, 'courses', courseId);
-        const courseSnap = await getDoc(courseRef);
+        const courseRef = adminDb.collection('courses').doc(courseId);
+        const courseSnap = await courseRef.get();
 
-        if (!courseSnap.exists()) {
+        if (!courseSnap.exists) {
             return NextResponse.json({ error: "Course not found" }, { status: 404 });
         }
 
         const existingData = courseSnap.data();
 
         // Check if user is the owner
-        if (existingData.ownerId !== uid) {
+        if (existingData?.ownerId !== uid) {
             return NextResponse.json({ error: "Access denied" }, { status: 403 });
         }
 
         // Update the course document
-        await updateDoc(courseRef, {
+        await courseRef.update({
             title: courseData.title,
             description: courseData.description || "",
             public: courseData.public || false,
@@ -152,8 +152,8 @@ export async function PUT(
         });
 
         // Handle lessons: update existing, create new, delete removed
-        const lessonsRef = collection(db, 'courses', courseId, 'lessons');
-        const existingLessonsSnap = await getDocs(lessonsRef);
+        const lessonsRef = courseRef.collection('lessons');
+        const existingLessonsSnap = await lessonsRef.get();
         const existingIds = new Set(existingLessonsSnap.docs.map(d => d.id));
 
         // Update or create lessons
@@ -171,26 +171,26 @@ export async function PUT(
             if (lesson.id && existingIds.has(lesson.id)) {
                 // Update existing
                 lessonDocId = lesson.id;
-                await updateDoc(doc(lessonsRef, lesson.id), lessonData);
+                await lessonsRef.doc(lesson.id).update(lessonData);
             } else {
                 // Create new
-                const newRef = await addDoc(lessonsRef, lessonData);
+                const newRef = await lessonsRef.add(lessonData);
                 lessonDocId = newRef.id;
             }
 
             // Handle cardsToUnlock subcollection
-            const cardsRef = collection(db, 'courses', courseId, 'lessons', lessonDocId, 'cardsToUnlock');
-            const existingCardsSnap = await getDocs(cardsRef);
+            const cardsRef = lessonsRef.doc(lessonDocId).collection('cardsToUnlock');
+            const existingCardsSnap = await cardsRef.get();
             const existingCardIds = new Set(existingCardsSnap.docs.map(d => d.id));
 
             // Update or create cards
             const cardPromises = lesson.cardsToUnlock.map(async (card) => {
                 if (card.id && existingCardIds.has(card.id)) {
                     // Update existing
-                    await updateDoc(doc(cardsRef, card.id), { title: card.title, details: card.details });
+                    await cardsRef.doc(card.id).update({ title: card.title, details: card.details });
                 } else {
                     // Create new
-                    await addDoc(cardsRef, { title: card.title, details: card.details });
+                    await cardsRef.add({ title: card.title, details: card.details });
                 }
             });
             await Promise.all(cardPromises);
@@ -198,7 +198,7 @@ export async function PUT(
             // Delete cards not in the new list
             const newCardIds = new Set(lesson.cardsToUnlock.map(c => c.id).filter(Boolean));
             const toDeleteCards = existingCardsSnap.docs.filter(d => !newCardIds.has(d.id));
-            const deleteCardPromises = toDeleteCards.map(d => deleteDoc(d.ref));
+            const deleteCardPromises = toDeleteCards.map(d => d.ref.delete());
             await Promise.all(deleteCardPromises);
         });
         await Promise.all(lessonPromises);
@@ -206,7 +206,7 @@ export async function PUT(
         // Delete lessons not in the new list
         const newIds = new Set(courseData.lessons.map(l => l.id).filter(Boolean));
         const toDelete = existingLessonsSnap.docs.filter(d => !newIds.has(d.id));
-        const deletePromises = toDelete.map(d => deleteDoc(d.ref));
+        const deletePromises = toDelete.map(d => d.ref.delete());
         await Promise.all(deletePromises);
 
         return NextResponse.json({ success: true });
@@ -228,28 +228,28 @@ export async function DELETE(
     const { courseId } = await params;
 
     try {
-        const courseRef = doc(db, 'courses', courseId);
-        const courseSnap = await getDoc(courseRef);
+        const courseRef = adminDb.collection('courses').doc(courseId);
+        const courseSnap = await courseRef.get();
 
-        if (!courseSnap.exists()) {
+        if (!courseSnap.exists) {
             return NextResponse.json({ error: "Course not found" }, { status: 404 });
         }
 
         const courseData = courseSnap.data();
 
         // Check if user is the owner
-        if (courseData.ownerId !== uid) {
+        if (courseData?.ownerId !== uid) {
             return NextResponse.json({ error: "Access denied" }, { status: 403 });
         }
 
         // Delete all lessons in the subcollection
-        const lessonsRef = collection(db, 'courses', courseId, 'lessons');
-        const lessonsSnap = await getDocs(lessonsRef);
-        const deleteLessonPromises = lessonsSnap.docs.map((lessonDoc) => deleteDoc(lessonDoc.ref));
+        const lessonsRef = courseRef.collection('lessons');
+        const lessonsSnap = await lessonsRef.get();
+        const deleteLessonPromises = lessonsSnap.docs.map((lessonDoc) => lessonDoc.ref.delete());
         await Promise.all(deleteLessonPromises);
 
         // Delete the course document
-        await deleteDoc(courseRef);
+        await courseRef.delete();
 
         return NextResponse.json({ success: true });
     } catch (error) {
