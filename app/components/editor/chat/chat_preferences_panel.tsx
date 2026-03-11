@@ -17,7 +17,7 @@ const ChatPreferencesPanel = ({ preferences, onPreferencesChange }: ChatPreferen
   };
 
   return (
-    <div className="bg-[var(--neutral-100)] rounded-md border border-[var(--neutral-300)] p-3 space-y-3">
+    <div className="space-y-3">
       {/* Model Selection */}
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium text-[var(--foreground)]">Model</label>

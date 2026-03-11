@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Timestamp } from "firebase/firestore";
 
 import { FiEdit2 } from "react-icons/fi";
@@ -15,6 +15,7 @@ import { Project, Quiz, CardFilter, ChatAttachment } from "@/lib/types";
 import { getQuiz } from "@/app/views/quiz";
 import { fetchCardsFromProject } from "@/app/api/cards/helpers";
 import TabSelector from "../tab_selector";
+import { useOnClickOutside } from "@/app/hooks/use-on-click-outside";
 
 interface MenuBarProps {
     project: Project;
@@ -36,6 +37,10 @@ interface MenuBarProps {
 const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, tab, setTab, cardFilters, filtersExpanded, setFiltersExpanded, toggleKnowledge, toggleResource, toggleImportant, addFileAttachment} : MenuBarProps) => {
     const [quizzes, setQuizzes] = useState<Quiz[] | null>(null);
     const [lessonProgress, setLessonProgress] = useState<number | null>(null);
+
+    const filtersContainerRef = useRef<HTMLDivElement>(null);
+    const closeFilters = useCallback(() => setFiltersExpanded(false), [setFiltersExpanded]);
+    useOnClickOutside(filtersContainerRef, closeFilters, filtersExpanded);
 
     const truncatedTitle = project.title.length > 15 ? project.title.slice(0, 15) + '...' : project.title;
 
@@ -149,8 +154,8 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                         onTabChange={(tabName) => setTab(tabName as "content" | "cards")}
                     />
                 </div>
-                <div className="relative inline-block ml-2">
-                    <div className={`absolute left-0 top-full mt-2 flex flex-wrap gap-2 transition-opacity duration-300 bg-[var(--neutral-100)] border border-[var(--neutral-300)] rounded-md p-2 shadow-md z-50 min-w-fit ${filtersExpanded ? 'opacity-100' : 'opacity-0'}`}>
+                <div className="relative inline-block ml-2" ref={filtersContainerRef}>
+                    <div className={`absolute left-0 top-full mt-2 flex flex-wrap gap-2 transition-all duration-300 bg-[var(--neutral-100)] border border-[var(--neutral-300)] rounded-md p-2 shadow-md z-50 min-w-fit ${filtersExpanded ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
                         <button
                             className={`px-3 py-1 rounded-md transition-colors duration-200 text-sm whitespace-nowrap ${cardFilters.knowledge ? 'bg-[var(--accent-500)] text-white' : 'bg-[var(--neutral-200)] text-[var(--neutral-700)] hover:bg-[var(--neutral-300)]'}`}
                             onClick={toggleKnowledge}

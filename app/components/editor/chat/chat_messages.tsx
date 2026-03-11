@@ -1,7 +1,5 @@
 import React, { useState } from "react"
 
-import { FiLoader } from "react-icons/fi";
-
 import { Message, StreamPhase, ChatAttachment, Card } from "@/lib/types";
 import { useSmoothStream } from "@/app/hooks/use-smooth-stream";
 
@@ -40,9 +38,23 @@ const ChatMessages = ({ messages, isLoading, phase, cards, onFollowUpClick }: Ch
 
             {/* Loading / thinking message */}
             {isLoading && (
-                <div className="self-start bg-[var(--neutral-300)] text-[var(--foreground)] px-4 py-3 rounded-md mb-6 max-w-[70%] flex items-center space-x-2">
-                    <FiLoader className="animate-spin w-5 h-5 text-[var(--foreground)]" />
-                    <span>{phase ? phaseMessages[phase] : "Thinking..."}</span>
+                <div className="flex flex-col items-center justify-center py-10 w-full animate-in fade-in duration-1000">
+                    <div className="flex flex-col items-center gap-4">
+                        {/* Modern bouncing dots */}
+                        <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-[var(--accent-500)] animate-bounce [animation-delay:-0.3s]"></span>
+                            <span className="w-2 h-2 rounded-full bg-[var(--accent-500)] animate-bounce [animation-delay:-0.15s]"></span>
+                            <span className="w-2 h-2 rounded-full bg-[var(--accent-500)] animate-bounce"></span>
+                        </div>
+                        
+                        <div className="flex flex-col items-center gap-3">
+                            <span className="text-[11px] font-bold text-[var(--neutral-400)] uppercase tracking-[0.4em] pl-[0.4em] animate-pulse">
+                                {phase ? phaseMessages[phase] : "Assistant is thinking"}
+                            </span>
+                            {/* Subtle pulsing separator */}
+                            <div className="h-px w-32 bg-gradient-to-r from-transparent via-[var(--neutral-300)] to-transparent animate-pulse"></div>
+                        </div>
+                    </div>
                 </div>
             )}
         </>
@@ -74,10 +86,10 @@ const ChatMessage = ({ message, cards, onCardClick, onFollowUpClick }: ChatMessa
     const smoothContent = useSmoothStream(message.content, message.isResponse);
 
     return (
-        <div className="flex flex-col mb-6">
+        <div className="flex flex-col mb-4">
             {/* Attachments of user-sent message*/}
             {message.attachments && (
-                <div className={`flex items-center gap-2 overflow-auto mb-3 ${message.isResponse ? "ml-4 justify-start" : "justify-end"}`}>
+                <div className={`flex items-center gap-2 overflow-auto mb-2 ${message.isResponse ? "ml-4 justify-start" : "justify-end"}`}>
                      {message.attachments
                          .sort((a, b) => {
                              const isThinkA = 'time' in a;
