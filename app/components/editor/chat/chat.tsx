@@ -248,7 +248,6 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                         <div className="flex justify-between items-center px-8 py-4 border-b border-transparent bg-transparent relative">
                             <div className="flex items-center gap-4">
                                 <h2 className="text-[var(--foreground)] text-xl font-bold opacity-80">{project.title}</h2>
-                                <span className="px-2 py-0.5 rounded bg-[var(--accent-100)] text-[var(--accent-700)] text-[10px] font-bold uppercase tracking-widest">Assistant</span>
                             </div>
                             <div className="flex items-center gap-4">
                                 <button 
@@ -363,7 +362,6 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                         <div className="flex justify-between items-center mb-2 relative px-2 py-1">
                             <div className="flex items-center gap-2">
                                 <h2 className="text-[var(--foreground)] text-base font-bold opacity-90 tracking-tight">Chat</h2>
-                                <span className="px-1.5 py-0.5 rounded bg-[var(--accent-100)] text-[var(--accent-700)] text-[9px] font-bold uppercase tracking-wider">AI</span>
                             </div>
                             <div className="flex items-center gap-1">
                                 <button 
