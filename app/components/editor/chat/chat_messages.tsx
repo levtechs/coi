@@ -2,6 +2,7 @@ import React, { useState } from "react"
 
 import { Message, StreamPhase, ChatAttachment, Card } from "@/lib/types";
 import { useSmoothStream } from "@/app/hooks/use-smooth-stream";
+import { getAttachmentIcon } from "./attachments_list";
 
 import MarkdownArticle from "../../md";
 import CardPopup from "../cards/card_popup";
@@ -116,33 +117,30 @@ const ChatMessage = ({ message, cards, onCardClick, onFollowUpClick }: ChatMessa
                               text = attachment.text;
                           }
 
-                         if (!text) return null;
+                          if (!text) return null;
 
-                          // Handle card attachments
-                          if ('title' in attachment && 'details' in attachment && onCardClick) {
-                              return (
-                                  <div
-                                      key={attachment.id}
-                                      className="flex items-center justify-between w-32 h-8 bg-[var(--neutral-300)] rounded flex-shrink-0 cursor-pointer hover:bg-[var(--neutral-400)] transition-colors"
-                                      onClick={() => onCardClick(attachment as Card)}
-                                      title={attachment.title}
-                                  >
-                                      <p className="text-sm ml-2 truncate">{text}</p>
-                                  </div>
-                              );
-                          }
+                          const isCard = 'title' in attachment && 'details' in attachment && onCardClick;
+                          const isClickable = isCard || url;
 
                           return (
                               <div
                                   key={"id" in attachment ? attachment.id : crypto.randomUUID()}
-                                  className={`flex items-center justify-between ${'time' in attachment ? 'px-3 w-auto min-w-32 max-w-full' : 'w-32'} h-8 bg-[var(--neutral-300)] rounded flex-shrink-0 ${url ? 'cursor-pointer hover:bg-[var(--neutral-400)]' : ''}`}
-                                  onClick={url ? () => window.open(url, '_blank') : undefined}
+                                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-colors shrink-0
+                                      ${isClickable 
+                                          ? "cursor-pointer bg-[var(--neutral-200)] text-[var(--neutral-700)] border border-[var(--neutral-300)] hover:bg-[var(--accent-100)] hover:text-[var(--accent-700)] hover:border-[var(--accent-300)]" 
+                                          : "bg-[var(--neutral-200)] text-[var(--neutral-600)] border border-[var(--neutral-300)]"
+                                      }`}
+                                  onClick={isCard ? () => onCardClick(attachment as Card) : (url ? () => window.open(url, '_blank') : undefined)}
                                   title={'summary' in attachment ? attachment.summary : undefined}
                               >
-                                  <p className={`text-sm ${'time' in attachment ? '' : 'ml-2 truncate'}`}>{text}</p>
+                                  <span className="shrink-0 text-[var(--neutral-500)]">
+                                      {getAttachmentIcon(attachment)}
+                                  </span>
+                                  <span className="max-w-[150px] truncate">{text}</span>
                               </div>
                           );
                      })}
+
                 </div>
             )}
 

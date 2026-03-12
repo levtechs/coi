@@ -1,6 +1,6 @@
 "use client";
 
-import { FiX } from "react-icons/fi";
+import { FileText, Paperclip, Globe, Brain, Layout, X, Play } from "lucide-react";
 import { ChatAttachment } from "@/lib/types";
 import { Dispatch, SetStateAction } from "react";
 
@@ -9,6 +9,31 @@ interface AttachmentsListProps {
     setAttachments: Dispatch<SetStateAction<ChatAttachment[] | null>>;
     variant?: "fullscreen" | "standard";
 }
+
+export const getAttachmentIcon = (attachment: ChatAttachment) => {
+    if ("type" in attachment && attachment.type === 'file') {
+        return <Paperclip className="w-3 h-3" />;
+    } else if ("web" in attachment) {
+        const uri = attachment.web.uri.toLowerCase();
+        const title = attachment.web.title.toLowerCase();
+        const isYoutube = uri.includes('youtube.com') || 
+                          uri.includes('youtu.be') || 
+                          title.includes('youtube.com') || 
+                          title.includes('youtube');
+        if (isYoutube) {
+            return <Play className="w-3 h-3 fill-current" />;
+        }
+        return <Globe className="w-3 h-3" />;
+
+    } else if ("time" in attachment) {
+        return <Brain className="w-3 h-3" />;
+    } else if ("children" in attachment || ("type" in attachment && (attachment.type === 'subcontent' || attachment.type === 'card'))) {
+        return <Layout className="w-3 h-3" />;
+    } else if ("details" in attachment) {
+        return <FileText className="w-3 h-3" />;
+    }
+    return <Paperclip className="w-3 h-3" />;
+};
 
 export const getAttachmentKey = (attachment: ChatAttachment, index: number): string => {
     if ("id" in attachment && attachment.id) return attachment.id;
@@ -51,22 +76,25 @@ const AttachmentsList = ({ attachments, setAttachments, variant = "standard" }: 
                     return (
                         <div
                             key={key}
-                            className={`flex items-center gap-2 bg-[var(--neutral-300)] rounded-lg flex-shrink-0 group ${
-                                isFullscreen ? "px-3 py-1.5" : "px-2 py-1"
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-[var(--neutral-200)] text-[var(--neutral-700)] border border-[var(--neutral-300)] transition-colors group ${
+                                isFullscreen ? "px-4 py-1.5" : ""
                             }`}
                         >
-                            <span className={`font-medium truncate ${
-                                isFullscreen ? "text-xs max-w-[120px]" : "text-[11px] max-w-[100px]"
+                            <span className="shrink-0 text-[var(--neutral-500)]">
+                                {getAttachmentIcon(attachment)}
+                            </span>
+                            <span className={`truncate ${
+                                isFullscreen ? "text-xs max-w-[150px]" : "text-[11px] max-w-[120px]"
                             }`}>
                                 {text}
                             </span>
                             <button
                                 onClick={() => removeAttachment(attachment)}
-                                className="cursor-pointer text-[var(--neutral-500)] hover:text-red-500 transition-colors"
+                                className="cursor-pointer text-[var(--neutral-400)] hover:text-red-500 transition-colors ml-1"
                                 aria-label={`Remove ${text}`}
                                 title={`Remove ${text}`}
                             >
-                                <FiX className={isFullscreen ? "w-4 h-4" : "w-3 h-3"} />
+                                <X className={isFullscreen ? "w-3.5 h-3.5" : "w-3 h-3"} />
                             </button>
                         </div>
                     );

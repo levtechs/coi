@@ -8,8 +8,10 @@ import { getUserPreferences } from "@/app/views/chat";
 import { uploadFileToStorageOnly } from "@/app/views/uploads";
 import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/uploadConstants";
 
-import { FiArrowRight, FiLoader, FiX } from "react-icons/fi";
+import { FiArrowRight, FiLoader } from "react-icons/fi";
 import { MdFileUpload } from "react-icons/md";
+import { X } from "lucide-react";
+import { getAttachmentIcon } from "@/app/components/editor/chat/attachments_list";
 
 const PLACEHOLDER_MESSAGES = [
     "Ask anything...",
@@ -237,11 +239,14 @@ const QuickCreateInput = ({
                         return (
                             <div
                                 key={id}
-                                className="flex items-center justify-between px-3 py-1 bg-[var(--neutral-200)] border border-[var(--neutral-300)] rounded-full text-sm"
+                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--neutral-200)] border border-[var(--neutral-300)] rounded-full text-sm font-medium text-[var(--neutral-700)] transition-colors"
                             >
+                                <span className="shrink-0 text-[var(--neutral-500)]">
+                                    {getAttachmentIcon(attachment)}
+                                </span>
                                 <span className="truncate max-w-[150px]">{text}</span>
-                                <FiX
-                                    className="ml-2 cursor-pointer text-[var(--neutral-500)] hover:text-[var(--foreground)]"
+                                <X
+                                    className="ml-1 w-3.5 h-3.5 cursor-pointer text-[var(--neutral-400)] hover:text-red-500 transition-colors"
                                     onClick={() => setAttachments(prev => prev.filter(att => att !== attachment))}
                                 />
                             </div>
