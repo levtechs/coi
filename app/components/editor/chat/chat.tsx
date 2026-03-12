@@ -148,7 +148,26 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
         });
     };
     
-    // NEW: Scroll to the bottom when the chat is opened or mounted
+    const scrollRatioRef = useRef<number>(0);
+
+    const toggleFullscreen = useCallback(() => {
+        if (messagesEndRef.current) {
+            const el = messagesEndRef.current;
+            scrollRatioRef.current = el.scrollTop / (el.scrollHeight - el.clientHeight || 1);
+        }
+        setIsFullscreen(prev => !prev);
+    }, []);
+
+    // Restore scroll position after fullscreen toggle
+    useEffect(() => {
+        if (messagesEndRef.current) {
+            const el = messagesEndRef.current;
+            const targetScroll = scrollRatioRef.current * (el.scrollHeight - el.clientHeight);
+            el.scrollTop = targetScroll;
+        }
+    }, [isFullscreen]);
+
+    // Scroll to the bottom when the chat is opened or messages change
     useEffect(() => {
         if (chatToggled && messagesEndRef.current) {
             messagesEndRef.current.scrollTo({
@@ -379,7 +398,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                                 <FiSettings size={18} />
                             </button>
                             <button
-                                onClick={() => setIsFullscreen(false)}
+                                onClick={toggleFullscreen}
                                 className={`${sz.btnPad} ${sz.btnRound} transition-colors ${sz.hoverBg} text-[var(--neutral-500)]`}
                                 aria-label="Exit fullscreen"
                                 title="Exit fullscreen"
@@ -423,7 +442,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                                     <FiSettings size={sz.icon} />
                                 </button>
                                 <button
-                                    onClick={() => setIsFullscreen(true)}
+                                    onClick={toggleFullscreen}
                                     className={`${sz.btnPad} ${sz.btnRound} transition-colors ${sz.hoverBg} text-[var(--neutral-500)]`}
                                     aria-label="Enter fullscreen mode"
                                     title="Enter fullscreen mode"
