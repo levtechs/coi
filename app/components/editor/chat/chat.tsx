@@ -362,42 +362,42 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
         <div className={`transition-all duration-300 ${isFullscreen ? 'absolute inset-0 z-50 bg-[var(--neutral-100)]' : ''}`}>
             {chatToggled ? (
                 isFullscreen ? (
-                    <div className="flex flex-col h-full w-full">
-                        {/* Modern Fullscreen Header */}
-                        <div className="flex justify-between items-center px-8 py-4 border-b border-transparent bg-transparent relative">
-                            <div className="flex items-center gap-4">
-                                <h2 className="text-[var(--foreground)] text-xl font-bold opacity-80">{project.title}</h2>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <button
-                                    onClick={() => setShowPreferences(!showPreferences)}
-                                    className={`${sz.btnPad} ${sz.btnRound} transition-colors ${sz.hoverBg} ${showPreferences ? `text-[var(--accent-500)] ${sz.activeBg}` : 'text-[var(--neutral-500)]'}`}
-                                    aria-label="Chat settings"
-                                    title="Chat settings"
-                                >
-                                    <FiSettings size={sz.icon} />
-                                </button>
-                                <button
-                                    onClick={() => setIsFullscreen(false)}
-                                    className={`${sz.btnPad} ${sz.btnRound} transition-colors ${sz.hoverBg} text-[var(--neutral-500)]`}
-                                    aria-label="Exit fullscreen"
-                                    title="Exit fullscreen"
-                                >
-                                    <FiMinimize size={sz.icon} />
-                                </button>
-                                {preferencesPopup}
-                            </div>
+                    <div className="relative flex flex-col h-full w-full min-h-0">
+                        {/* Floating title — top-left overlay */}
+                        <div className="absolute top-3 left-6 z-10">
+                            <h2 className="text-[var(--foreground)] text-base font-semibold opacity-70">{project.title}</h2>
                         </div>
 
-                        {/* Messages Area */}
-                        <div ref={messagesEndRef} className="flex-1 overflow-y-auto pt-4 pb-2">
+                        {/* Floating controls — top-right overlay */}
+                        <div className="absolute top-3 right-6 z-10 flex items-center gap-2">
+                            <button
+                                onClick={() => setShowPreferences(!showPreferences)}
+                                className={`${sz.btnPad} ${sz.btnRound} transition-colors ${sz.hoverBg} ${showPreferences ? `text-[var(--accent-500)] ${sz.activeBg}` : 'text-[var(--neutral-500)]'}`}
+                                aria-label="Chat settings"
+                                title="Chat settings"
+                            >
+                                <FiSettings size={18} />
+                            </button>
+                            <button
+                                onClick={() => setIsFullscreen(false)}
+                                className={`${sz.btnPad} ${sz.btnRound} transition-colors ${sz.hoverBg} text-[var(--neutral-500)]`}
+                                aria-label="Exit fullscreen"
+                                title="Exit fullscreen"
+                            >
+                                <FiMinimize size={18} />
+                            </button>
+                            {preferencesPopup}
+                        </div>
+
+                        {/* Messages Area — takes full height */}
+                        <div ref={messagesEndRef} className="flex-1 overflow-y-auto pt-4 pb-2 min-h-0">
                             <div className="max-w-5xl mx-auto px-8">
                                 {messagesView}
                             </div>
                         </div>
 
                         {/* Input Area */}
-                        <div className="pb-6 pt-2">
+                        <div className="shrink-0 pb-6 pt-2">
                             <div className="max-w-5xl mx-auto px-8">
                                 {inputArea}
                                 <p className="text-[10px] text-center mt-2 text-[var(--neutral-500)]">
