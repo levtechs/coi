@@ -43,6 +43,10 @@ service cloud.firestore {
       match /cards/{cardId} {
         allow read: if canReadProject(get(/databases/$(database)/documents/projects/$(projectId)).data);
       }
+
+      match /uploads/{uploadId} {
+        allow read: if canReadProject(get(/databases/$(database)/documents/projects/$(projectId)).data);
+      }
       
       match /chats/{userId} {
         allow read: if isAuthenticated() && request.auth.uid == userId;
