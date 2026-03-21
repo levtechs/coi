@@ -1,15 +1,12 @@
-import { NextRequest, NextResponse, after } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { getVerifiedUid } from "@/app/api/helpers";
-import { writeChatPairToDb, generateNewHierarchyFromCards, writeHierarchy, groundingChunksToCardsAndWrite } from "@/app/api/chat/helpers";
 import { streamChatResponse } from "@/app/api/chat/stream/helpers";
-import { buildFinalChatAttachments, resolveNewcardRefs } from "@/app/api/chat/stream/shared";
+import { finalizeTaggedStream } from "@/app/api/chat/stream/orchestrator";
 import { persistModelCards } from "@/app/api/chat/stream/persist";
 import { createProject } from "@/app/api/projects/helpers";
 import { copyUploadsToDb } from "@/app/api/uploads/helpers";
 import { ChatAttachment, FileAttachment, StreamPhase, GroundingChunk, DEFAULT_CHAT_PREFERENCES } from "@/lib/types";
-
-const SECONDARY_GENERATION_MODEL = "flash-lite" as const;
 
 function generateTitleFromMessage(message: string): string {
     const trimmed = message.trim();
@@ -117,75 +114,40 @@ export async function POST(req: NextRequest) {
 
                     if (!result) throw new Error("Failed to generate response.");
 
-                    const { responseMessage: chatResponseMessage, newCardsFromModel, writtenCards, chatAttachments, followUpQuestions } = result;
+                    const { newCardsFromModel, writtenCards, chatAttachments } = result;
 
                     updatePhase("processing");
-
-                    let finalResponseMessage = chatResponseMessage.replace(/\[cite:[^\]]*\]/g, "");
                     const groundingChunks: GroundingChunk[] = chatAttachments.filter((a): a is GroundingChunk => "web" in a);
-                    const writtenResourceCards = groundingChunks.length > 0
-                        ? await groundingChunksToCardsAndWrite(projectId, writtenCards, groundingChunks)
-                        : [];
-                    const usedChunkUris = new Set<string>();
-                    const allWrittenCards = [...writtenCards, ...writtenResourceCards];
-
-                    if (preferences.googleSearch === "force" && groundingChunks.length === 0) {
-                        console.warn("[quick-create] googleSearch=force but no grounding chunks were returned", { projectId });
-                    }
-
-                    finalResponseMessage = resolveNewcardRefs(finalResponseMessage, allWrittenCards);
-                    const finalAttachments = buildFinalChatAttachments(chatAttachments, allWrittenCards, usedChunkUris);
+                    const finalized = await finalizeTaggedStream({
+                        mode: "quick-create",
+                        projectId,
+                        uid,
+                        message,
+                        attachments,
+                        response: result,
+                        sendUpdate,
+                    });
 
                     console.info("[quick-create] pipeline summary", {
                         projectId,
                         parsedNewCards: newCardsFromModel.length,
                         parsedResourceCards: 0,
-                        writtenCards: allWrittenCards.length,
+                        writtenCards: finalized.allWrittenCards.length,
                         groundingChunks: groundingChunks.length,
                         sourceChunks: groundingChunks.length,
-                        hasSourcesAttachment: finalAttachments.some((attachment) => "type" in attachment && attachment.type === "sources"),
+                        hasSourcesAttachment: finalized.finalAttachments.some((attachment) => "type" in attachment && attachment.type === "sources"),
                     });
-
-                    sendUpdate("responseMessage", finalResponseMessage, finalAttachments);
-                    if (writtenResourceCards.length > 0) {
-                        sendUpdate("newCards", JSON.stringify(writtenResourceCards));
-                    }
-                    if (followUpQuestions.length > 0) {
-                        sendUpdate("followUpQuestions", JSON.stringify(followUpQuestions));
-                    }
-                    await writeChatPairToDb(message, attachments, finalResponseMessage, projectId, uid, finalAttachments, followUpQuestions);
 
                     const finalObj = {
                         type: "final" as const,
                         projectId,
-                        responseMessage: finalResponseMessage,
-                        chatAttachments: finalAttachments,
+                        responseMessage: finalized.finalResponseMessage,
+                        chatAttachments: finalized.finalAttachments,
                         newHierarchy: null,
                         allCards: null,
-                        followUpQuestions,
+                        followUpQuestions: finalized.followUpQuestions,
                     };
                     controller.enqueue(encoder.encode("\u001F" + JSON.stringify(finalObj) + "\u001E"));
-
-                    if (allWrittenCards.length > 0) {
-                        after(async () => {
-                            try {
-                                try {
-                                    const newHierarchy = await generateNewHierarchyFromCards(null, [], allWrittenCards, SECONDARY_GENERATION_MODEL);
-                                    if (newHierarchy) {
-                                        await writeHierarchy(projectId, newHierarchy);
-                                        console.info("[quick-create] background hierarchy updated", {
-                                            projectId,
-                                            cardCount: allWrittenCards.length,
-                                        });
-                                    }
-                                } catch (hierarchyErr) {
-                                    console.error("Background hierarchy generation failed:", hierarchyErr);
-                                }
-                            } catch (bgErr) {
-                                console.error("Background job error:", bgErr);
-                            }
-                        });
-                    }
                 } catch (err) {
                     console.error(err);
                     controller.enqueue(encoder.encode("\u001F" + JSON.stringify({ type: "error", message: (err as Error).message }) + "\u001E"));

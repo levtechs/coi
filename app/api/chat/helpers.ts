@@ -1,7 +1,7 @@
 import { adminDb } from "@/lib/firebaseAdmin";
 import * as admin from "firebase-admin";
 
-import { Message, Card, NewCard, ContentNode, ContentHierarchy, ChatAttachment, GroundingChunk, ChatPreferences, TutorAction} from "@/lib/types"; // { content: string; isResponse: boolean }
+import { Message, Card, NewCard, ContentNode, ContentHierarchy, ChatAttachment, GroundingChunk, TutorAction} from "@/lib/types"; // { content: string; isResponse: boolean }
 
 import {
     genAI,
@@ -727,62 +727,6 @@ export const writeChatPairToDb = async (
         throw err;
     }
 };
-
-
-/**
- * Updates user's chat preferences in the database.
- */
-export const updatePreferences = async (
-    uid: string,
-    preferences: ChatPreferences
-): Promise<void> => {
-    try {
-        const userDocRef = adminDb.collection("users").doc(uid);
-        await userDocRef.update({
-            chatPreferences: preferences
-        });
-    } catch (err) {
-        console.error(`Error updating preferences for user ${uid}:`, err);
-        throw err;
-    }
-};
-
-/**
- * Loads user's chat preferences from the database.
- */
-export const getUserPreferences = async (
-    uid: string
-): Promise<ChatPreferences | null> => {
-    try {
-        const userDocRef = adminDb.collection("users").doc(uid);
-        const userSnap = await userDocRef.get();
-
-        if (userSnap.exists) {
-            const data = userSnap.data()!;
-            const storedPreferences = data.chatPreferences;
-            if (storedPreferences) {
-                // Merge with defaults for any missing fields
-                const defaults: ChatPreferences = {
-                    model: "normal",
-                    thinking: "auto",
-                    googleSearch: "auto",
-                    forceCardCreation: "auto",
-                    personality: "default",
-                    followUpQuestions: "auto",
-                    generationModel: "flash-lite"
-                };
-                return { ...defaults, ...storedPreferences };
-            }
-            return null;
-        }
-
-        return null;
-    } catch (err) {
-        console.error(`Error loading preferences for user ${uid}:`, err);
-        return null;
-    }
-};
-
 // ==== Tutor Action Helpers ====
 
 /**

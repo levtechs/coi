@@ -673,7 +673,7 @@ First, you have the two main local operators: Divergence and Curl. Think of them
 Divergence measures the tendency of a field to expand from or contract toward a point. We call these 'sources' and 'sinks'. So, it handles expansion and contraction.
 Curl measures the tendency of a field to rotate or swirl around a point. It quantifies the 'vorticity' of the field.
 Then you have Stokes' Theorem, which is a powerful bridge between local and global behavior. It connects the local, microscopic rotation within a surface (measured by the curl) to the overall circulation of the field around the boundary of that surface (measured by a line integral).
-This theorem is incredibly important because it reveals deep connections in the laws of physics, forming the foundation for key principles in Electromagnetism and Fluid Dynamics. [HAS_NEW_INFO]"
+This theorem is incredibly important because it reveals deep connections in the laws of physics, forming the foundation for key principles in Electromagnetism and Fluid Dynamics."
 
 EXAMPLE INPUT 2:
 

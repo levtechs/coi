@@ -36,6 +36,16 @@ export type ResourceCardSpec = {
 
 export type ModelCard = KnowledgeCardSpec | ResourceCardSpec;
 
+export type StreamChatResponseResult = {
+    responseMessage: string;
+    newCardsFromModel: ModelCard[];
+    writtenCards: Card[];
+    chatAttachments: ChatAttachment[];
+    followUpQuestions: string[];
+    unlockedCardIds: string[];
+    tutorActions: TutorAction[];
+};
+
 type BlockTag = "NewCard" | "NewResourceCard" | "Prose" | "FollowUp" | "Action" | "UnlockCards";
 
 type ActiveBlock = {
