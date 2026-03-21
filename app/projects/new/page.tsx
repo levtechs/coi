@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
-import { Project, ChatPreferences, ChatAttachment } from "@/lib/types";
+import { Project, ChatAttachment } from "@/lib/types";
 import { addCollaborator, setTitle } from "@/app/views/projects";
 
 import Editor from "@/app/components/editor/editor";
@@ -14,7 +14,6 @@ import MaintenencePage from "@/app/components/maintenence";
 interface QuickCreateData {
     message: string;
     attachments: ChatAttachment[] | null;
-    preferences: ChatPreferences;
 }
 
 export default function QuickCreateProjectPage() {
@@ -104,7 +103,6 @@ export default function QuickCreateProjectPage() {
             quickCreate={{
                 message: quickCreateData.message,
                 attachments: quickCreateData.attachments,
-                preferences: quickCreateData.preferences,
                 onProjectCreated: (projectId: string) => {
                     router.replace(`/projects/${projectId}`);
                 },

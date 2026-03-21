@@ -3,7 +3,7 @@
 import React from "react";
 import { Card } from "@/lib/types";
 
-import { FiX, FiStar } from "react-icons/fi";
+import { FiX, FiStar, FiGlobe } from "react-icons/fi";
 
 import MarkdownArticle from "../../md";
 
@@ -39,7 +39,7 @@ export default function CardPopup({ card, onClose, isPartOfCourseLesson }: CardP
                 </button>
 
                 <div className="flex flex-row items-center justify-center overflow-hidden">
-                    {card.iconUrl && (
+                    {card.iconUrl ? (
                         <img
                             src={card.iconUrl}
                             alt="Favicon"
@@ -48,7 +48,9 @@ export default function CardPopup({ card, onClose, isPartOfCourseLesson }: CardP
                                 (e.target as HTMLImageElement).style.display = 'none';
                             }}
                         />
-                    )}
+                    ) : card.kind === "resource" ? (
+                        <FiGlobe className="w-5 h-5 mr-2 text-[var(--neutral-500)] flex-shrink-0" />
+                    ) : null}
 
                      {/* Card Title */}
                       <h2 className="text-[var(--foreground)] font-bold text-3xl">

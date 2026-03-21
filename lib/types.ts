@@ -109,8 +109,13 @@ export interface FileAttachment {
     mimeType: string;
 }
 
-export type ChatAttachment = Card | ContentNode | ContentHierarchy | GroundingChunk | ThinkData | FileAttachment;
-export type StreamPhase = "starting" | "streaming" | "processing" | "generating content" | "generating cards";
+export interface GroundingSources {
+    type: "sources";
+    chunks: GroundingChunk[];
+}
+
+export type ChatAttachment = Card | ContentNode | ContentHierarchy | GroundingChunk | GroundingSources | ThinkData | FileAttachment;
+export type StreamPhase = "starting" | "streaming" | "processing";
 
 // Chat Preferences
 export interface ChatPreferences {
@@ -122,6 +127,16 @@ export interface ChatPreferences {
   followUpQuestions: "off" | "auto";
   generationModel: "flash" | "flash-lite";
 }
+
+export const DEFAULT_CHAT_PREFERENCES: ChatPreferences = {
+    model: "normal",
+    thinking: "auto",
+    googleSearch: "auto",
+    forceCardCreation: "auto",
+    personality: "default",
+    followUpQuestions: "auto",
+    generationModel: "flash",
+};
 
 export interface GroundingChunk {
     web: {
@@ -137,6 +152,7 @@ export type Label = "important" | "ignore" | "exclude from quiz" | "exclude from
 export interface Card {
     id: string;
     title: string;
+    kind?: "note" | "resource";
     url?: string;
     details?: string[];
     refImageUrls?: string[];

@@ -1,21 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVerifiedUid } from "@/app/api/helpers";
-import {
-    writeChatPairToDb,
-    generateAndWriteNewCards,
-    groundingChunksToCardsAndWrite,
-    generateNewHierarchyFromCards,
-    writeHierarchy,
-    updatePreferences,
-} from "@/app/api/chat/helpers";
-import { streamChatResponse } from "@/app/api/chat/stream/helpers";
-import { createProject } from "@/app/api/projects/helpers";
-import { Card, ContentHierarchy, ChatAttachment, StreamPhase, GroundingChunk, ChatPreferences } from "@/lib/types";
 
-/**
- * Truncates a message to create a project title.
- * Takes the first ~50 characters, breaking at a word boundary.
- */
+import { getVerifiedUid } from "@/app/api/helpers";
+import { streamChatResponse } from "@/app/api/chat/stream/helpers";
+import { finalizeTaggedStream } from "@/app/api/chat/stream/orchestrator";
+import { persistModelCards } from "@/app/api/chat/stream/persist";
+import { createProject } from "@/app/api/projects/helpers";
+import { copyUploadsToDb } from "@/app/api/uploads/helpers";
+import { ChatAttachment, FileAttachment, StreamPhase, GroundingChunk, DEFAULT_CHAT_PREFERENCES } from "@/lib/types";
+
 function generateTitleFromMessage(message: string): string {
     const trimmed = message.trim();
     if (trimmed.length <= 50) return trimmed;
@@ -38,39 +30,34 @@ export async function POST(req: NextRequest) {
         const body: {
             message: string;
             attachments: ChatAttachment[] | null;
-            preferences: ChatPreferences;
         } = await req.json();
-        const { message, attachments, preferences } = body;
+        const { message, attachments } = body;
+        const preferences = DEFAULT_CHAT_PREFERENCES;
 
         if (!message || message.trim() === "") {
             return NextResponse.json({ error: "Message is required" }, { status: 400 });
         }
 
-        // Validate attachments
         if (attachments) {
-            const { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB, ALLOWED_MIME_TYPES } = await import('@/lib/uploadConstants');
+            const { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB, ALLOWED_MIME_TYPES } = await import("@/lib/uploadConstants");
             const totalSize = attachments.reduce((sum, att) => {
-                if ('type' in att && att.type === 'file') {
-                    return sum + att.size;
-                }
+                if ("type" in att && att.type === "file") return sum + att.size;
                 return sum;
             }, 0);
+
             if (totalSize > MAX_UPLOAD_SIZE_BYTES) {
                 throw new Error(`Total attachment size exceeds ${MAX_UPLOAD_SIZE_MB}MB. Please remove some attachments.`);
             }
+
             for (const att of attachments) {
-                if ('type' in att && att.type === 'file') {
-                    if (!ALLOWED_MIME_TYPES.some(type => att.mimeType.startsWith(type))) {
+                if ("type" in att && att.type === "file") {
+                    if (!ALLOWED_MIME_TYPES.some((type) => att.mimeType.startsWith(type))) {
                         throw new Error(`File type ${att.mimeType} not allowed. Only images and documents are permitted.`);
                     }
                 }
             }
         }
 
-        // Update user preferences
-        await updatePreferences(uid, preferences);
-
-        // Create the project with a title derived from the message
         const title = generateTitleFromMessage(message);
         const projectId = await createProject({
             title,
@@ -78,6 +65,15 @@ export async function POST(req: NextRequest) {
             cards: [],
             uploads: [],
         }, uid);
+
+        const fileAttachments = (attachments || []).filter((att): att is FileAttachment => "type" in att && att.type === "file");
+        if (fileAttachments.length > 0) {
+            try {
+                await copyUploadsToDb(projectId, fileAttachments);
+            } catch (uploadErr) {
+                console.error("Failed to persist quick-create file attachments to uploads:", uploadErr);
+            }
+        }
 
         const encoder = new TextEncoder();
 
@@ -87,148 +83,68 @@ export async function POST(req: NextRequest) {
                     let phase: StreamPhase = "starting";
                     const updatePhase = (newPhase: StreamPhase) => {
                         phase = newPhase;
-                        controller.enqueue(encoder.encode('\u001F' + JSON.stringify({ phase: newPhase }) + '\u001E'));
+                        controller.enqueue(encoder.encode("\u001F" + JSON.stringify({ phase: newPhase }) + "\u001E"));
                     };
 
                     const sendUpdate = (key: string, value: string, chatAttachments?: ChatAttachment[]) => {
                         const updateObj: { type: "update"; [key: string]: unknown } = { type: "update" };
                         updateObj[key] = value;
                         if (chatAttachments) updateObj.chatAttachments = chatAttachments;
-                        controller.enqueue(
-                            encoder.encode('\u001F' + JSON.stringify(updateObj) + '\u001E')
-                        );
+                        controller.enqueue(encoder.encode("\u001F" + JSON.stringify(updateObj) + "\u001E"));
                     };
 
-                    // Send the projectId immediately so the frontend can navigate
-                    controller.enqueue(encoder.encode('\u001F' + JSON.stringify({ type: "projectId", projectId }) + '\u001E'));
-
+                    controller.enqueue(encoder.encode("\u001F" + JSON.stringify({ type: "projectId", projectId }) + "\u001E"));
                     updatePhase("starting");
 
-                    let followUpDetected = false;
-                    const startTime = Date.now();
+                    const onNewCards = persistModelCards(projectId, sendUpdate);
 
-                    // No previous cards/hierarchy for a brand new project
                     const result = await streamChatResponse(
                         message,
-                        [], // no message history
-                        null, // no previous cards
-                        null, // no previous hierarchy
+                        [],
+                        null,
+                        null,
                         attachments,
                         preferences,
-                        startTime,
                         (token: string) => {
                             if (phase === "starting") updatePhase("streaming");
-
-                            if (token.includes('[FOLLOW_UP]')) {
-                                followUpDetected = true;
-                                const cleanToken = token.split('[FOLLOW_UP]')[0];
-                                if (cleanToken) {
-                                    controller.enqueue(encoder.encode(cleanToken));
-                                }
-                                return;
-                            }
-
-                            if (followUpDetected) {
-                                return;
-                            }
-
                             controller.enqueue(encoder.encode(token));
                         },
+                        onNewCards,
                     );
 
-                    if (!result) {
-                        throw new Error("Failed to generate response.");
-                    }
+                    if (!result) throw new Error("Failed to generate response.");
 
-                    const { responseMessage: chatResponseMessage, hasNewInfo, chatAttachments, followUpQuestions } = result;
+                    const { newCardsFromModel, writtenCards, chatAttachments } = result;
 
                     updatePhase("processing");
-
-                    let finalResponseMessage = chatResponseMessage;
-                    finalResponseMessage = finalResponseMessage.replace(/\[cite:[^\]]*\]/g, '');
-
-                    sendUpdate("responseMessage", finalResponseMessage, chatAttachments);
-
-                    if (followUpQuestions.length > 0) {
-                        sendUpdate("followUpQuestions", JSON.stringify(followUpQuestions));
-                    }
-
-                    // Save the chat pair to the new project
-                    await writeChatPairToDb(message, attachments, finalResponseMessage, projectId, uid, chatAttachments, followUpQuestions);
-
-                    // Generate/update content only if needed
-                    let finalObj: {
-                        type: "final";
-                        projectId: string;
-                        responseMessage: string;
-                        chatAttachments: ChatAttachment[];
-                        newHierarchy: ContentHierarchy | null;
-                        allCards: Card[] | null;
-                        followUpQuestions: string[];
-                    } = {
-                        type: "final",
+                    const groundingChunks: GroundingChunk[] = chatAttachments.filter((a): a is GroundingChunk => "web" in a);
+                    const finalized = await finalizeTaggedStream({
+                        mode: "quick-create",
                         projectId,
-                        responseMessage: finalResponseMessage,
-                        chatAttachments,
+                        uid,
+                        message,
+                        attachments,
+                        response: result,
+                        sendUpdate,
+                    });
+
+                    const finalObj = {
+                        type: "final" as const,
+                        projectId,
+                        responseMessage: finalized.finalResponseMessage,
+                        chatAttachments: finalized.finalAttachments,
                         newHierarchy: null,
                         allCards: null,
-                        followUpQuestions
+                        followUpQuestions: finalized.followUpQuestions,
                     };
-
-                    if (hasNewInfo || chatAttachments.filter(a => !('time' in a)).length > 0) {
-                        updatePhase("generating cards");
-
-                        let newCards: Card[] = [];
-                        try {
-                            if (hasNewInfo) {
-                                const [resultFromChat, cardsFromGrounding] = await Promise.all([
-                                    generateAndWriteNewCards(projectId, [], message, finalResponseMessage, preferences.generationModel),
-                                    groundingChunksToCardsAndWrite(projectId, [], chatAttachments.filter((a): a is GroundingChunk => 'web' in a)),
-                                ]);
-                                newCards = [...resultFromChat, ...cardsFromGrounding];
-                            } else {
-                                newCards = await groundingChunksToCardsAndWrite(projectId, [], chatAttachments.filter((a): a is GroundingChunk => 'web' in a));
-                            }
-                        } catch (cardErr) {
-                            console.error("Failed to generate cards:", cardErr);
-                            finalResponseMessage += "\n\n*Note: Card generation failed. Some information may not be properly organized.*";
-                        }
-
-                        if (newCards.length > 0) {
-                            sendUpdate("newCards", JSON.stringify(newCards));
-                        }
-
-                        updatePhase("generating content");
-
-                        let newHierarchy: ContentHierarchy | null = null;
-                        try {
-                            newHierarchy = await generateNewHierarchyFromCards(null, [], newCards, preferences.generationModel);
-                            await writeHierarchy(projectId, newHierarchy);
-                        } catch (hierarchyErr) {
-                            console.error("Failed to generate hierarchy:", hierarchyErr);
-                            finalResponseMessage += "\n\n*Note: Content hierarchy generation failed. Cards were created but organization may be incomplete.*";
-                        }
-
-                        finalObj = {
-                            type: "final",
-                            projectId,
-                            responseMessage: finalResponseMessage,
-                            chatAttachments,
-                            newHierarchy,
-                            allCards: newCards,
-                            followUpQuestions
-                        };
-                    }
-
-                    // Send final structured JSON object
-                    controller.enqueue(encoder.encode('\u001F' + JSON.stringify(finalObj) + '\u001E'));
+                    controller.enqueue(encoder.encode("\u001F" + JSON.stringify(finalObj) + "\u001E"));
                 } catch (err) {
                     console.error(err);
-                    controller.enqueue(encoder.encode('\u001F' + JSON.stringify({ type: "error", message: (err as Error).message }) + '\u001E'));
+                    controller.enqueue(encoder.encode("\u001F" + JSON.stringify({ type: "error", message: (err as Error).message }) + "\u001E"));
                 } finally {
                     controller.close();
                 }
-            }
+            },
         });
 
         return new Response(stream, {

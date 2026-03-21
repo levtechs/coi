@@ -5,7 +5,7 @@ import { Card, Label } from "@/lib/types";
 import MarkdownArticle from "../../md";
 
 import { FaYoutube } from "react-icons/fa";
-import { FiEdit2, FiMoreVertical, FiTrash2, FiStar, FiCheckSquare, FiSquare } from "react-icons/fi";
+import { FiEdit2, FiMoreVertical, FiTrash2, FiStar, FiCheckSquare, FiSquare, FiGlobe } from "react-icons/fi";
 import { deleteCard, updateCard } from "@/app/views/cards";
 import EditCardPopup from "./edit_card_popup";
 import { getLabelDefinition, LABEL_DEFINITIONS } from "@/lib/labels";
@@ -75,7 +75,7 @@ export default function DetailCard({ card, onClick, projectId, useCheckbox }: De
             {card.url && (card.url.includes("youtube.com") || card.url.includes("youtu.be")) ? (
                 <FaYoutube className="w-6 h-6 mr-2 text-[var(--error)] flex-shrink-0" />
             ) : (
-                card.iconUrl && (
+                card.iconUrl ? (
                     <img
                         src={card.iconUrl}
                         alt="Favicon"
@@ -84,7 +84,9 @@ export default function DetailCard({ card, onClick, projectId, useCheckbox }: De
                             (e.target as HTMLImageElement).style.display = 'none';
                         }}
                     />
-                )
+                ) : card.kind === "resource" ? (
+                    <FiGlobe className="w-5 h-5 mr-2 text-[var(--neutral-500)] flex-shrink-0" />
+                ) : null
             )}
              <h3 className="text-[var(--foreground)] font-semibold text-xl">
                  <MarkdownArticle markdown={displayTitle} singleLine={true} />

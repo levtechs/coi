@@ -89,6 +89,33 @@ export const copyCardsToDb = async (
     }
 };
 
+export const updateCardInDb = async (
+    projectId: string,
+    cardId: string,
+    updates: Partial<Omit<Card, "id">>
+): Promise<void> => {
+    try {
+        const cardRef = adminDb.collection("projects").doc(projectId).collection("cards").doc(cardId);
+        await cardRef.update(updates);
+    } catch (err) {
+        console.error(`Error updating card ${cardId} in project ${projectId}:`, err);
+        throw err;
+    }
+};
+
+export const deleteCardInDb = async (
+    projectId: string,
+    cardId: string,
+): Promise<void> => {
+    try {
+        const cardRef = adminDb.collection("projects").doc(projectId).collection("cards").doc(cardId);
+        await cardRef.delete();
+    } catch (err) {
+        console.error(`Error deleting card ${cardId} in project ${projectId}:`, err);
+        throw err;
+    }
+};
+
 /*
  * ========================================================
  * ========================================================

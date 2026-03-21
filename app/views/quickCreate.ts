@@ -1,7 +1,7 @@
 // app/views/quickCreate.ts
 
 import { auth } from "@/lib/firebase";
-import { Message, Card, StreamPhase, ContentHierarchy, ChatAttachment, ChatPreferences } from "@/lib/types";
+import { Message, Card, StreamPhase, ContentHierarchy, ChatAttachment } from "@/lib/types";
 
 /**
  * Streams a quick-create project request from the API.
@@ -21,7 +21,6 @@ import { Message, Card, StreamPhase, ContentHierarchy, ChatAttachment, ChatPrefe
 export async function streamQuickCreate(
     message: string,
     attachments: null | ChatAttachment[],
-    preferences: ChatPreferences,
     setPhase: (phase: null | StreamPhase) => void,
     setFinalResponseMessage: (message: Message) => void,
     setNewCards: (newCards: Card[]) => void,
@@ -35,7 +34,7 @@ export async function streamQuickCreate(
     const idToken = await user.getIdToken();
     const res = await fetch("/api/projects/quick-create", {
         method: "POST",
-        body: JSON.stringify({ message, attachments, preferences }),
+        body: JSON.stringify({ message, attachments }),
         headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${idToken}`,

@@ -1,23 +1,22 @@
 import { useState, useEffect, useRef, useCallback, Dispatch, SetStateAction } from "react";
 
-import { FiCircle, FiSend, FiX, FiSettings, FiMaximize, FiMinimize } from "react-icons/fi";
+import { FiCircle, FiSend, FiX, FiMaximize, FiMinimize } from "react-icons/fi";
 import { BsFillChatRightTextFill } from "react-icons/bs";
 import { MdFileUpload } from "react-icons/md";
 
 import ChatMessages from "./chat_messages";
 import NewCardsPopup from "./new_cards_popup";
-import ChatPreferencesPanel from "./chat_preferences_panel";
+import SourcesPopup from "./sources_popup";
 import AttachmentsList from "./attachments_list";
 
-import { Project, Message, Card, StreamPhase, ChatAttachment, ChatPreferences } from "@/lib/types";
+import { Project, Message, Card, StreamPhase, ChatAttachment } from "@/lib/types";
 import { ModalContents, noModal } from "../types";
 
-import { getChatHistory, getUserPreferences } from "@/app/views/chat";
+import { getChatHistory } from "@/app/views/chat";
 import { sendMessage, sendQuickCreateMessage } from "./helpers";
 import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/uploadConstants";
 import { validateAndUploadFiles } from '@/lib/uploadUtils';
 import { useAutoResize } from "@/app/hooks/use-auto-resize";
-import { useOnClickOutside } from "@/app/hooks/use-on-click-outside";
 
 interface ChatPanelProps {
     project: Project;
@@ -31,7 +30,6 @@ interface ChatPanelProps {
     quickCreate?: {
         message: string;
         attachments: ChatAttachment[] | null;
-        preferences: ChatPreferences;
         onProjectCreated: (projectId: string) => void;
     };
 }
@@ -45,39 +43,32 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
     const [isLoading, setLoading] = useState(false);
     const [streamPhase, setStreamPhase] = useState<null | StreamPhase>(null);
 
-    const [showPreferences, setShowPreferences] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
     // Auto-resize for textarea
     const { textareaRef } = useAutoResize(input);
 
-    // Close preferences when clicking outside
-    const preferencesRef = useRef<HTMLDivElement>(null);
-    const closePreferences = useCallback(() => setShowPreferences(false), []);
-    useOnClickOutside(preferencesRef, closePreferences, showPreferences);
-
-
-    const [preferences, setPreferences] = useState<ChatPreferences>({
-        model: "normal",
-        thinking: "auto",
-        googleSearch: "auto",
-        forceCardCreation: "auto",
-        personality: "default",
-        followUpQuestions: "auto",
-        generationModel: "flash",
-    });
-
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-    const setNewCards = (newCards: Card[]) => setModalContents({
+    const setNewCards = useCallback((newCards: Card[]) => setModalContents({
         isOpen: true,
         type: "info",
         width: "3xl",
         children: <NewCardsPopup newCards={newCards} setClickedCard={setClickedCard} projectId={project.id} courseLesson={project.courseLesson} courseId={project.courseId}/>
-    })
+    }), [project.courseId, project.courseLesson, project.id, setClickedCard, setModalContents]);
 
-    const onSend = () => sendMessage(input, messages, attachments, project, preferences, addMessage, setNewCards, setStreamPhase, setInput, setLoading, setMessages)
+    const onSourcesClick = (attachment: ChatAttachment) => {
+        if (!("type" in attachment) || attachment.type !== "sources") return;
+        setModalContents({
+            isOpen: true,
+            type: "info",
+            width: "2xl",
+            children: <SourcesPopup sources={attachment} onClose={() => setModalContents(noModal)} />,
+        });
+    }
+
+    const onSend = () => sendMessage(input, messages, attachments, project, addMessage, setNewCards, setStreamPhase, setInput, setLoading, setMessages)
 
     const addMessage = (msg: Message) => {
         setMessages(prev => [
@@ -200,28 +191,6 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
         loadHistory();
     }, [project.id, quickCreate]);
 
-    // Load user preferences on mount
-    // For quick create, use the provided preferences instead
-    useEffect(() => {
-        if (quickCreate) {
-            setPreferences(quickCreate.preferences);
-            return;
-        }
-
-        const loadPreferences = async () => {
-            try {
-                const savedPreferences = await getUserPreferences();
-                if (savedPreferences) {
-                    setPreferences(savedPreferences);
-                }
-            } catch (err) {
-                console.error("Error loading user preferences:", err);
-            }
-        };
-
-        loadPreferences();
-    }, [quickCreate]);
-
     // Quick create: auto-send the initial message on mount
     const quickCreateTriggered = useRef(false);
     useEffect(() => {
@@ -231,7 +200,6 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
         sendQuickCreateMessage(
             quickCreate.message,
             quickCreate.attachments,
-            quickCreate.preferences,
             addMessage,
             setNewCards,
             setStreamPhase,
@@ -239,7 +207,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
             setMessages,
             quickCreate.onProjectCreated,
         );
-    }, [quickCreate]);
+    }, [quickCreate, setNewCards]);
 
     // Notify parent when fullscreen state changes
     useEffect(() => {
@@ -253,25 +221,6 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
         : { icon: 16, iconSm: 16, btnPad: 'p-1.5', btnRound: 'rounded-lg', hoverBg: 'hover:bg-[var(--neutral-300)]', activeBg: 'bg-[var(--neutral-300)]' };
 
     // --- Shared sub-renders ---
-    const preferencesPopup = showPreferences && (
-        <div
-            ref={preferencesRef}
-            className={`absolute ${isFullscreen ? 'right-8' : 'right-0'} top-[100%] mt-2 z-[60] shadow-2xl transition transform ${isFullscreen ? 'duration-200' : 'duration-150'} ease-out origin-top-right`}
-        >
-            <div className={`${isFullscreen ? 'w-80' : 'w-72'} p-1 bg-white dark:bg-[var(--neutral-100)] rounded-xl border border-[var(--neutral-${isFullscreen ? '200' : '300'})] shadow-2xl`}>
-                <div className={`${isFullscreen ? 'p-4' : 'p-3'} bg-[var(--neutral-100)] rounded-xl`}>
-                    <h3 className={`${isFullscreen ? 'text-sm font-bold mb-4 px-1' : 'text-xs font-bold mb-3 px-1 opacity-70 uppercase tracking-wider'}`}>
-                        {isFullscreen ? 'Chat Settings' : 'Preferences'}
-                    </h3>
-                    <ChatPreferencesPanel
-                        preferences={preferences}
-                        onPreferencesChange={setPreferences}
-                    />
-                </div>
-            </div>
-        </div>
-    );
-
     const messagesView = (
         <ChatMessages
             messages={messages}
@@ -279,6 +228,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
             phase={streamPhase}
             cards={project.cards}
             onFollowUpClick={setInput}
+            onSourcesClick={onSourcesClick}
         />
     );
 
@@ -390,14 +340,6 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                         {/* Floating controls — top-right overlay */}
                         <div className="absolute top-3 right-6 z-10 flex items-center gap-2">
                             <button
-                                onClick={() => setShowPreferences(!showPreferences)}
-                                className={`${sz.btnPad} ${sz.btnRound} transition-colors ${sz.hoverBg} ${showPreferences ? `text-[var(--accent-500)] ${sz.activeBg}` : 'text-[var(--neutral-500)]'}`}
-                                aria-label="Chat settings"
-                                title="Chat settings"
-                            >
-                                <FiSettings size={18} />
-                            </button>
-                            <button
                                 onClick={toggleFullscreen}
                                 className={`${sz.btnPad} ${sz.btnRound} transition-colors ${sz.hoverBg} text-[var(--neutral-500)]`}
                                 aria-label="Exit fullscreen"
@@ -405,7 +347,6 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                             >
                                 <FiMinimize size={18} />
                             </button>
-                            {preferencesPopup}
                         </div>
 
                         {/* Messages Area — takes full height */}
@@ -434,14 +375,6 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                             </div>
                             <div className="flex items-center gap-1">
                                 <button
-                                    onClick={() => setShowPreferences(!showPreferences)}
-                                    className={`${sz.btnPad} ${sz.btnRound} transition-colors ${sz.hoverBg} ${showPreferences ? `text-[var(--accent-500)] ${sz.activeBg}` : 'text-[var(--neutral-500)]'}`}
-                                    aria-label="Open chat preferences"
-                                    title="Open chat preferences"
-                                >
-                                    <FiSettings size={sz.icon} />
-                                </button>
-                                <button
                                     onClick={toggleFullscreen}
                                     className={`${sz.btnPad} ${sz.btnRound} transition-colors ${sz.hoverBg} text-[var(--neutral-500)]`}
                                     aria-label="Enter fullscreen mode"
@@ -457,7 +390,6 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
                                 >
                                     <FiX size={18} />
                                 </button>
-                                {preferencesPopup}
                             </div>
                         </div>
 

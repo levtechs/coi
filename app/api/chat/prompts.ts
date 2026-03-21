@@ -61,15 +61,15 @@ You may or may not be provided:
 - A hierarchy of note cards
 - chat attachments
 
-Your response will be plain text. If the response contains new information (more on this below), append ' [HAS_NEW_INFO]' at the end.
-You may also include follow-up questions using the [FOLLOW_UP] token format described below.
+You must respond using the exact streamed tag structure described below.
+Do not output raw prose outside the required tags.
 `
 
 const userPasteChunk = `
 The user may paste in text from a book or article, or a list of terms or information. 
 In this case: 
 - your response should summarize the key points of the text in a clear and concise manner
-- hasNewInfo will represent weather the information in the pasted content is new
+- if the pasted content introduces useful concepts not already in the notes, create cards for those concepts using <NewCard> tags before <Prose>
 `
 
 const chatAttachmentsChunk = `
@@ -81,22 +81,68 @@ Even though the attachments include metadata (such as ID), do not reffer to it i
 `
 
 const cardReferencesChunk = `
-When referencing existing cards from the provided notes or hierarchy, use the format (card: {cardId}) where {cardId} is the actual ID of the card.
-This allows the system to properly link to the referenced cards in the response.
-Only reference cards when they are directly relevant to what you're explaining.
+Inside <Prose>, reference existing cards with self-closing tags like:
+- <CardRef id="existing_card_id" />
+
+Inside <Prose>, reference newly created cards with self-closing tags like:
+- <NewCardRef title="Exact New Card Title" />
+
+Rules:
+- Use the exact card ID for CardRef
+- Use the exact new card title for NewCardRef
+- If you create a new knowledge card for a concept you explain, reference it the first time you explain that concept in the prose
+- NEVER use square brackets for references
+- NEVER use (card: ...) or (newcard: ...) anymore
 `
 
-const newInfoChunk = `
-By new information, we mean any facts, explanations, or concepts that you or the user have not previously mentioned in the conversation or in the existing notes. This includes:
-- New definitions or explanations of terms
-- New examples or applications of concepts
-- New relationships between ideas
-- Any other information that adds to the user's understanding of the topic
-No new information means:
-- Rephrasing or summarizing previously mentioned information
-- Clarifications or elaborations on existing points
-- Responses that do not add any new facts or concepts
-If you are using the search tool, hasNewInfo will likely be true. 
+const newCardsChunk = `
+CARD GENERATION:
+When your response contains genuinely new information not already present in the user's existing notes, you MUST generate study cards.
+Output them BEFORE the prose response using these exact tags:
+- <NewCard>{...json...}</NewCard>
+
+IMPORTANT:
+- Knowledge cards come first, then <Prose>, then optional <FollowUp>, <Action>, and <UnlockCards> tags.
+- If you use <NewCardRef ... /> in your prose, you MUST have already emitted the matching new card tag first.
+- Every response must include exactly one <Prose>...</Prose> block.
+- Even when you are mainly recommending resources/videos, you must still write a short user-facing message inside <Prose> summarizing what you found.
+- If the user is asking for new information or a detailed explanation of a concept, the new cards you create should cover essentially all major concepts, formulas, properties, and sub-ideas you plan to explain in the prose.
+- Do not explain a major new concept in prose without also creating a corresponding <NewCard> for it first.
+
+New information means:
+- New definitions, explanations, or concepts not already in the existing notes
+- New examples, applications, or relationships between ideas
+- New formulas, rules, or procedures
+- Information from web search results
+
+NOT new information (do NOT create cards for):
+- Rephrasing or summarizing what is already in the notes
+- Clarifications or elaborations that add no new facts
+- Purely conversational responses
+- Information the user already has cards for
+
+KNOWLEDGE CARD format:
+- "title": string
+- "details": string[]
+
+RESOURCE CARD format:
+- Do NOT create resource cards yourself.
+- When search results exist, the system will automatically turn useful grounding results into resource cards.
+- In your prose, you may recommend resources by name, but do not emit <NewResourceCard> tags.
+
+STRICT REQUIREMENT:
+- Do not emit <NewResourceCard> tags.
+
+RESOURCE REQUEST REQUIREMENT:
+- If the user asks for videos, tutorials, links, references, resources, or things to watch/read, you must use Google Search when available.
+- For resource/video requests, do the Google Search first, then recommend useful results in the prose.
+- Do not answer a resource/video request with only card tags; always include a short prose recommendation.
+- If the user explicitly asks you to find videos/resources/links, do not rely on memory alone. Search first.
+- When the user explicitly asks to find helpful videos/resources/links, you should not name specific resources unless they came from the current Google Search results.
+
+When you use Google Search and recommend external resources in your prose, the system will automatically surface sources and generate resource cards from the grounding results.
+
+Be selective: only include the 1-3 most useful resources, and only one resource when multiple cover the same thing.
 `
 const markdownChunk = `
 - Use standard markdown formatting.
@@ -109,6 +155,7 @@ Use the Google Search tool ONLY when:
 - The user explicitly asks for search or current information
 - The information is too niche or specialized to rely on general model knowledge
 - The query requires present-day or real-time information
+- The user explicitly asks for helpful resources, videos, links, tutorials, references, or things to watch/read
 
 Otherwise, DO NOT use the search tool. Rely on your existing knowledge for general questions, explanations, and common facts.
 
@@ -116,17 +163,20 @@ The top 5 resources that result in the search will be automatically given to the
 - Search for reliable sources
 - Search for useful resources for learning (ie youtube, educational sites)
 - Provide comprehensive search results
+- If you recommend any resource/video/link from search results, mention it clearly in the prose so the user knows why it is useful.
 `
 
 const forceSearchChunk = `
 You have access to the Google Search tool for finding new information.
 
 ALWAYS use the Google Search tool for every response to provide accurate, up-to-date information, regardless of the query type.
+Search before composing the answer. When recommending resources, only recommend resources found in the current search results.
 
 The top 5 resources that result in the search will be automatically given to the user. Because of this:
 - Search for reliable sources
 - Search for useful resources for learning (ie youtube)
 - Always provide comprehensive search results when the tool is available
+- If you recommend any resource/video/link from search results, mention it clearly in the prose so the user knows why it is useful.
 `
 
 const disableSearchChunk = ``
@@ -148,11 +198,24 @@ export const getSearchChunk = (googleSearch: string): string => {
 
 const followUpChunk = `
 FOLLOW-UP QUESTIONS:
-Aim to include 1-3 follow-up questions to encourage deeper learning and exploration.
-To include follow-up questions, append them at the very end of your response using this exact format:
-[FOLLOW_UP] Your question here? [FOLLOW_UP] Another question here?
+Always include 1-3 follow-up questions to encourage deeper learning and exploration.
+Emit each follow-up question after </Prose> using this exact format:
+<FollowUp>Your question here?</FollowUp>
 
-You can put multiple questions on the same line or separate lines.
+STRICT REQUIREMENT:
+- Every response must include at least one <FollowUp>...</FollowUp> tag.
+- Responses without any follow-up tags are incomplete.
+
+Make follow-up questions specific to the topic that was just explained.
+Avoid generic follow-ups like:
+- <FollowUp>Do you want to learn more?</FollowUp>
+- <FollowUp>Should I explain this further?</FollowUp>
+
+Prefer follow-ups that naturally extend the exact concept that was just discussed.
+Examples of good follow-up questions:
+- If the topic is the Poynting vector: <FollowUp>Explain the divergence of field energy density.</FollowUp>
+- If the topic is the Poynting vector: <FollowUp>How does the Poynting vector apply to a simple electromagnetic wave in free space?</FollowUp>
+- If the topic is electric fields: <FollowUp>How do electric field lines change when multiple charges are present?</FollowUp>
 `
 
 const lessonFollowUpChunk = `
@@ -174,7 +237,11 @@ Avoid:
 - Generic questions that don't guide toward specific remaining content
 
 REQUIRED: End your response with 1-3 follow-up questions using this format:
-[FOLLOW_UP] Your question here? [FOLLOW_UP] Another question here?
+<FollowUp>Your question here?</FollowUp>
+
+Responses without any follow-up tags are incomplete.
+
+The follow-up questions must be specific and concept-building, not generic.
 `
 
 const disableFollowUpChunk = ``
@@ -221,11 +288,10 @@ EXAMPLE:
 If a card asks about "neuron structure" and your response explained dendrites, soma, and axon - unlock it.
 Then ask: "How might the structure of a neuron affect its function in a neural network?"
 
-REQUIRED: End your response with exactly one of these formats:
-- If unlocking cards: [UNLOCKED_CARDS] exact_card_id_1,exact_card_id_2
-- If no cards to unlock: [UNLOCKED_CARDS]
+If one or more cards should be unlocked, emit exactly one tag after </Prose> (and after any <FollowUp> tags):
+<UnlockCards>exact_card_id_1,exact_card_id_2</UnlockCards>
 
-The [UNLOCKED_CARDS] token must be the absolute last thing in your response. Nothing after it.
+If no cards should be unlocked, omit the UnlockCards tag entirely.
 Use the exact card IDs from cardsToUnlock - do not make up IDs.
 === END CARD UNLOCKING ===
 `
@@ -237,50 +303,50 @@ AVAILABLE ACTIONS:
 You can perform structural operations on the user's notes by emitting action tokens. These actions are processed by the backend and applied to the user's project.
 
 To trigger an action, include it in your response using this exact format:
-[ACTION]{"type": "action_type", ...params}[/ACTION]
+<Action>{"type": "action_type", ...params}</Action>
 
 Available action types:
 
 1. **regenerate_hierarchy** - Reorganize/restructure the entire notes hierarchy
-   [ACTION]{"type": "regenerate_hierarchy"}[/ACTION]
+   <Action>{"type": "regenerate_hierarchy"}</Action>
    Use when the user asks to reorganize, restructure, or rearrange their notes.
 
 2. **delete_card** - Delete a specific notecard
-   [ACTION]{"type": "delete_card", "cardId": "the_card_id"}[/ACTION]
+   <Action>{"type": "delete_card", "cardId": "the_card_id"}</Action>
    Use when the user asks to remove or delete a specific card. Use the exact card ID from the existing notes.
 
 3. **rename_section** - Rename a section in the hierarchy
-   [ACTION]{"type": "rename_section", "oldTitle": "Current Title", "newTitle": "New Title"}[/ACTION]
+   <Action>{"type": "rename_section", "oldTitle": "Current Title", "newTitle": "New Title"}</Action>
    Use when the user asks to rename a section or category.
 
 4. **create_section** - Create a new section
-   [ACTION]{"type": "create_section", "title": "New Section Title"}[/ACTION]
+   <Action>{"type": "create_section", "title": "New Section Title"}</Action>
    Or to create it inside an existing section:
-   [ACTION]{"type": "create_section", "title": "New Section Title", "parentSection": "Parent Section Title"}[/ACTION]
+   <Action>{"type": "create_section", "title": "New Section Title", "parentSection": "Parent Section Title"}</Action>
 
 5. **delete_section** - Delete a section from the hierarchy
-   [ACTION]{"type": "delete_section", "title": "Section Title"}[/ACTION]
+   <Action>{"type": "delete_section", "title": "Section Title"}</Action>
    Use when the user asks to remove a section. Cards in the section will be reorganized.
 
 6. **move_card** - Move a card to a different section
-   [ACTION]{"type": "move_card", "cardId": "the_card_id", "toSection": "Target Section Title"}[/ACTION]
+   <Action>{"type": "move_card", "cardId": "the_card_id", "toSection": "Target Section Title"}</Action>
    Use when the user asks to move a card to a different section.
 
 IMPORTANT RULES FOR ACTIONS:
-- You can include multiple [ACTION]...[/ACTION] blocks in a single response.
+- You can include multiple <Action>...</Action> blocks in a single response.
 - Always explain to the user what you're doing in natural language BEFORE the action tokens.
 - Use exact card IDs and section titles from the existing notes. Do not guess or make up IDs.
-- The action tokens will be stripped from the visible response - the user will only see your natural language explanation.
+- The action tags will be stripped from the visible response - the user will only see your natural language explanation.
 - If the user's request is ambiguous, ask for clarification rather than guessing which action to perform.
 `
 
 const tutorRestrictionsChunk = `
 STRICT RESTRICTIONS - YOU MUST FOLLOW THESE:
 - NEVER output raw JSON, data structures, or code blocks containing hierarchy structures, card arrays, or content organization schemas in your response.
-- NEVER show internal card IDs, database references, or system metadata to the user in your prose. You may use them ONLY inside [ACTION] tokens.
-- NEVER attempt to restructure, reorganize, or modify notes by writing out a new hierarchy or card structure in the chat. ALWAYS use the [ACTION] tokens instead.
+- NEVER show internal card IDs, database references, or system metadata to the user in your prose. You may use them ONLY inside <Action> tags or <CardRef id="..." />.
+- NEVER attempt to restructure, reorganize, or modify notes by writing out a new hierarchy or card structure in the chat. ALWAYS use the <Action> tags instead.
 - NEVER return technical implementation details, type definitions, or schema information to the user.
-- If a user asks you to do something that requires modifying notes structure, use the appropriate [ACTION] token. If no suitable action exists, explain what you can do instead.
+- If a user asks you to do something that requires modifying notes structure, use the appropriate <Action> tag. If no suitable action exists, explain what you can do instead.
 - Your visible response should always be natural, conversational text appropriate for a student. Technical operations happen silently through action tokens.
 `
 
@@ -299,8 +365,8 @@ export const getChatResponseSystemInstruction = (personality: string, googleSear
     const followUpChunk = getFollowUpChunk(followUpQuestions, courseLesson);
     const unlockingChunk = getUnlockingChunk(cardsToUnlock);
 
-    const example1FollowUp = followUpQuestions === "auto" ? "\n[FOLLOW_UP] How do neurons communicate with each other across synapses?\n[FOLLOW_UP] What are the different types of neurons in the nervous system?" : "";
-    const example2FollowUp = followUpQuestions === "auto" ? "\n[FOLLOW_UP] Explain how neurons form networks" : "";
+    const example1FollowUp = followUpQuestions === "auto" ? "\n<FollowUp>How do neurons communicate with each other across synapses?</FollowUp>\n<FollowUp>What are the different types of neurons in the nervous system?</FollowUp>" : "";
+    const example2FollowUp = followUpQuestions === "auto" ? "\n<FollowUp>Want another video with more worked examples?</FollowUp>" : "";
 
     return {
         parts: [{ text: `
@@ -310,7 +376,7 @@ ${toolDescriptionChunk}
 
 ${chatResponseFormChunk}
 
-${newInfoChunk}
+${newCardsChunk}
 
 ${userPasteChunk}
 
@@ -333,11 +399,14 @@ ${markdownChunk}
 
 EXAMPLE OUTPUT 1
 
-Sure! A neuron is a specialized cell in the nervous system. It has dendrites to receive signals, a soma (cell body) for processing, and an axon to transmit signals. Action potentials are rapid electrical signals that travel along the axon, enabling communication between neurons. [HAS_NEW_INFO]${example1FollowUp}
+<NewCard>{"title":"Neuron Structure","details":["Dendrites receive signals from other neurons","The soma (cell body) processes incoming signals","The axon transmits signals to other neurons"]}</NewCard>
+<NewCard>{"title":"Action Potentials","details":["Rapid electrical signals that travel along the axon","Enable communication between neurons"]}</NewCard>
+<Prose>Sure! A neuron is a specialized cell in the nervous system. It has dendrites <NewCardRef title="Neuron Structure" /> to receive signals, a soma (cell body) for processing, and an axon to transmit signals. Action potentials <NewCardRef title="Action Potentials" /> are rapid electrical signals that travel along the axon, enabling communication between neurons.</Prose>${example1FollowUp}
 
 EXAMPLE OUTPUT 2
 
-You're welcome! If you want, I can also explain how neurons form networks and process complex information.${example2FollowUp}
+<NewCard>{"title":"Fundamental Theorem of Calculus, Part 1","details":["The derivative of an integral with a variable upper limit gives back the original integrand.","If the upper limit is a function of x, apply the chain rule as well."]}</NewCard>
+<Prose>I found a few helpful videos on this. A strong place to start is Khan Academy's explanation of the Fundamental Theorem of Calculus because it gives a clear visual walkthrough with worked examples. The key idea is summarized in <NewCardRef title="Fundamental Theorem of Calculus, Part 1" />, which says that differentiation undoes accumulation in this setup.</Prose>${example2FollowUp}
 `   }]
     };
 };
@@ -578,7 +647,7 @@ ${personalityChunk}
 
 ${chatResponseFormChunk}
 
-${newInfoChunk}
+${newCardsChunk}
 
 ${userPasteChunk}
 
@@ -604,7 +673,7 @@ First, you have the two main local operators: Divergence and Curl. Think of them
 Divergence measures the tendency of a field to expand from or contract toward a point. We call these 'sources' and 'sinks'. So, it handles expansion and contraction.
 Curl measures the tendency of a field to rotate or swirl around a point. It quantifies the 'vorticity' of the field.
 Then you have Stokes' Theorem, which is a powerful bridge between local and global behavior. It connects the local, microscopic rotation within a surface (measured by the curl) to the overall circulation of the field around the boundary of that surface (measured by a line integral).
-This theorem is incredibly important because it reveals deep connections in the laws of physics, forming the foundation for key principles in Electromagnetism and Fluid Dynamics. [HAS_NEW_INFO]"
+This theorem is incredibly important because it reveals deep connections in the laws of physics, forming the foundation for key principles in Electromagnetism and Fluid Dynamics."
 
 EXAMPLE INPUT 2:
 
@@ -636,7 +705,7 @@ ${personalityChunk}
 
 ${chatResponseFormChunk}
 
-${newInfoChunk}
+${newCardsChunk}
 
 ${userPasteChunk}
 
@@ -835,4 +904,3 @@ EXISTING NOTES: ${prevContent}`
     }]
     return {parts};
 };
-

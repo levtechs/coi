@@ -36,7 +36,7 @@ export default function CardsPanel({ project, onCardClick, hidden, cardFilters }
     }
 
     const filteredCards = project.cards ? project.cards.filter(card => {
-        const isResource = !!card.url;
+        const isResource = card.kind === "resource" || !!card.url;
         const hasImportantLabel = card.labels?.includes("important");
         
         // Filter by selected labels

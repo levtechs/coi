@@ -1,43 +1,23 @@
-
-
-import { Content, GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
-
-type MyPart = { text: string } | { inlineData: { data: string; mimeType: string } };
-
-type MyContent = {
-  role: string;
-  parts: MyPart[];
-};
-
-type MyConfig = {
-  generationConfig: GenerationConfig;
-  thinkingConfig?: ThinkingConfig;
-  tools?: Tool[];
-};
-
-type MyGenerateContentParameters = {
-  model: string;
-  contents: MyContent[];
-  config: MyConfig;
-};
-
-import { ContentHierarchy, Card, Message, ChatAttachment, GroundingChunk, ChatPreferences, FileAttachment, TutorAction } from "@/lib/types"; // { content: string; isResponse: boolean }
-
-import { getStringFromHierarchyAndCards, parseUnlockedCardsFromResponse } from "../helpers"
-
 import {
-    getLLMModel,
-    getGenerationConfig,
-    genAI,
-} from "@/app/api/gemini/config";
-import {
-    getChatResponseSystemInstruction,
-} from "../prompts"
+    ContentHierarchy,
+    Card,
+    Message,
+    ChatAttachment,
+    GroundingChunk,
+    ChatPreferences,
+    FileAttachment,
+    TutorAction,
+} from "@/lib/types";
+import { genAI } from "@/app/api/gemini/config";
+import { buildStreamChatRequest } from "./model_request";
+import { stripTransportTags } from "./prose_helpers";
+import { createActiveBlock, extractTaggedBodies, findOpenTag, isPotentialPartialTopLevelTag, parseKnowledgeCards, parseResourceCards, parseUnlockCards } from "./tag_parsing";
+import { ActiveBlock, ModelCard, StreamChatResponseResult } from "./types";
 
-/**
- * Streams a Gemini chat response. Calls onToken(token) for each text chunk received.
- * Returns the response message with hasNewInfo detected from the token.
- */
+function maybeWaitForCardWrites(writePromise: Promise<void> | null): Promise<void> {
+    return writePromise ?? Promise.resolve();
+}
+
 export async function streamChatResponse(
     message: string,
     messageHistory: Message[],
@@ -45,240 +25,316 @@ export async function streamChatResponse(
     previousContentHierarchy: ContentHierarchy | null,
     attachments: null | ChatAttachment[],
     preferences: ChatPreferences,
-    startTime: number,
     onToken: (token: string) => Promise<void> | void,
+    onNewCards?: (cards: ModelCard[]) => Promise<Card[]>,
     cardsToUnlock?: Card[],
     courseLesson?: { cardsToUnlock: Card[] }
-): Promise<{ responseMessage: string; hasNewInfo: boolean; chatAttachments: ChatAttachment[]; followUpQuestions: string[]; unlockedCardIds: string[]; tutorActions: TutorAction[] } | null> {
+): Promise<StreamChatResponseResult> {
     if (!message || message.trim() === "") throw new Error("Message is required.");
+    const params = await buildStreamChatRequest(
+        message,
+        messageHistory,
+        previousCards,
+        previousContentHierarchy,
+        attachments,
+        preferences,
+        cardsToUnlock,
+        courseLesson,
+    );
 
-    // Process file attachments: fetch and add as inlineData
-    const fileParts: MyPart[] = [];
-    if (attachments) {
-        const fileAttachments = attachments.filter((att): att is FileAttachment => 'type' in att && att.type === 'file');
-        if (fileAttachments.length > 0) {
-            const fetchPromises = fileAttachments.map(async (att) => {
-                const response = await fetch(att.url);
-                const arrayBuffer = await response.arrayBuffer();
-                const base64 = Buffer.from(arrayBuffer).toString('base64');
-                return {
-                    inlineData: {
-                        data: base64,
-                        mimeType: att.mimeType,
-                    },
-                };
-            });
-            fileParts.push(...await Promise.all(fetchPromises));
-        }
-    }
+    const streamingResp = await genAI.models.generateContentStream(params);
 
-    // Build contents array as Gemini expects: each content has role and parts (parts are objects with text)
-    const contents = (messageHistory || [])
-        .filter((m) => m.content && m.content.trim() !== "")
-        .map((m) => ({
-        role: m.isResponse ? "model" : "user",
-        parts: [{ text: m.content }] as MyPart[],
-        }));
+    const chatAttachments: ChatAttachment[] = [];
+    const referencedCardIds = new Set<string>();
+    const thoughtSummaries: string[] = [];
+    let totalThoughtTime = 0;
 
-    contents.push({
-        role: "user",
-        parts: [{ text: message }, ...fileParts] as MyPart[],
-    });
-    
-    const prevContent = await ((previousContentHierarchy && previousCards) ? getStringFromHierarchyAndCards(previousCards, previousContentHierarchy) : null);
-    if (prevContent) {
-        contents.push({
-            role: "user",
-            parts: [{text: `EXISTING NOTES: ${JSON.stringify(prevContent)}`}]
-        })
-    }
+    const parsedCards: ModelCard[] = [];
+    const writtenCards: Card[] = [];
+    const followUpQuestions: string[] = [];
+    const unlockedCardIds: string[] = [];
+    const tutorActions: TutorAction[] = [];
+    let responseMessage = "";
 
-    if (cardsToUnlock && cardsToUnlock.length > 0) {
-        const cardsToUnlockList = cardsToUnlock.map(card => ({
-            id: card.id,
-            title: card.title,
-            details: card.details
-        }));
-        contents.push({
-            role: "user",
-            parts: [{text: `CARDS AVAILABLE FOR UNLOCKING: ${JSON.stringify(cardsToUnlockList)}`}
-            ]
-        });
-    }
+    let pending = "";
+    let activeBlock: ActiveBlock | null = null;
+    let cardWritePromise: Promise<void> | null = null;
+    let accumulatedRaw = "";
 
-
-    // systemInstruction as first content with role "user"
-    const systemInstruction = { role: "user", parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch, preferences.followUpQuestions, cardsToUnlock, courseLesson).parts as MyPart[] }
-
-    // Include systemInstruction at the beginning of contents
-    const allContents = [systemInstruction, ...contents];
-
-    // Include Google Search tool based on preferences (always for force/auto, never for disable)
-    const shouldUseSearch = preferences.googleSearch !== "disable";
-
-    const config = {
-        generationConfig: {
-            ...getGenerationConfig(preferences.model),
-            responseMimeType: "text/plain",
-        },
-        thinkingConfig: {
-            thinkingBudget: preferences.thinking === "off" ? 0 : (preferences.thinking === "force" ? 16384 : -1),
-            includeThoughts: true,
-        },
-        ...(shouldUseSearch && { tools: [{ googleSearch: {} }] }),
+    const flushParsedCards = async () => {
+        const alreadyWrittenTitles = new Set(writtenCards.map((card) => card.title));
+        const pendingCards = parsedCards.filter((card) => !alreadyWrittenTitles.has(card.title));
+        if (pendingCards.length === 0 || !onNewCards) return;
+        cardWritePromise = (async () => {
+            const newlyWritten = await onNewCards(pendingCards);
+            writtenCards.push(...newlyWritten);
+        })();
+        await cardWritePromise;
     };
 
-    try {
-        // Get the appropriate model based on preferences
-        const selectedModel = getLLMModel(preferences.model, preferences.generationModel);
+    const resolveNewCardTitle = (title: string): string => {
+        const card = writtenCards.find((item) => item.title === title);
+        if (!card) return title;
+        return `(card: ${card.id})`;
+    };
 
-        const params: MyGenerateContentParameters = {
-            model: selectedModel,
-            contents: allContents,
-            config,
-        };
+    const replaceInlineRefs = (text: string): string => {
+        let output = text;
+        output = output.replace(/<NewCardRef\s+title="([^"]+)"\s*\/>/gi, (_match, title: string) => resolveNewCardTitle(title));
+        output = output.replace(/<CardRef\s+id="([^"]+)"\s*\/>/gi, (_match, id: string) => `(card: ${id})`);
+        output = output.replace(/<\/?FollowUp>/gi, "");
+        output = output.replace(/<\/?Action>/gi, "");
+        output = output.replace(/<\/?UnlockCards>/gi, "");
+        output = output.replace(/<\/?Prose>/gi, "");
+        return output;
+    };
 
-        const streamingResp = await genAI.models.generateContentStream(params);
+    const emitLooseText = async (text: string) => {
+        const rendered = replaceInlineRefs(text);
+        if (!rendered) return;
+        responseMessage += rendered;
+        await onToken(rendered);
+    };
 
-        // accumulate whole returned text so we can parse JSON at the end
-        let accumulated = "";
-        const chatAttachments: ChatAttachment[] = [];
-        const referencedCardIds: Set<string> = new Set();
+    const processProseBuffer = async (flushAll = false): Promise<boolean> => {
+        if (!activeBlock || activeBlock.tag !== "Prose") return false;
 
-        const thoughtSummaries: string[] = [];
-        let totalThoughtTime = 0;
+        while (activeBlock.buffer.length > 0) {
+            const ltIndex = activeBlock.buffer.indexOf("<");
 
-        // The SDK returns an async iterable / stream; iterate and collect parts
-        for await (const chunk of streamingResp) {
-            const parts = chunk?.candidates?.[0]?.content?.parts || [];
-            let partText = "";
-
-            for (const part of parts) {
-                if (part.text) {
-                    if (part.thought) {
-                        thoughtSummaries.push(part.text);
-                        const timeMatch = part.text.match(/Thought for (\d+) secs/);
-                        if (timeMatch) {
-                            totalThoughtTime += parseInt(timeMatch[1]);
-                        }
-                    } else {
-                        partText += part.text;
-                    }
-                }
+            if (ltIndex === -1) {
+                await emitLooseText(activeBlock.buffer);
+                activeBlock.buffer = "";
+                return false;
             }
 
-            // Collect grounding chunks as chat attachments
-            const metadata = (chunk as { candidates?: { groundingMetadata?: { groundingChunks?: GroundingChunk[] } }[] })?.candidates?.[0]?.groundingMetadata;
-            if (metadata?.groundingChunks) {
-                chatAttachments.push(...metadata.groundingChunks);
+            if (ltIndex > 0) {
+                const plain = activeBlock.buffer.slice(0, ltIndex);
+                await emitLooseText(plain);
+                activeBlock.buffer = activeBlock.buffer.slice(ltIndex);
+                continue;
             }
 
-            if (partText) {
-                // Remove [HAS_NEW_INFO] and [ACTION]...[/ACTION] from streaming tokens to prevent them from appearing in UI
-                let cleanToken = partText.replace(/\[HAS_NEW_INFO\]/g, '');
-                cleanToken = cleanToken.replace(/\[ACTION\][\s\S]*?\[\/ACTION\]/g, '');
-                accumulated += partText; // Keep original for parsing
-                if (cleanToken) {
-                    await onToken(cleanToken);
-                }
+            const proseCloseMatch = activeBlock.buffer.match(/^<\/Prose>/i);
+            if (proseCloseMatch) {
+                pending = activeBlock.buffer.slice(proseCloseMatch[0].length) + pending;
+                activeBlock = null;
+                return true;
             }
+
+            if (!flushAll && activeBlock.buffer.startsWith("<") && !activeBlock.buffer.includes(">")) {
+                return false;
+            }
+
+            const cardRefMatch = activeBlock.buffer.match(/^<CardRef\s+id="([^"]+)"\s*\/>/i);
+            if (cardRefMatch) {
+                const resolved = `(card: ${cardRefMatch[1]})`;
+                responseMessage += resolved;
+                await onToken(resolved);
+                activeBlock.buffer = activeBlock.buffer.slice(cardRefMatch[0].length);
+                continue;
+            }
+
+            const newCardRefMatch = activeBlock.buffer.match(/^<NewCardRef\s+title="([^"]+)"\s*\/>/i);
+            if (newCardRefMatch) {
+                const resolved = resolveNewCardTitle(newCardRefMatch[1]);
+                responseMessage += resolved;
+                await onToken(resolved);
+                activeBlock.buffer = activeBlock.buffer.slice(newCardRefMatch[0].length);
+                continue;
+            }
+
+            const nextTopLevelTag = findOpenTag(activeBlock.buffer);
+            if (nextTopLevelTag && nextTopLevelTag.index === 0) {
+                console.warn("Implicitly closing <Prose> before next top-level tag", { nextTag: nextTopLevelTag.tag });
+                pending = activeBlock.buffer + pending;
+                activeBlock = null;
+                return true;
+            }
+
+            responseMessage += "<";
+            await onToken("<");
+            activeBlock.buffer = activeBlock.buffer.slice(1);
         }
 
-        // Add single thinking attachment if any thoughts
-        if (thoughtSummaries.length > 0) {
-            const combinedSummary = thoughtSummaries.join('\n\n');
-            chatAttachments.push({ title: `Thought for ${totalThoughtTime} seconds`, summary: combinedSummary, time: totalThoughtTime });
+        return false;
+    };
+
+    const handleClosedBlock = async (block: ActiveBlock) => {
+        if (block.tag === "NewCard") {
+            const parsed = parseKnowledgeCards(block.buffer);
+            if (parsed.length > 0) parsedCards.push(...parsed);
+            return;
         }
-
-        // Detect hasNewInfo from token, but override based on preferences
-        let responseMessage = accumulated.trim();
-        let hasNewInfo = responseMessage.includes("[HAS_NEW_INFO]");
-        responseMessage = responseMessage.replace(/\[HAS_NEW_INFO\]/g, '').trim();
-
-        // Parse unlocked cards before removing the token
-        const unlockedCardIds = parseUnlockedCardsFromResponse(accumulated);
-
-        // Remove [UNLOCKED_CARDS] token from the response message (it's for backend processing only)
-        responseMessage = responseMessage.replace(/\[UNLOCKED_CARDS\][^\n]*/, '').trim();
-
-        // Parse tutor actions from response
-        const tutorActions: TutorAction[] = [];
-        const actionRegex = /\[ACTION\]([\s\S]*?)\[\/ACTION\]/g;
-        let actionMatch;
-        while ((actionMatch = actionRegex.exec(responseMessage)) !== null) {
+        if (block.tag === "NewResourceCard") {
+            const parsed = parseResourceCards(block.buffer, block.attrs);
+            if (parsed.length > 0) parsedCards.push(...parsed);
+            return;
+        }
+        if (block.tag === "FollowUp") {
+            const question = block.buffer.trim();
+            if (question) followUpQuestions.push(question);
+            return;
+        }
+        if (block.tag === "Action") {
+            const actionText = block.buffer.trim();
+            if (!actionText) return;
             try {
-                const action = JSON.parse(actionMatch[1].trim()) as TutorAction;
-                tutorActions.push(action);
-            } catch (e) {
-                console.error("Failed to parse tutor action:", actionMatch[1], e);
+                tutorActions.push(JSON.parse(actionText) as TutorAction);
+            } catch (err) {
+                console.error("Failed to parse <Action>", { actionText, err });
+            }
+            return;
+        }
+        if (block.tag === "UnlockCards") {
+            unlockedCardIds.push(...parseUnlockCards(block.buffer));
+        }
+    };
+
+    for await (const chunk of streamingResp) {
+        const parts = chunk?.candidates?.[0]?.content?.parts || [];
+        let partText = "";
+
+        for (const part of parts) {
+            if (!part.text) continue;
+            if (part.thought) {
+                thoughtSummaries.push(part.text);
+                const timeMatch = part.text.match(/Thought for (\d+) secs/);
+                if (timeMatch) totalThoughtTime += parseInt(timeMatch[1]);
+            } else {
+                partText += part.text;
             }
         }
-        // Remove [ACTION]...[/ACTION] tokens from the response message
-        responseMessage = responseMessage.replace(/\[ACTION\][\s\S]*?\[\/ACTION\]/g, '').trim();
 
-        // Override hasNewInfo based on forceCardCreation preference
-        if (preferences.forceCardCreation === "on") {
-            hasNewInfo = true;
-        } else if (preferences.forceCardCreation === "off") {
-            hasNewInfo = false;
+        const metadata = (chunk as { candidates?: { groundingMetadata?: { groundingChunks?: GroundingChunk[] } }[] })?.candidates?.[0]?.groundingMetadata;
+        if (metadata?.groundingChunks) {
+            chatAttachments.push(...metadata.groundingChunks);
         }
-        // If "auto", keep the original hasNewInfo detection
 
-        // Parse follow-up questions if enabled
-        const followUpQuestions: string[] = [];
-        if (preferences.followUpQuestions === "auto") {
-            // Find the position of the first [FOLLOW_UP]
-            const followUpIndex = responseMessage.indexOf('[FOLLOW_UP]');
-            if (followUpIndex !== -1) {
-                // Extract the main response (everything before [FOLLOW_UP])
-                const mainResponse = responseMessage.substring(0, followUpIndex).trim();
-                const followUpPart = responseMessage.substring(followUpIndex);
+        if (!partText) continue;
+        accumulatedRaw += partText;
+        pending += partText;
 
-                // Parse follow-up questions from the followUpPart
-                const followUpRegex = /\[FOLLOW_UP\]\s*([\s\S]*?)(?=\[FOLLOW_UP\]|$)/g;
-                let match;
-                while ((match = followUpRegex.exec(followUpPart)) !== null) {
-                    const question = match[1].trim();
-                    if (question) {
-                        followUpQuestions.push(question);
+        while (pending.length > 0) {
+            if (activeBlock?.tag === "Prose") {
+                activeBlock.buffer += pending;
+                pending = "";
+                const proseClosed = await processProseBuffer(false);
+                if (!proseClosed) break;
+                continue;
+            }
+
+            if (activeBlock) {
+                const combined = activeBlock.buffer + pending;
+                const closingTag = `</${activeBlock.tag.toLowerCase()}>`;
+                const endIdx = combined.toLowerCase().indexOf(closingTag);
+                if (endIdx === -1) {
+                    activeBlock.buffer += pending;
+                    pending = "";
+                    break;
+                }
+
+                activeBlock.buffer = combined.slice(0, endIdx);
+                pending = combined.slice(endIdx + closingTag.length);
+                const closed = activeBlock;
+                activeBlock = null;
+                await handleClosedBlock(closed);
+                continue;
+            }
+
+            const openTag = findOpenTag(pending);
+            if (!openTag) {
+                const lastLt = pending.lastIndexOf("<");
+                if (lastLt !== -1) {
+                    const trailing = pending.slice(lastLt);
+                    if (isPotentialPartialTopLevelTag(trailing)) {
+                        const before = pending.slice(0, lastLt);
+                        if (before.trim().length > 0) {
+                            await emitLooseText(before);
+                        }
+                        pending = trailing;
+                        break;
                     }
                 }
 
-                // Update responseMessage to only contain the main response
-                responseMessage = mainResponse;
+                if (pending.trim().length > 0) {
+                    await emitLooseText(pending);
+                }
+                pending = "";
+                break;
             }
-        }
 
-        // Parse card references and add them as chat attachments
-        // Handles both single (card: id) and multi (card: id1, card: id2) formats
-        const cardRefRegex = /\(card:\s*([^)]+)\)/g;
-        let match;
-        while ((match = cardRefRegex.exec(responseMessage)) !== null) {
-            const innerContent = match[1].trim();
-            // Split on ", card:" to handle multiple refs in one parenthetical
-            const cardRefs = innerContent.split(/,\s*card:\s*/);
-            for (const ref of cardRefs) {
-                const cardId = ref.trim();
-                referencedCardIds.add(cardId);
+            const beforeTag = pending.slice(0, openTag.index);
+            if (beforeTag.trim().length > 0) {
+                await emitLooseText(beforeTag);
             }
-        }
 
-        // Find referenced cards from previousCards and add them to chatAttachments
-        if (previousCards && referencedCardIds.size > 0) {
-            const referencedCards = previousCards.filter(card => referencedCardIds.has(card.id));
-            chatAttachments.push(...referencedCards);
-        }
+            pending = pending.slice(openTag.index + openTag.raw.length);
 
-        return {
-            responseMessage,
-            hasNewInfo,
-            chatAttachments,
-            followUpQuestions,
-            unlockedCardIds,
-            tutorActions,
-        };
-    } catch (err) {
-        console.error("streamChatResponse error:", err);
-        throw err;
+            if (openTag.tag === "Prose") {
+                await maybeWaitForCardWrites(cardWritePromise);
+            }
+
+            if (openTag.tag === "NewCard" || openTag.tag === "NewResourceCard") {
+                activeBlock = { tag: openTag.tag, attrs: openTag.attrs, buffer: "" };
+                continue;
+            }
+
+            if (openTag.tag === "Prose") {
+                await flushParsedCards();
+                activeBlock = { tag: "Prose", attrs: {}, buffer: "" };
+                continue;
+            }
+
+            activeBlock = { tag: openTag.tag, attrs: openTag.attrs, buffer: "" };
+        }
     }
+
+    if (activeBlock?.tag === "Prose") {
+        await processProseBuffer(true);
+    }
+
+    if (activeBlock && activeBlock.tag !== "Prose") {
+        console.warn("Stream ended with unclosed tag", { tag: activeBlock.tag });
+    }
+
+    await flushParsedCards();
+    await maybeWaitForCardWrites(cardWritePromise);
+
+    // Safety net: if follow-up tags were missed by the streaming state machine,
+    // recover them from the raw output so they still appear in the UI.
+    const recoveredFollowUps = extractTaggedBodies(accumulatedRaw, "FollowUp");
+    for (const question of recoveredFollowUps) {
+        if (!followUpQuestions.includes(question)) {
+            followUpQuestions.push(question);
+        }
+    }
+
+    if (thoughtSummaries.length > 0) {
+        const combinedSummary = thoughtSummaries.join("\n\n");
+        chatAttachments.push({ title: `Thought for ${totalThoughtTime} seconds`, summary: combinedSummary, time: totalThoughtTime });
+    }
+
+    const cardRefRegex = /\(card:\s*([^)]+)\)/g;
+    let match: RegExpExecArray | null;
+    while ((match = cardRefRegex.exec(responseMessage)) !== null) {
+        const inner = match[1].trim();
+        const refs = inner.split(/,\s*card:\s*/);
+        for (const ref of refs) referencedCardIds.add(ref.trim());
+    }
+
+    if (previousCards && referencedCardIds.size > 0) {
+        const referencedCards = previousCards.filter((card) => referencedCardIds.has(card.id));
+        chatAttachments.push(...referencedCards);
+    }
+
+    return {
+        responseMessage: stripTransportTags(responseMessage),
+        newCardsFromModel: parsedCards,
+        writtenCards,
+        chatAttachments,
+        followUpQuestions,
+        unlockedCardIds,
+        tutorActions,
+    };
 }

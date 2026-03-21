@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction } from "react";
-import { Message, Project, Card, StreamPhase, ChatAttachment, ChatPreferences } from "@/lib/types";
+import { Message, Project, Card, StreamPhase, ChatAttachment } from "@/lib/types";
 import { streamChat } from "@/app/views/chat";
 import { streamQuickCreate } from "@/app/views/quickCreate";
 
@@ -8,7 +8,6 @@ export const sendMessage = async (
     messages: Message[],
     attatchments: null | ChatAttachment[],
     project: Project,
-    preferences: ChatPreferences,
     addMessage: (msg: Message) => void,
     setNewCards: (newCards: Card[]) => void,
     updatePhase: Dispatch<SetStateAction<null | StreamPhase>>,
@@ -47,7 +46,6 @@ export const sendMessage = async (
              recentMessages,
              attatchments,
              project.id,
-             preferences,
              setPhase,
              (finalMessage: Message) => {
                  // Replace the streaming message with the final message
@@ -94,7 +92,6 @@ export const sendMessage = async (
 export const sendQuickCreateMessage = async (
     input: string,
     attachments: null | ChatAttachment[],
-    preferences: ChatPreferences,
     addMessage: (msg: Message) => void,
     setNewCards: (newCards: Card[]) => void,
     updatePhase: Dispatch<SetStateAction<null | StreamPhase>>,
@@ -128,7 +125,6 @@ export const sendQuickCreateMessage = async (
         const result = await streamQuickCreate(
             userInput,
             attachments,
-            preferences,
             setPhase,
             (finalMessage: Message) => {
                 setMessages(prev => prev.map(msg =>

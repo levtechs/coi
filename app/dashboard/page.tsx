@@ -81,7 +81,7 @@ export default function DashboardPage() {
                 <h1 className="text-3xl font-extrabold text-[var(--foreground)] mb-8">
                     Welcome, {firebaseUser.displayName}!
                 </h1>
-                <Dashboard user={firebaseUser} chatPreferences={fullUser?.chatPreferences ?? null} />
+                <Dashboard user={firebaseUser} />
             </div>
             <SignUpQuestionnaireModal
                 isOpen={showQuestionnaireModal}

@@ -113,7 +113,7 @@ const HierarchicalNode = ({
                 case "card": {
                     const card = cards.find((c) => c.id === child.cardId);
                     if (card) {
-                        const isResource = !!card.url;
+                        const isResource = card.kind === "resource" || !!card.url;
                         const hasImportantLabel = card.labels?.includes("important");
                         const shouldShow = 
                             (isResource ? cardFilters.resource : cardFilters.knowledge) &&

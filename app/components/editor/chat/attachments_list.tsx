@@ -13,6 +13,8 @@ interface AttachmentsListProps {
 export const getAttachmentIcon = (attachment: ChatAttachment) => {
     if ("type" in attachment && attachment.type === 'file') {
         return <Paperclip className="w-3 h-3" />;
+    } else if ("type" in attachment && attachment.type === 'sources') {
+        return <Globe className="w-3 h-3" />;
     } else if ("web" in attachment) {
         const uri = attachment.web.uri.toLowerCase();
         const title = attachment.web.title.toLowerCase();
@@ -29,6 +31,15 @@ export const getAttachmentIcon = (attachment: ChatAttachment) => {
         return <Brain className="w-3 h-3" />;
     } else if ("children" in attachment || ("type" in attachment && (attachment.type === 'subcontent' || attachment.type === 'card'))) {
         return <Layout className="w-3 h-3" />;
+    } else if ("url" in attachment && attachment.url) {
+        const url = attachment.url.toLowerCase();
+        const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
+        if (isYoutube) {
+            return <Play className="w-3 h-3 fill-current" />;
+        }
+        return <Globe className="w-3 h-3" />;
+    } else if ("kind" in attachment && attachment.kind === "resource") {
+        return <Globe className="w-3 h-3" />;
     } else if ("details" in attachment) {
         return <FileText className="w-3 h-3" />;
     }
@@ -38,6 +49,7 @@ export const getAttachmentIcon = (attachment: ChatAttachment) => {
 export const getAttachmentKey = (attachment: ChatAttachment, index: number): string => {
     if ("id" in attachment && attachment.id) return attachment.id;
     if ("web" in attachment && attachment.web?.uri) return attachment.web.uri;
+    if ("type" in attachment && attachment.type === 'sources') return `sources-${index}`;
     if ("title" in attachment && attachment.title) return `think-${attachment.title}-${index}`;
     if ("name" in attachment && attachment.name) return `file-${attachment.name}-${index}`;
     if ("text" in attachment && attachment.text) return `text-${attachment.text.slice(0, 10)}-${index}`;
@@ -47,6 +59,8 @@ export const getAttachmentKey = (attachment: ChatAttachment, index: number): str
 export const getAttachmentText = (attachment: ChatAttachment): string => {
     if ("type" in attachment && attachment.type === 'file') {
         return attachment.name;
+    } else if ("type" in attachment && attachment.type === 'sources') {
+        return `${attachment.chunks.length} Source${attachment.chunks.length === 1 ? '' : 's'}`;
     } else if ("title" in attachment) {
         return attachment.title;
     } else if ("text" in attachment) {
