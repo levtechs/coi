@@ -3,8 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-import { ChatPreferences, ChatAttachment, FileAttachment } from "@/lib/types";
-import { getUserPreferences } from "@/app/views/chat";
+import { ChatPreferences, ChatAttachment, FileAttachment, DEFAULT_CHAT_PREFERENCES } from "@/lib/types";
 import { uploadFileToStorageOnly } from "@/app/views/uploads";
 import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/uploadConstants";
 
@@ -25,16 +24,6 @@ const TYPING_SPEED = 50;
 const DELETING_SPEED = 30;
 const PAUSE_DURATION = 2000;
 
-const DEFAULT_PREFERENCES: ChatPreferences = {
-    model: "normal",
-    thinking: "auto",
-    googleSearch: "auto",
-    forceCardCreation: "auto",
-    personality: "default",
-    followUpQuestions: "auto",
-    generationModel: "flash",
-};
-
 interface QuickCreateInputProps {
     chatPreferences?: ChatPreferences | null;
     isLoggedIn?: boolean;
@@ -44,7 +33,6 @@ interface QuickCreateInputProps {
 }
 
 const QuickCreateInput = ({ 
-    chatPreferences = null, 
     isLoggedIn = true,
     className = "",
     autoRedirectOnPending = false
@@ -90,7 +78,7 @@ const QuickCreateInput = ({
                 const quickCreateData = {
                     message: pendingQuery,
                     attachments: null,
-                    preferences: chatPreferences || DEFAULT_PREFERENCES,
+                    preferences: DEFAULT_CHAT_PREFERENCES,
                 };
                 sessionStorage.setItem("quickCreateData", JSON.stringify(quickCreateData));
                 router.push("/projects/new");
@@ -100,7 +88,7 @@ const QuickCreateInput = ({
                 sessionStorage.removeItem("pendingQuickQuery");
             }
         }
-    }, [isLoggedIn, autoRedirectOnPending, chatPreferences, router]);
+    }, [isLoggedIn, autoRedirectOnPending, router]);
 
     const animatePlaceholder = useCallback(() => {
         const currentMessage = PLACEHOLDER_MESSAGES[messageIndex];
@@ -148,28 +136,17 @@ const QuickCreateInput = ({
                 const quickCreateData = {
                     message: input.trim(),
                     attachments: null, // Anonymous users can't upload files
-                    preferences: DEFAULT_PREFERENCES,
+                    preferences: DEFAULT_CHAT_PREFERENCES,
                 };
                 sessionStorage.setItem("quickCreateData", JSON.stringify(quickCreateData));
                 router.push("/login?signup=true&forward=/projects/new");
                 return;
             }
 
-            // Resolve preferences
-            let preferences = chatPreferences || DEFAULT_PREFERENCES;
-            if (!chatPreferences) {
-                try {
-                    const fetched = await getUserPreferences();
-                    if (fetched) preferences = fetched;
-                } catch {
-                    // Use defaults
-                }
-            }
-
             const quickCreateData = {
                 message: input.trim(),
                 attachments: attachments.length > 0 ? attachments : null,
-                preferences,
+                preferences: DEFAULT_CHAT_PREFERENCES,
             };
             sessionStorage.setItem("quickCreateData", JSON.stringify(quickCreateData));
 

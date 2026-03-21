@@ -1,43 +1,220 @@
+import { GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
 
-
-import { Content, GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
+import {
+    ContentHierarchy,
+    Card,
+    Message,
+    ChatAttachment,
+    GroundingChunk,
+    ChatPreferences,
+    FileAttachment,
+    TutorAction,
+} from "@/lib/types";
+import { getStringFromHierarchyAndCards } from "../helpers";
+import { getLLMModel, getGenerationConfig, genAI } from "@/app/api/gemini/config";
+import { getChatResponseSystemInstruction } from "../prompts";
 
 type MyPart = { text: string } | { inlineData: { data: string; mimeType: string } };
+type MyContent = { role: string; parts: MyPart[] };
+type MyConfig = { generationConfig: GenerationConfig; thinkingConfig?: ThinkingConfig; tools?: Tool[] };
+type MyGenerateContentParameters = { model: string; contents: MyContent[]; config: MyConfig };
 
-type MyContent = {
-  role: string;
-  parts: MyPart[];
+export type KnowledgeCardSpec = {
+    tagType: "knowledge";
+    title: string;
+    details: string[];
 };
 
-type MyConfig = {
-  generationConfig: GenerationConfig;
-  thinkingConfig?: ThinkingConfig;
-  tools?: Tool[];
+export type ResourceCardSpec = {
+    tagType: "resource";
+    title: string;
+    details: string[];
+    resultIndex: number;
 };
 
-type MyGenerateContentParameters = {
-  model: string;
-  contents: MyContent[];
-  config: MyConfig;
+export type ModelCard = KnowledgeCardSpec | ResourceCardSpec;
+
+type BlockTag = "NewCard" | "NewResourceCard" | "Prose" | "FollowUp" | "Action" | "UnlockCards";
+
+type ActiveBlock = {
+    tag: BlockTag;
+    attrs: Record<string, string>;
+    buffer: string;
 };
 
-import { ContentHierarchy, Card, Message, ChatAttachment, GroundingChunk, ChatPreferences, FileAttachment, TutorAction } from "@/lib/types"; // { content: string; isResponse: boolean }
+function isPotentialPartialTopLevelTag(fragment: string): boolean {
+    if (!fragment.startsWith("<")) return false;
+    if (fragment === "<" || fragment === "</") return true;
+    if (fragment.includes(">")) return false;
 
-import { getStringFromHierarchyAndCards, parseUnlockedCardsFromResponse } from "../helpers"
+    const normalized = fragment.replace(/^<\/?/, "").toLowerCase();
+    const nameMatch = normalized.match(/^[A-Za-z]*/);
+    const partialName = nameMatch?.[0]?.toLowerCase() || "";
+    if (!partialName) return true;
 
-import {
-    getLLMModel,
-    getGenerationConfig,
-    genAI,
-} from "@/app/api/gemini/config";
-import {
-    getChatResponseSystemInstruction,
-} from "../prompts"
+    const allowed: BlockTag[] = ["NewCard", "NewResourceCard", "Prose", "FollowUp", "Action", "UnlockCards"];
+    return allowed.some((tag) => tag.toLowerCase().startsWith(partialName));
+}
 
-/**
- * Streams a Gemini chat response. Calls onToken(token) for each text chunk received.
- * Returns the response message with hasNewInfo detected from the token.
- */
+function stripJsonFences(jsonText: string): string {
+    return jsonText.trim().replace(/^```json\s*/i, "").replace(/^```/, "").replace(/```$/, "").trim();
+}
+
+function extractTopLevelJsonObjects(text: string): string[] {
+    const objects: string[] = [];
+    let inString = false;
+    let escaped = false;
+    let depth = 0;
+    let start = -1;
+
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+
+        if (escaped) {
+            escaped = false;
+            continue;
+        }
+
+        if (char === "\\") {
+            escaped = true;
+            continue;
+        }
+
+        if (char === '"') {
+            inString = !inString;
+            continue;
+        }
+
+        if (inString) continue;
+
+        if (char === "{") {
+            if (depth === 0) start = i;
+            depth += 1;
+            continue;
+        }
+
+        if (char === "}") {
+            depth -= 1;
+            if (depth === 0 && start !== -1) {
+                objects.push(text.slice(start, i + 1));
+                start = -1;
+            }
+        }
+    }
+
+    return objects;
+}
+
+function parseSingleCardBody(jsonText: string): { title: string; details: string[] } | null {
+    const trimmed = stripJsonFences(jsonText);
+    try {
+        const parsed = JSON.parse(trimmed) as { title?: unknown; details?: unknown };
+        if (typeof parsed?.title !== "string") return null;
+        const details = Array.isArray(parsed.details) ? parsed.details.filter((item): item is string => typeof item === "string") : [];
+        return { title: parsed.title, details };
+    } catch {
+        try {
+            const repaired = trimmed.replace(/,\s*([}\]])/g, "$1");
+            const parsed = JSON.parse(repaired) as { title?: unknown; details?: unknown };
+            if (typeof parsed?.title !== "string") return null;
+            const details = Array.isArray(parsed.details) ? parsed.details.filter((item): item is string => typeof item === "string") : [];
+            return { title: parsed.title, details };
+        } catch (err) {
+            console.error("Failed to parse card body", { jsonText: trimmed, err });
+            return null;
+        }
+    }
+}
+
+function parseCardBodies(jsonText: string): Array<{ title: string; details: string[] }> {
+    const trimmed = stripJsonFences(jsonText);
+    const extractedObjects = extractTopLevelJsonObjects(trimmed);
+
+    if (extractedObjects.length > 1) {
+        const parsedCards = extractedObjects
+            .map((objectText) => parseSingleCardBody(objectText))
+            .filter((card): card is { title: string; details: string[] } => !!card);
+
+        if (parsedCards.length > 0) {
+            console.warn("Recovered multiple cards from a single card tag", {
+                recovered: parsedCards.length,
+                preview: trimmed.slice(0, 200),
+            });
+            return parsedCards;
+        }
+    }
+
+    const single = parseSingleCardBody(trimmed);
+    return single ? [single] : [];
+}
+
+function parseAttributes(rawAttrs: string): Record<string, string> {
+    const attrs: Record<string, string> = {};
+    const attrRegex = /(\w+)="([^"]*)"/g;
+    let match: RegExpExecArray | null;
+    while ((match = attrRegex.exec(rawAttrs)) !== null) {
+        attrs[match[1]] = match[2];
+    }
+    return attrs;
+}
+
+function parseResourceCards(body: string, attrs: Record<string, string>): ResourceCardSpec[] {
+    const parsedBodies = parseCardBodies(body);
+    const resultIndex = parseInt((attrs.resultIndex || "").trim(), 10);
+    if (!Number.isInteger(resultIndex) || resultIndex <= 0) {
+        console.warn("Dropped invalid resource card", { attrs });
+        return [];
+    }
+    return parsedBodies.map((parsed) => ({
+        tagType: "resource" as const,
+        title: parsed.title,
+        details: parsed.details,
+        resultIndex,
+    }));
+}
+
+function parseKnowledgeCards(body: string): KnowledgeCardSpec[] {
+    return parseCardBodies(body).map((parsed) => ({
+        tagType: "knowledge" as const,
+        title: parsed.title,
+        details: parsed.details,
+    }));
+}
+
+function parseUnlockCards(body: string): string[] {
+    return body
+        .split(/[\n,]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+}
+
+function extractTaggedBodies(text: string, tagName: string): string[] {
+    const regex = new RegExp(`<${tagName}>([\\s\\S]*?)<\/${tagName}>`, "gi");
+    const bodies: string[] = [];
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(text)) !== null) {
+        const body = match[1]?.trim();
+        if (body) bodies.push(body);
+    }
+    return bodies;
+}
+
+function stripTransportTags(text: string): string {
+    return text
+        .replace(/<NewCard>[\s\S]*?<\/NewCard>/gi, "")
+        .replace(/<NewResourceCard\b[^>]*>[\s\S]*?<\/NewResourceCard>/gi, "")
+        .replace(/<FollowUp>[\s\S]*?<\/FollowUp>/gi, "")
+        .replace(/<Action>[\s\S]*?<\/Action>/gi, "")
+        .replace(/<UnlockCards>[\s\S]*?<\/UnlockCards>/gi, "")
+        .replace(/<CardRef\b[^>]*\/>/gi, "")
+        .replace(/<NewCardRef\b[^>]*\/>/gi, "")
+        .trim();
+}
+
+function maybeWaitForCardWrites(writePromise: Promise<void> | null): Promise<void> {
+    return writePromise ?? Promise.resolve();
+}
+
 export async function streamChatResponse(
     message: string,
     messageHistory: Message[],
@@ -45,240 +222,425 @@ export async function streamChatResponse(
     previousContentHierarchy: ContentHierarchy | null,
     attachments: null | ChatAttachment[],
     preferences: ChatPreferences,
-    startTime: number,
+    _startTime: number,
     onToken: (token: string) => Promise<void> | void,
+    onNewCards?: (cards: ModelCard[]) => Promise<Card[]>,
     cardsToUnlock?: Card[],
     courseLesson?: { cardsToUnlock: Card[] }
-): Promise<{ responseMessage: string; hasNewInfo: boolean; chatAttachments: ChatAttachment[]; followUpQuestions: string[]; unlockedCardIds: string[]; tutorActions: TutorAction[] } | null> {
+): Promise<{
+    responseMessage: string;
+    newCardsFromModel: ModelCard[];
+    writtenCards: Card[];
+    chatAttachments: ChatAttachment[];
+    followUpQuestions: string[];
+    unlockedCardIds: string[];
+    tutorActions: TutorAction[];
+}> {
     if (!message || message.trim() === "") throw new Error("Message is required.");
 
-    // Process file attachments: fetch and add as inlineData
     const fileParts: MyPart[] = [];
     if (attachments) {
-        const fileAttachments = attachments.filter((att): att is FileAttachment => 'type' in att && att.type === 'file');
+        const fileAttachments = attachments.filter((att): att is FileAttachment => "type" in att && att.type === "file");
         if (fileAttachments.length > 0) {
-            const fetchPromises = fileAttachments.map(async (att) => {
-                const response = await fetch(att.url);
-                const arrayBuffer = await response.arrayBuffer();
-                const base64 = Buffer.from(arrayBuffer).toString('base64');
-                return {
-                    inlineData: {
-                        data: base64,
-                        mimeType: att.mimeType,
-                    },
-                };
-            });
-            fileParts.push(...await Promise.all(fetchPromises));
+            const uploaded = await Promise.all(
+                fileAttachments.map(async (att) => {
+                    const response = await fetch(att.url);
+                    const arrayBuffer = await response.arrayBuffer();
+                    return {
+                        inlineData: {
+                            data: Buffer.from(arrayBuffer).toString("base64"),
+                            mimeType: att.mimeType,
+                        },
+                    } as MyPart;
+                }),
+            );
+            fileParts.push(...uploaded);
         }
     }
 
-    // Build contents array as Gemini expects: each content has role and parts (parts are objects with text)
     const contents = (messageHistory || [])
         .filter((m) => m.content && m.content.trim() !== "")
         .map((m) => ({
-        role: m.isResponse ? "model" : "user",
-        parts: [{ text: m.content }] as MyPart[],
+            role: m.isResponse ? "model" : "user",
+            parts: [{ text: m.content }] as MyPart[],
         }));
 
     contents.push({
         role: "user",
-        parts: [{ text: message }, ...fileParts] as MyPart[],
+        parts: [{ text: message }, ...fileParts],
     });
-    
+
     const prevContent = await ((previousContentHierarchy && previousCards) ? getStringFromHierarchyAndCards(previousCards, previousContentHierarchy) : null);
     if (prevContent) {
         contents.push({
             role: "user",
-            parts: [{text: `EXISTING NOTES: ${JSON.stringify(prevContent)}`}]
-        })
-    }
-
-    if (cardsToUnlock && cardsToUnlock.length > 0) {
-        const cardsToUnlockList = cardsToUnlock.map(card => ({
-            id: card.id,
-            title: card.title,
-            details: card.details
-        }));
-        contents.push({
-            role: "user",
-            parts: [{text: `CARDS AVAILABLE FOR UNLOCKING: ${JSON.stringify(cardsToUnlockList)}`}
-            ]
+            parts: [{ text: `EXISTING NOTES: ${JSON.stringify(prevContent)}` }],
         });
     }
 
+    if (cardsToUnlock && cardsToUnlock.length > 0) {
+        const cardsToUnlockList = cardsToUnlock.map((card) => ({ id: card.id, title: card.title, details: card.details }));
+        contents.push({
+            role: "user",
+            parts: [{ text: `CARDS AVAILABLE FOR UNLOCKING: ${JSON.stringify(cardsToUnlockList)}` }],
+        });
+    }
 
-    // systemInstruction as first content with role "user"
-    const systemInstruction = { role: "user", parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch, preferences.followUpQuestions, cardsToUnlock, courseLesson).parts as MyPart[] }
-
-    // Include systemInstruction at the beginning of contents
-    const allContents = [systemInstruction, ...contents];
-
-    // Include Google Search tool based on preferences (always for force/auto, never for disable)
-    const shouldUseSearch = preferences.googleSearch !== "disable";
-
-    const config = {
-        generationConfig: {
-            ...getGenerationConfig(preferences.model),
-            responseMimeType: "text/plain",
-        },
-        thinkingConfig: {
-            thinkingBudget: preferences.thinking === "off" ? 0 : (preferences.thinking === "force" ? 16384 : -1),
-            includeThoughts: true,
-        },
-        ...(shouldUseSearch && { tools: [{ googleSearch: {} }] }),
+    const systemInstruction = {
+        role: "user",
+        parts: getChatResponseSystemInstruction(preferences.personality, preferences.googleSearch, preferences.followUpQuestions, cardsToUnlock, courseLesson).parts as MyPart[],
     };
 
-    try {
-        // Get the appropriate model based on preferences
-        const selectedModel = getLLMModel(preferences.model, preferences.generationModel);
+    const allContents = [systemInstruction, ...contents];
+    const shouldUseSearch = preferences.googleSearch !== "disable";
+    const selectedModel = getLLMModel("normal");
+    const params: MyGenerateContentParameters = {
+        model: selectedModel,
+        contents: allContents,
+        config: {
+            generationConfig: {
+                ...getGenerationConfig("normal"),
+                responseMimeType: "text/plain",
+            },
+            thinkingConfig: {
+                thinkingBudget: preferences.thinking === "off" ? 0 : (preferences.thinking === "force" ? 16384 : -1),
+                includeThoughts: true,
+            },
+            ...(shouldUseSearch && { tools: [{ googleSearch: {} }] }),
+        },
+    };
 
-        const params: MyGenerateContentParameters = {
-            model: selectedModel,
-            contents: allContents,
-            config,
-        };
+    const streamingResp = await genAI.models.generateContentStream(params);
 
-        const streamingResp = await genAI.models.generateContentStream(params);
+    const chatAttachments: ChatAttachment[] = [];
+    const referencedCardIds = new Set<string>();
+    const thoughtSummaries: string[] = [];
+    let totalThoughtTime = 0;
 
-        // accumulate whole returned text so we can parse JSON at the end
-        let accumulated = "";
-        const chatAttachments: ChatAttachment[] = [];
-        const referencedCardIds: Set<string> = new Set();
+    const parsedCards: ModelCard[] = [];
+    const writtenCards: Card[] = [];
+    const followUpQuestions: string[] = [];
+    const unlockedCardIds: string[] = [];
+    const tutorActions: TutorAction[] = [];
+    let responseMessage = "";
 
-        const thoughtSummaries: string[] = [];
-        let totalThoughtTime = 0;
+    let pending = "";
+    let activeBlock: ActiveBlock | null = null;
+    let cardWritePromise: Promise<void> | null = null;
+    let accumulatedRaw = "";
 
-        // The SDK returns an async iterable / stream; iterate and collect parts
-        for await (const chunk of streamingResp) {
-            const parts = chunk?.candidates?.[0]?.content?.parts || [];
-            let partText = "";
+    const flushParsedCards = async () => {
+        const alreadyWrittenTitles = new Set(writtenCards.map((card) => card.title));
+        const pendingCards = parsedCards.filter((card) => !alreadyWrittenTitles.has(card.title));
+        if (pendingCards.length === 0 || !onNewCards) return;
+        cardWritePromise = (async () => {
+            const newlyWritten = await onNewCards(pendingCards);
+            writtenCards.push(...newlyWritten);
+        })();
+        await cardWritePromise;
+    };
 
-            for (const part of parts) {
-                if (part.text) {
-                    if (part.thought) {
-                        thoughtSummaries.push(part.text);
-                        const timeMatch = part.text.match(/Thought for (\d+) secs/);
-                        if (timeMatch) {
-                            totalThoughtTime += parseInt(timeMatch[1]);
-                        }
-                    } else {
-                        partText += part.text;
-                    }
-                }
+    const resolveNewCardTitle = (title: string): string => {
+        const card = writtenCards.find((item) => item.title === title);
+        return card ? `(card: ${card.id})` : title;
+    };
+
+    const replaceInlineRefs = (text: string): string => {
+        let output = text;
+        output = output.replace(/<NewCardRef\s+title="([^"]+)"\s*\/>/gi, (_match, title: string) => resolveNewCardTitle(title));
+        output = output.replace(/<CardRef\s+id="([^"]+)"\s*\/>/gi, (_match, id: string) => `(card: ${id})`);
+        output = output.replace(/<\/?FollowUp>/gi, "");
+        output = output.replace(/<\/?Action>/gi, "");
+        output = output.replace(/<\/?UnlockCards>/gi, "");
+        output = output.replace(/<\/?Prose>/gi, "");
+        return output;
+    };
+
+    const emitLooseText = async (text: string) => {
+        const rendered = replaceInlineRefs(text);
+        if (!rendered) return;
+        responseMessage += rendered;
+        await onToken(rendered);
+    };
+
+    const processProseBuffer = async (flushAll = false): Promise<boolean> => {
+        if (!activeBlock || activeBlock.tag !== "Prose") return false;
+
+        while (activeBlock.buffer.length > 0) {
+            const ltIndex = activeBlock.buffer.indexOf("<");
+
+            if (ltIndex === -1) {
+                await emitLooseText(activeBlock.buffer);
+                activeBlock.buffer = "";
+                return false;
             }
 
-            // Collect grounding chunks as chat attachments
-            const metadata = (chunk as { candidates?: { groundingMetadata?: { groundingChunks?: GroundingChunk[] } }[] })?.candidates?.[0]?.groundingMetadata;
-            if (metadata?.groundingChunks) {
-                chatAttachments.push(...metadata.groundingChunks);
+            if (ltIndex > 0) {
+                const plain = activeBlock.buffer.slice(0, ltIndex);
+                await emitLooseText(plain);
+                activeBlock.buffer = activeBlock.buffer.slice(ltIndex);
+                continue;
             }
 
-            if (partText) {
-                // Remove [HAS_NEW_INFO] and [ACTION]...[/ACTION] from streaming tokens to prevent them from appearing in UI
-                let cleanToken = partText.replace(/\[HAS_NEW_INFO\]/g, '');
-                cleanToken = cleanToken.replace(/\[ACTION\][\s\S]*?\[\/ACTION\]/g, '');
-                accumulated += partText; // Keep original for parsing
-                if (cleanToken) {
-                    await onToken(cleanToken);
-                }
+            const proseCloseMatch = activeBlock.buffer.match(/^<\/Prose>/i);
+            if (proseCloseMatch) {
+                pending = activeBlock.buffer.slice(proseCloseMatch[0].length) + pending;
+                activeBlock = null;
+                return true;
             }
+
+            if (!flushAll && activeBlock.buffer.startsWith("<") && !activeBlock.buffer.includes(">")) {
+                return false;
+            }
+
+            const cardRefMatch = activeBlock.buffer.match(/^<CardRef\s+id="([^"]+)"\s*\/>/i);
+            if (cardRefMatch) {
+                const resolved = `(card: ${cardRefMatch[1]})`;
+                responseMessage += resolved;
+                await onToken(resolved);
+                activeBlock.buffer = activeBlock.buffer.slice(cardRefMatch[0].length);
+                continue;
+            }
+
+            const newCardRefMatch = activeBlock.buffer.match(/^<NewCardRef\s+title="([^"]+)"\s*\/>/i);
+            if (newCardRefMatch) {
+                const resolved = resolveNewCardTitle(newCardRefMatch[1]);
+                responseMessage += resolved;
+                await onToken(resolved);
+                activeBlock.buffer = activeBlock.buffer.slice(newCardRefMatch[0].length);
+                continue;
+            }
+
+            const nextTopLevelTag = findOpenTag(activeBlock.buffer);
+            if (nextTopLevelTag && nextTopLevelTag.index === 0) {
+                console.warn("Implicitly closing <Prose> before next top-level tag", { nextTag: nextTopLevelTag.tag });
+                pending = activeBlock.buffer + pending;
+                activeBlock = null;
+                return true;
+            }
+
+            responseMessage += "<";
+            await onToken("<");
+            activeBlock.buffer = activeBlock.buffer.slice(1);
         }
 
-        // Add single thinking attachment if any thoughts
-        if (thoughtSummaries.length > 0) {
-            const combinedSummary = thoughtSummaries.join('\n\n');
-            chatAttachments.push({ title: `Thought for ${totalThoughtTime} seconds`, summary: combinedSummary, time: totalThoughtTime });
+        return false;
+    };
+
+    const handleClosedBlock = async (block: ActiveBlock) => {
+        if (block.tag === "NewCard") {
+            const parsed = parseKnowledgeCards(block.buffer);
+            if (parsed.length > 0) parsedCards.push(...parsed);
+            return;
         }
-
-        // Detect hasNewInfo from token, but override based on preferences
-        let responseMessage = accumulated.trim();
-        let hasNewInfo = responseMessage.includes("[HAS_NEW_INFO]");
-        responseMessage = responseMessage.replace(/\[HAS_NEW_INFO\]/g, '').trim();
-
-        // Parse unlocked cards before removing the token
-        const unlockedCardIds = parseUnlockedCardsFromResponse(accumulated);
-
-        // Remove [UNLOCKED_CARDS] token from the response message (it's for backend processing only)
-        responseMessage = responseMessage.replace(/\[UNLOCKED_CARDS\][^\n]*/, '').trim();
-
-        // Parse tutor actions from response
-        const tutorActions: TutorAction[] = [];
-        const actionRegex = /\[ACTION\]([\s\S]*?)\[\/ACTION\]/g;
-        let actionMatch;
-        while ((actionMatch = actionRegex.exec(responseMessage)) !== null) {
+        if (block.tag === "NewResourceCard") {
+            const parsed = parseResourceCards(block.buffer, block.attrs);
+            if (parsed.length > 0) parsedCards.push(...parsed);
+            return;
+        }
+        if (block.tag === "FollowUp") {
+            const question = block.buffer.trim();
+            if (question) followUpQuestions.push(question);
+            return;
+        }
+        if (block.tag === "Action") {
+            const actionText = block.buffer.trim();
+            if (!actionText) return;
             try {
-                const action = JSON.parse(actionMatch[1].trim()) as TutorAction;
-                tutorActions.push(action);
-            } catch (e) {
-                console.error("Failed to parse tutor action:", actionMatch[1], e);
+                tutorActions.push(JSON.parse(actionText) as TutorAction);
+            } catch (err) {
+                console.error("Failed to parse <Action>", { actionText, err });
+            }
+            return;
+        }
+        if (block.tag === "UnlockCards") {
+            unlockedCardIds.push(...parseUnlockCards(block.buffer));
+        }
+    };
+
+    const findOpenTag = (buffer: string): { index: number; tag: BlockTag; raw: string; attrs: Record<string, string> } | null => {
+        const ltIndex = buffer.indexOf("<");
+        if (ltIndex === -1) return null;
+
+        const remainder = buffer.slice(ltIndex);
+        const tags: Array<{ tag: BlockTag; regex: RegExp }> = [
+            { tag: "NewCard", regex: /^<NewCard>/i },
+            { tag: "Prose", regex: /^<Prose>/i },
+            { tag: "FollowUp", regex: /^<FollowUp>/i },
+            { tag: "Action", regex: /^<Action>/i },
+            { tag: "UnlockCards", regex: /^<UnlockCards>/i },
+            { tag: "NewResourceCard", regex: /^<NewResourceCard\b([^>]*)>/i },
+        ];
+
+        for (const candidate of tags) {
+            const match = remainder.match(candidate.regex);
+            if (!match) continue;
+            return {
+                index: ltIndex,
+                tag: candidate.tag,
+                raw: match[0],
+                attrs: candidate.tag === "NewResourceCard" ? parseAttributes(match[1] || "") : {},
+            };
+        }
+
+        return null;
+    };
+
+    for await (const chunk of streamingResp) {
+        const parts = chunk?.candidates?.[0]?.content?.parts || [];
+        let partText = "";
+
+        for (const part of parts) {
+            if (!part.text) continue;
+            if (part.thought) {
+                thoughtSummaries.push(part.text);
+                const timeMatch = part.text.match(/Thought for (\d+) secs/);
+                if (timeMatch) totalThoughtTime += parseInt(timeMatch[1]);
+            } else {
+                partText += part.text;
             }
         }
-        // Remove [ACTION]...[/ACTION] tokens from the response message
-        responseMessage = responseMessage.replace(/\[ACTION\][\s\S]*?\[\/ACTION\]/g, '').trim();
 
-        // Override hasNewInfo based on forceCardCreation preference
-        if (preferences.forceCardCreation === "on") {
-            hasNewInfo = true;
-        } else if (preferences.forceCardCreation === "off") {
-            hasNewInfo = false;
+        const metadata = (chunk as { candidates?: { groundingMetadata?: { groundingChunks?: GroundingChunk[] } }[] })?.candidates?.[0]?.groundingMetadata;
+        if (metadata?.groundingChunks) {
+            chatAttachments.push(...metadata.groundingChunks);
         }
-        // If "auto", keep the original hasNewInfo detection
 
-        // Parse follow-up questions if enabled
-        const followUpQuestions: string[] = [];
-        if (preferences.followUpQuestions === "auto") {
-            // Find the position of the first [FOLLOW_UP]
-            const followUpIndex = responseMessage.indexOf('[FOLLOW_UP]');
-            if (followUpIndex !== -1) {
-                // Extract the main response (everything before [FOLLOW_UP])
-                const mainResponse = responseMessage.substring(0, followUpIndex).trim();
-                const followUpPart = responseMessage.substring(followUpIndex);
+        if (!partText) continue;
+        accumulatedRaw += partText;
+        pending += partText;
 
-                // Parse follow-up questions from the followUpPart
-                const followUpRegex = /\[FOLLOW_UP\]\s*([\s\S]*?)(?=\[FOLLOW_UP\]|$)/g;
-                let match;
-                while ((match = followUpRegex.exec(followUpPart)) !== null) {
-                    const question = match[1].trim();
-                    if (question) {
-                        followUpQuestions.push(question);
+        while (pending.length > 0) {
+            if (activeBlock?.tag === "Prose") {
+                activeBlock.buffer += pending;
+                pending = "";
+                const proseClosed = await processProseBuffer(false);
+                if (!proseClosed) break;
+                continue;
+            }
+
+            if (activeBlock) {
+                const combined = activeBlock.buffer + pending;
+                const closingTag = `</${activeBlock.tag.toLowerCase()}>`;
+                const endIdx = combined.toLowerCase().indexOf(closingTag);
+                if (endIdx === -1) {
+                    activeBlock.buffer += pending;
+                    pending = "";
+                    break;
+                }
+
+                activeBlock.buffer = combined.slice(0, endIdx);
+                pending = combined.slice(endIdx + closingTag.length);
+                const closed = activeBlock;
+                activeBlock = null;
+                await handleClosedBlock(closed);
+                continue;
+            }
+
+            const openTag = findOpenTag(pending);
+            if (!openTag) {
+                const lastLt = pending.lastIndexOf("<");
+                if (lastLt !== -1) {
+                    const trailing = pending.slice(lastLt);
+                    if (isPotentialPartialTopLevelTag(trailing)) {
+                        const before = pending.slice(0, lastLt);
+                        if (before.trim().length > 0) {
+                            await emitLooseText(before);
+                        }
+                        pending = trailing;
+                        break;
                     }
                 }
 
-                // Update responseMessage to only contain the main response
-                responseMessage = mainResponse;
+                if (pending.trim().length > 0) {
+                    await emitLooseText(pending);
+                }
+                pending = "";
+                break;
             }
-        }
 
-        // Parse card references and add them as chat attachments
-        // Handles both single (card: id) and multi (card: id1, card: id2) formats
-        const cardRefRegex = /\(card:\s*([^)]+)\)/g;
-        let match;
-        while ((match = cardRefRegex.exec(responseMessage)) !== null) {
-            const innerContent = match[1].trim();
-            // Split on ", card:" to handle multiple refs in one parenthetical
-            const cardRefs = innerContent.split(/,\s*card:\s*/);
-            for (const ref of cardRefs) {
-                const cardId = ref.trim();
-                referencedCardIds.add(cardId);
+            const beforeTag = pending.slice(0, openTag.index);
+            if (beforeTag.trim().length > 0) {
+                await emitLooseText(beforeTag);
             }
-        }
 
-        // Find referenced cards from previousCards and add them to chatAttachments
-        if (previousCards && referencedCardIds.size > 0) {
-            const referencedCards = previousCards.filter(card => referencedCardIds.has(card.id));
-            chatAttachments.push(...referencedCards);
-        }
+            pending = pending.slice(openTag.index + openTag.raw.length);
 
-        return {
-            responseMessage,
-            hasNewInfo,
-            chatAttachments,
-            followUpQuestions,
-            unlockedCardIds,
-            tutorActions,
-        };
-    } catch (err) {
-        console.error("streamChatResponse error:", err);
-        throw err;
+            if (openTag.tag === "Prose") {
+                await maybeWaitForCardWrites(cardWritePromise);
+            }
+
+            if (openTag.tag === "NewCard" || openTag.tag === "NewResourceCard") {
+                activeBlock = { tag: openTag.tag, attrs: openTag.attrs, buffer: "" };
+                continue;
+            }
+
+            if (openTag.tag === "Prose") {
+                await flushParsedCards();
+                activeBlock = { tag: "Prose", attrs: {}, buffer: "" };
+                continue;
+            }
+
+            activeBlock = { tag: openTag.tag, attrs: openTag.attrs, buffer: "" };
+        }
     }
+
+    if (activeBlock?.tag === "Prose") {
+        await processProseBuffer(true);
+    }
+
+    if (activeBlock && activeBlock.tag !== "Prose") {
+        console.warn("Stream ended with unclosed tag", { tag: activeBlock.tag });
+    }
+
+    await flushParsedCards();
+    await maybeWaitForCardWrites(cardWritePromise);
+
+    // Safety net: if follow-up tags were missed by the streaming state machine,
+    // recover them from the raw output so they still appear in the UI.
+    const recoveredFollowUps = extractTaggedBodies(accumulatedRaw, "FollowUp");
+    for (const question of recoveredFollowUps) {
+        if (!followUpQuestions.includes(question)) {
+            followUpQuestions.push(question);
+        }
+    }
+
+    if (thoughtSummaries.length > 0) {
+        const combinedSummary = thoughtSummaries.join("\n\n");
+        chatAttachments.push({ title: `Thought for ${totalThoughtTime} seconds`, summary: combinedSummary, time: totalThoughtTime });
+    }
+
+    const cardRefRegex = /\(card:\s*([^)]+)\)/g;
+    let match: RegExpExecArray | null;
+    while ((match = cardRefRegex.exec(responseMessage)) !== null) {
+        const inner = match[1].trim();
+        const refs = inner.split(/,\s*card:\s*/);
+        for (const ref of refs) referencedCardIds.add(ref.trim());
+    }
+
+    if (previousCards && referencedCardIds.size > 0) {
+        const referencedCards = previousCards.filter((card) => referencedCardIds.has(card.id));
+        chatAttachments.push(...referencedCards);
+    }
+
+    console.info("[chat-stream] parse summary", {
+        rawPreview: accumulatedRaw.slice(0, 300),
+        parsedCards: parsedCards.length,
+        parsedResourceCards: parsedCards.filter((card) => card.tagType === "resource").length,
+        writtenCards: writtenCards.length,
+        groundingChunks: chatAttachments.filter((a) => "web" in a).length,
+        followUpQuestions: followUpQuestions.length,
+        actions: tutorActions.length,
+        unlocks: unlockedCardIds.length,
+    });
+
+    return {
+        responseMessage: stripTransportTags(responseMessage),
+        newCardsFromModel: parsedCards,
+        writtenCards,
+        chatAttachments,
+        followUpQuestions,
+        unlockedCardIds,
+        tutorActions,
+    };
 }

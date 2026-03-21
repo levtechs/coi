@@ -13,9 +13,10 @@ interface ChatMessagesProps {
     phase: null | StreamPhase;
     cards?: Card[];
     onFollowUpClick?: (question: string) => void;
+    onSourcesClick?: (attachment: ChatAttachment) => void;
 }
 
-const ChatMessages = ({ messages, isLoading, phase, cards, onFollowUpClick }: ChatMessagesProps) => {
+const ChatMessages = ({ messages, isLoading, phase, cards, onFollowUpClick, onSourcesClick }: ChatMessagesProps) => {
     const [selectedCard, setSelectedCard] = useState<Card | null>(null);
 
     const phaseMessages: Record<string, string> = {
@@ -23,8 +24,6 @@ const ChatMessages = ({ messages, isLoading, phase, cards, onFollowUpClick }: Ch
         searching: "Searching...",
         streaming: "Explaining...",
         processing: "Thinking...",
-        "generating content": "Making notes...",
-        "generating cards": "Making cards...",
     };
 
     const content = (
@@ -33,7 +32,7 @@ const ChatMessages = ({ messages, isLoading, phase, cards, onFollowUpClick }: Ch
                 <p className="text-[var(--neutral-500)] text-sm">No messages yet</p>
             ) : (
                   messages.map((msg) => (
-                      <ChatMessage key={msg.id} message={msg} cards={cards} onCardClick={setSelectedCard} onFollowUpClick={onFollowUpClick} />
+                      <ChatMessage key={msg.id} message={msg} cards={cards} onCardClick={setSelectedCard} onFollowUpClick={onFollowUpClick} onSourcesClick={onSourcesClick} />
                   ))
             )}
 
@@ -81,9 +80,10 @@ interface ChatMessageParams {
     cards?: Card[];
     onCardClick?: (card: Card) => void;
     onFollowUpClick?: (question: string) => void;
+    onSourcesClick?: (attachment: ChatAttachment) => void;
 }
 
-const ChatMessage = ({ message, cards, onCardClick, onFollowUpClick }: ChatMessageParams) => {
+const ChatMessage = ({ message, cards, onCardClick, onFollowUpClick, onSourcesClick }: ChatMessageParams) => {
     const smoothContent = useSmoothStream(message.content, message.isResponse);
 
     return (
@@ -98,43 +98,51 @@ const ChatMessage = ({ message, cards, onCardClick, onFollowUpClick }: ChatMessa
                              if (isThinkA && !isThinkB) return -1;
                              if (!isThinkA && isThinkB) return 1;
                              return 0;
-                         })
+                          })
                          .map((attachment: ChatAttachment) => {
-                         // Determine display text based on type
-                         let text: string | undefined;
-                         let url: string | undefined;
-                          if ("web" in attachment && attachment.web) {
-                              text = attachment.web.title;
-                              url = attachment.web.uri;
-                          } else if ("summary" in attachment) {
-                              // For thinking attachments, show title
-                              text = attachment.title;
-                          } else if ("title" in attachment) {
-                              text = attachment.title;
-                          } else if ("name" in attachment) {
-                              text = attachment.name;
-                          } else if ("text" in attachment) {
-                              text = attachment.text;
-                          }
+                          const liveCard = ('id' in attachment && 'details' in attachment)
+                              ? cards?.find((card) => card.id === attachment.id)
+                              : undefined;
+                          const displayAttachment: ChatAttachment = liveCard || attachment;
 
-                          if (!text) return null;
+                          // Determine display text based on type
+                          let text: string | undefined;
+                          let url: string | undefined;
+                            if ("type" in displayAttachment && displayAttachment.type === "sources") {
+                                text = `${displayAttachment.chunks.length} Source${displayAttachment.chunks.length === 1 ? '' : 's'}`;
+                            } else if ("web" in displayAttachment && displayAttachment.web) {
+                                text = displayAttachment.web.title;
+                                url = displayAttachment.web.uri;
+                            } else if ("summary" in displayAttachment) {
+                               // For thinking attachments, show title
+                               text = displayAttachment.title;
+                           } else if ("title" in displayAttachment) {
+                               text = displayAttachment.title;
+                           } else if ("name" in displayAttachment) {
+                               text = displayAttachment.name;
+                           } else if ("text" in displayAttachment) {
+                               text = displayAttachment.text;
+                           }
 
-                          const isCard = 'title' in attachment && 'details' in attachment && onCardClick;
-                          const isClickable = isCard || url;
+                           if (!text) return null;
 
-                          return (
-                              <div
-                                  key={"id" in attachment ? attachment.id : crypto.randomUUID()}
+                            const isCard = 'title' in displayAttachment && 'details' in displayAttachment && onCardClick;
+                            const isSources = 'type' in displayAttachment && displayAttachment.type === 'sources';
+                            const isClickable = isCard || isSources || url;
+
+                           return (
+                               <div
+                                  key={"id" in displayAttachment ? displayAttachment.id : crypto.randomUUID()}
                                   className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-colors shrink-0
                                       ${isClickable 
                                           ? "cursor-pointer bg-[var(--neutral-200)] text-[var(--neutral-700)] border border-[var(--neutral-300)] hover:bg-[var(--accent-100)] hover:text-[var(--accent-700)] hover:border-[var(--accent-300)]" 
                                           : "bg-[var(--neutral-200)] text-[var(--neutral-600)] border border-[var(--neutral-300)]"
                                       }`}
-                                  onClick={isCard ? () => onCardClick(attachment as Card) : (url ? () => window.open(url, '_blank') : undefined)}
-                                  title={'summary' in attachment ? attachment.summary : undefined}
+                                  onClick={isCard ? () => onCardClick(displayAttachment as Card) : (isSources ? () => onSourcesClick?.(displayAttachment) : (url ? () => window.open(url, '_blank') : undefined))}
+                                  title={'summary' in displayAttachment ? displayAttachment.summary : undefined}
                               >
                                   <span className="shrink-0 text-[var(--neutral-500)]">
-                                      {getAttachmentIcon(attachment)}
+                                      {getAttachmentIcon(displayAttachment)}
                                   </span>
                                   <span className="max-w-[150px] truncate">{text}</span>
                               </div>

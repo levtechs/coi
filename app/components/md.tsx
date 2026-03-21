@@ -44,10 +44,19 @@ export function normalizeMathMarkdown(md: string) {
  */
 export function processCardReferences(markdown: string, cards?: Card[], onCardClick?: (card: Card) => void): string {
     if (!cards || cards.length === 0) {
-        return markdown;
+        return markdown
+            .replace(/<CardRef\b[^>]*\/>/gi, "")
+            .replace(/<NewCardRef\b[^>]*\/>/gi, "");
     }
 
     const cardMap = new Map(cards.map(card => [card.id, card]));
+    const cardTitleMap = new Map(cards.map(card => [card.title, card]));
+
+    markdown = markdown.replace(/<CardRef\s+id="([^"]+)"\s*\/>/gi, (_match, id: string) => `(card: ${id})`);
+    markdown = markdown.replace(/<NewCardRef\s+title="([^"]+)"\s*\/>/gi, (_match, title: string) => {
+        const card = cardTitleMap.get(title);
+        return card ? `(card: ${card.id})` : title;
+    });
     
     return markdown.replace(/\(card:\s*([^)]+)\)/g, (match, innerContent) => {
         // Handle multiple comma-separated card references: (card: id1, card: id2)

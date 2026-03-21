@@ -20,11 +20,10 @@ type MyGenerateContentParameters = {
   config: MyConfig;
 };
 import {
-    getChatResponseSystemInstruction,
     generateCardsSystemInstruction,
     generateHierarchySystemInstruction,
 } from "./prompts"
-import { writeCardsToDb } from "../cards/helpers";
+import { writeCardsToDb, updateCardInDb } from "../cards/helpers";
 import { getYoutubeData } from "../youtube/helpers";
 
 /**
@@ -1007,6 +1006,121 @@ export const writeNewContentToDb = async (
     } catch (err) {
         console.error("Error writing new content to DB:", err);
         throw err;
+    }
+};
+
+export const enrichResourceCards = async (
+    projectId: string,
+    cards: Card[],
+    existingCards: Card[]
+): Promise<void> => {
+    const resourceCards = cards.filter((card) => card.url && !card.iconUrl && !card.refImageUrls?.length);
+    if (resourceCards.length === 0) return;
+
+    let cost = 0;
+
+    for (const card of resourceCards) {
+        if (cost > 5 || !card.url) break;
+
+        const alreadyEnriched = existingCards.find((c) => c.url === card.url && (c.iconUrl || (c.refImageUrls && c.refImageUrls.length > 0)));
+        if (alreadyEnriched) continue;
+
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            const response = await fetch(card.url, {
+                redirect: "follow",
+                signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+            if (!response.ok) continue;
+
+            const updates: Partial<Omit<Card, "id">> = {};
+
+            if (response.url.includes("youtube.com") || response.url.includes("youtu.be")) {
+                try {
+                    const data = await getYoutubeData(response.url);
+                    const desc = data.description.length > 80 ? data.description.slice(0, 77) + "..." : data.description;
+                    updates.details = [
+                        desc,
+                        `Channel: ${data.channelTitle}`,
+                        `Duration: ${data.duration || 'N/A'}`,
+                        `Published: ${new Date(data.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`
+                    ];
+                    updates.refImageUrls = [data.thumbnailUrl];
+                } catch (err) {
+                    console.error(`enrichResourceCards youtube error for ${card.url}:`, err);
+                }
+            } else {
+                const html = await response.text();
+                cost += 1;
+
+                const iconMatch = html.match(/<link[^>]*rel=["'](?:icon|shortcut icon)["'][^>]*href=["']([^"']*)["'][^>]*>/i);
+                if (iconMatch) {
+                    try {
+                        updates.iconUrl = new URL(iconMatch[1], response.url).href;
+                    } catch {
+                        updates.iconUrl = new URL('/favicon.ico', response.url).href;
+                    }
+                } else {
+                    updates.iconUrl = new URL('/favicon.ico', response.url).href;
+                }
+
+                if (!card.details || card.details.length === 0) {
+                    const headingMatch = html.match(/<h[1-2][^>]*>([\s\S]*?)<\/h[1-2]>/i);
+                    if (headingMatch) {
+                        let heading = headingMatch[1].replace(/<[^>]*>/g, '').trim();
+                        if (heading.length > 128) heading = heading.slice(0, 125) + '...';
+                        if (heading) updates.details = [heading];
+                    }
+                }
+
+                const imgMatches = html.match(/<img[^>]*src=["']([^"']*)["'][^>]*>/gi) || [];
+                const imageCandidates: string[] = [];
+                for (const imgTag of imgMatches.slice(0, 10)) {
+                    const srcMatch = imgTag.match(/src=["']([^"']*)["']/);
+                    if (srcMatch) {
+                        try {
+                            const imgUrl = new URL(srcMatch[1], response.url).href;
+                            if (!imgUrl.toLowerCase().includes('.svg') && !imgUrl.toLowerCase().includes('.ico')) {
+                                imageCandidates.push(imgUrl);
+                            }
+                        } catch {
+                            // ignore invalid image URLs
+                        }
+                    }
+                }
+
+                const imageDetails = await Promise.allSettled(
+                    imageCandidates.map(async (url) => {
+                        try {
+                            const imageController = new AbortController();
+                            const imageTimeout = setTimeout(() => imageController.abort(), 5000);
+                            const headRes = await fetch(url, { method: 'HEAD', signal: imageController.signal });
+                            clearTimeout(imageTimeout);
+                            const contentType = headRes.headers.get('content-type') || '';
+                            const contentLength = parseInt(headRes.headers.get('content-length') || '0');
+                            if (contentType.startsWith('image/') && contentLength > 1000) {
+                                return { url, size: contentLength };
+                            }
+                        } catch {
+                            // ignore image head failures
+                        }
+                        return null;
+                    })
+                ).then((results) => results.map((r) => r.status === 'fulfilled' ? r.value : null));
+
+                const validImages = imageDetails.filter(Boolean).sort((a, b) => (b?.size || 0) - (a?.size || 0));
+                const refImageUrls = validImages.slice(0, 5).map((img) => img!.url);
+                if (refImageUrls.length > 0) updates.refImageUrls = refImageUrls;
+            }
+
+            if (Object.keys(updates).length > 0) {
+                await updateCardInDb(projectId, card.id, updates);
+            }
+        } catch (err) {
+            console.error(`enrichResourceCards error for ${card.id}:`, err);
+        }
     }
 };
 

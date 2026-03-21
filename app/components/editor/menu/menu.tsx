@@ -249,7 +249,7 @@ const MenuBar = ( {project, user, addCollaborator, setTitle, setModalContents, t
                              isOpen: true,
                              type: "info",
                              width: "4xl",
-                             children: <StudyPanel cards={project.cards.filter(card => !card.url)} />
+                             children: <StudyPanel cards={project.cards.filter(card => card.kind !== "resource" && !card.url)} />
                          });
                      }}
                 >
