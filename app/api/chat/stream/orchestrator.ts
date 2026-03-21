@@ -12,7 +12,7 @@ import { copyCardsToDb, fetchCardsFromProject } from "@/app/api/cards/helpers";
 import { getProjectById } from "@/app/api/projects/helpers";
 import { Card, ChatAttachment, ContentHierarchy, GroundingChunk } from "@/lib/types";
 import { buildFinalChatAttachments, resolveNewcardRefs } from "./shared";
-import { StreamChatResponseResult } from "./helpers";
+import { StreamChatResponseResult } from "./types";
 
 const SECONDARY_GENERATION_MODEL = "flash-lite" as const;
 

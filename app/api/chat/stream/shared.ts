@@ -1,5 +1,5 @@
 import { Card, ChatAttachment, GroundingChunk, NewCard } from "@/lib/types";
-import { ModelCard } from "./helpers";
+import { ModelCard } from "./types";
 
 function decodeHtmlEntities(text: string): string {
     return text
