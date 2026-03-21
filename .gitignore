@@ -46,3 +46,6 @@ next-env.d.ts
 #extras - files may be too large to push to github
 /extras
 /admin
+
+# Mantis - stuff related to customization for mantis
+/mantis
