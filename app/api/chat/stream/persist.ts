@@ -1,6 +1,6 @@
 import { writeCardsToDb } from "@/app/api/cards/helpers";
 import { Card, ChatAttachment } from "@/lib/types";
-import { ModelCard } from "./helpers";
+import { ModelCard } from "./types";
 
 export function persistModelCards(
     projectId: string,
