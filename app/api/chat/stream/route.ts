@@ -8,7 +8,9 @@ import { persistModelCards } from "./persist";
 import { getProjectById } from "@/app/api/projects/helpers";
 import { fetchCardsFromProject, copyCardsToDb, writeCardsToDb } from "@/app/api/cards/helpers";
 import { copyUploadsToDb } from "@/app/api/uploads/helpers";
-import { Card, ChatAttachment, FileAttachment, StreamPhase, ChatPreferences, GroundingChunk, DEFAULT_CHAT_PREFERENCES } from "@/lib/types";
+import { Card, ChatAttachment, FileAttachment, StreamPhase, GroundingChunk, DEFAULT_CHAT_PREFERENCES } from "@/lib/types";
+
+const SECONDARY_GENERATION_MODEL = "flash-lite" as const;
 
 export async function POST(req: NextRequest) {
     const uid = await getVerifiedUid(req);
@@ -22,7 +24,6 @@ export async function POST(req: NextRequest) {
             messageHistory: { content: string; isResponse: boolean }[];
             projectId: string;
             attachments: ChatAttachment[] | null;
-            preferences: ChatPreferences;
         } = await req.json();
 
         const { message, messageHistory, projectId, attachments } = body;
@@ -86,7 +87,6 @@ export async function POST(req: NextRequest) {
 
                     updatePhase("starting");
 
-                    const startTime = Date.now();
                     const cardsToUnlock = project.courseLesson?.cardsToUnlock || [];
                     const onNewCards = persistModelCards(projectId, sendUpdate);
 
@@ -97,7 +97,6 @@ export async function POST(req: NextRequest) {
                         previousContentHierarchy,
                         attachments,
                         preferences,
-                        startTime,
                         (token: string) => {
                             if (phase === "starting") updatePhase("streaming");
                             controller.enqueue(encoder.encode(token));
@@ -133,7 +132,7 @@ export async function POST(req: NextRequest) {
                         parsedResourceCards: 0,
                         writtenCards: allWrittenCards.length,
                         groundingChunks: groundingChunks.length,
-                        unmatchedGroundingChunks: groundingChunks.length - usedChunkUris.size,
+                        sourceChunks: groundingChunks.length,
                         hasSourcesAttachment: finalAttachments.some((attachment) => "type" in attachment && attachment.type === "sources"),
                     });
 
@@ -168,7 +167,7 @@ export async function POST(req: NextRequest) {
                                 projectId,
                                 previousContentHierarchy || { title: "", children: [] },
                                 effectivePreviousCards,
-                                "flash-lite",
+                                SECONDARY_GENERATION_MODEL,
                             );
 
                             if (actionResult.modifiedHierarchy) {
@@ -209,11 +208,11 @@ export async function POST(req: NextRequest) {
                                     const previousCardsForHierarchy = currentEffectiveCards.filter((c) => !backgroundCards.find((bc) => bc.id === c.id));
                                     const hierarchyCards = backgroundCards.filter((c) => !c.exclude && !c.labels?.includes("exclude from hierarchy"));
                                     const newHierarchy = await generateNewHierarchyFromCards(
-                                        currentHierarchy,
-                                        previousCardsForHierarchy,
-                                        hierarchyCards,
-                                        "flash-lite",
-                                    );
+                                                currentHierarchy,
+                                                previousCardsForHierarchy,
+                                                hierarchyCards,
+                                                SECONDARY_GENERATION_MODEL,
+                                            );
                                     if (newHierarchy) {
                                         await writeHierarchy(projectId, newHierarchy);
                                         console.info("[chat-stream] background hierarchy updated", {

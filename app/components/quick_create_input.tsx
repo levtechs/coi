@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-import { ChatPreferences, ChatAttachment, FileAttachment, DEFAULT_CHAT_PREFERENCES } from "@/lib/types";
+import { ChatAttachment, FileAttachment } from "@/lib/types";
 import { uploadFileToStorageOnly } from "@/app/views/uploads";
 import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/uploadConstants";
 
@@ -25,7 +25,6 @@ const DELETING_SPEED = 30;
 const PAUSE_DURATION = 2000;
 
 interface QuickCreateInputProps {
-    chatPreferences?: ChatPreferences | null;
     isLoggedIn?: boolean;
     className?: string;
     /** If true, will auto-redirect to /projects/new when a pending query is found after login */
@@ -78,7 +77,6 @@ const QuickCreateInput = ({
                 const quickCreateData = {
                     message: pendingQuery,
                     attachments: null,
-                    preferences: DEFAULT_CHAT_PREFERENCES,
                 };
                 sessionStorage.setItem("quickCreateData", JSON.stringify(quickCreateData));
                 router.push("/projects/new");
@@ -136,7 +134,6 @@ const QuickCreateInput = ({
                 const quickCreateData = {
                     message: input.trim(),
                     attachments: null, // Anonymous users can't upload files
-                    preferences: DEFAULT_CHAT_PREFERENCES,
                 };
                 sessionStorage.setItem("quickCreateData", JSON.stringify(quickCreateData));
                 router.push("/login?signup=true&forward=/projects/new");
@@ -146,7 +143,6 @@ const QuickCreateInput = ({
             const quickCreateData = {
                 message: input.trim(),
                 attachments: attachments.length > 0 ? attachments : null,
-                preferences: DEFAULT_CHAT_PREFERENCES,
             };
             sessionStorage.setItem("quickCreateData", JSON.stringify(quickCreateData));
 

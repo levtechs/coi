@@ -2,7 +2,7 @@ import React, { useState } from "react"
 
 import { Message, StreamPhase, ChatAttachment, Card } from "@/lib/types";
 import { useSmoothStream } from "@/app/hooks/use-smooth-stream";
-import { getAttachmentIcon } from "./attachments_list";
+import { getAttachmentIcon, getAttachmentKey } from "./attachments_list";
 
 import MarkdownArticle from "../../md";
 import CardPopup from "../cards/card_popup";
@@ -99,7 +99,7 @@ const ChatMessage = ({ message, cards, onCardClick, onFollowUpClick, onSourcesCl
                              if (!isThinkA && isThinkB) return 1;
                              return 0;
                           })
-                         .map((attachment: ChatAttachment) => {
+                         .map((attachment: ChatAttachment, index: number) => {
                           const liveCard = ('id' in attachment && 'details' in attachment)
                               ? cards?.find((card) => card.id === attachment.id)
                               : undefined;
@@ -132,7 +132,7 @@ const ChatMessage = ({ message, cards, onCardClick, onFollowUpClick, onSourcesCl
 
                            return (
                                <div
-                                  key={"id" in displayAttachment ? displayAttachment.id : crypto.randomUUID()}
+                                  key={getAttachmentKey(displayAttachment, index)}
                                   className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium transition-colors shrink-0
                                       ${isClickable 
                                           ? "cursor-pointer bg-[var(--neutral-200)] text-[var(--neutral-700)] border border-[var(--neutral-300)] hover:bg-[var(--accent-100)] hover:text-[var(--accent-700)] hover:border-[var(--accent-300)]" 

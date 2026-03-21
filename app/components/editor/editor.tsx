@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Project, Card, ChatAttachment, CardFilter, DEFAULT_CARD_FILTER, ChatPreferences } from "@/lib/types";
+import { Project, Card, ChatAttachment, CardFilter, DEFAULT_CARD_FILTER } from "@/lib/types";
 import Modal from "../modal";
 import MenuBar from "./menu/menu";
 import ContentPanel from "./content";
@@ -20,7 +20,6 @@ interface EditorProps {
     quickCreate?: {
         message: string;
         attachments: ChatAttachment[] | null;
-        preferences: ChatPreferences;
         onProjectCreated: (projectId: string) => void;
     };
 }

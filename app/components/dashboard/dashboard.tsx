@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { User } from "firebase/auth";
-import { Project, Course, ChatPreferences } from "@/lib/types";
+import { Project, Course } from "@/lib/types";
 import { getProjects, saveProject, createProject } from "@/app/views/projects"
 import { getCourses } from "@/app/views/courses";
 import funFacts from "@/lib/fun-facts.json";
@@ -17,10 +17,9 @@ import QuickCreateInput from "@/app/components/quick_create_input";
 
 interface DashboardProps {
     user: User | null;
-    chatPreferences: ChatPreferences | null;
 }
 
-const Dashboard = ({ user, chatPreferences }: DashboardProps) => {
+const Dashboard = ({ user }: DashboardProps) => {
     const [isLoading, setLoading] = useState(false);
     const [projects, setProjects] = useState<Project[]>([]);
     const [courses, setCourses] = useState<Course[]>([]);
@@ -109,7 +108,7 @@ const Dashboard = ({ user, chatPreferences }: DashboardProps) => {
 
     return (
         <>
-            <QuickCreateInput chatPreferences={chatPreferences} autoRedirectOnPending={true} />
+            <QuickCreateInput autoRedirectOnPending={true} />
 
             {isLoading && <div className="mt-8 flex justify-center"><LoadingComponent small={true} /></div>}
 

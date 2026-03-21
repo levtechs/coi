@@ -19,6 +19,8 @@ type MyContent = { role: string; parts: MyPart[] };
 type MyConfig = { generationConfig: GenerationConfig; thinkingConfig?: ThinkingConfig; tools?: Tool[] };
 type MyGenerateContentParameters = { model: string; contents: MyContent[]; config: MyConfig };
 
+const PRIMARY_CHAT_MODEL = "normal" as const;
+
 export type KnowledgeCardSpec = {
     tagType: "knowledge";
     title: string;
@@ -222,7 +224,6 @@ export async function streamChatResponse(
     previousContentHierarchy: ContentHierarchy | null,
     attachments: null | ChatAttachment[],
     preferences: ChatPreferences,
-    _startTime: number,
     onToken: (token: string) => Promise<void> | void,
     onNewCards?: (cards: ModelCard[]) => Promise<Card[]>,
     cardsToUnlock?: Card[],
@@ -293,13 +294,13 @@ export async function streamChatResponse(
 
     const allContents = [systemInstruction, ...contents];
     const shouldUseSearch = preferences.googleSearch !== "disable";
-    const selectedModel = getLLMModel("normal");
+    const selectedModel = getLLMModel(PRIMARY_CHAT_MODEL);
     const params: MyGenerateContentParameters = {
         model: selectedModel,
         contents: allContents,
         config: {
             generationConfig: {
-                ...getGenerationConfig("normal"),
+                ...getGenerationConfig(PRIMARY_CHAT_MODEL),
                 responseMimeType: "text/plain",
             },
             thinkingConfig: {

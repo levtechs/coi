@@ -7,7 +7,9 @@ import { buildFinalChatAttachments, resolveNewcardRefs } from "@/app/api/chat/st
 import { persistModelCards } from "@/app/api/chat/stream/persist";
 import { createProject } from "@/app/api/projects/helpers";
 import { copyUploadsToDb } from "@/app/api/uploads/helpers";
-import { ChatAttachment, FileAttachment, StreamPhase, ChatPreferences, GroundingChunk, DEFAULT_CHAT_PREFERENCES } from "@/lib/types";
+import { ChatAttachment, FileAttachment, StreamPhase, GroundingChunk, DEFAULT_CHAT_PREFERENCES } from "@/lib/types";
+
+const SECONDARY_GENERATION_MODEL = "flash-lite" as const;
 
 function generateTitleFromMessage(message: string): string {
     const trimmed = message.trim();
@@ -31,7 +33,6 @@ export async function POST(req: NextRequest) {
         const body: {
             message: string;
             attachments: ChatAttachment[] | null;
-            preferences: ChatPreferences;
         } = await req.json();
         const { message, attachments } = body;
         const preferences = DEFAULT_CHAT_PREFERENCES;
@@ -98,7 +99,6 @@ export async function POST(req: NextRequest) {
                     controller.enqueue(encoder.encode("\u001F" + JSON.stringify({ type: "projectId", projectId }) + "\u001E"));
                     updatePhase("starting");
 
-                    const startTime = Date.now();
                     const onNewCards = persistModelCards(projectId, sendUpdate);
 
                     const result = await streamChatResponse(
@@ -108,7 +108,6 @@ export async function POST(req: NextRequest) {
                         null,
                         attachments,
                         preferences,
-                        startTime,
                         (token: string) => {
                             if (phase === "starting") updatePhase("streaming");
                             controller.enqueue(encoder.encode(token));
@@ -143,7 +142,7 @@ export async function POST(req: NextRequest) {
                         parsedResourceCards: 0,
                         writtenCards: allWrittenCards.length,
                         groundingChunks: groundingChunks.length,
-                        unmatchedGroundingChunks: groundingChunks.length - usedChunkUris.size,
+                        sourceChunks: groundingChunks.length,
                         hasSourcesAttachment: finalAttachments.some((attachment) => "type" in attachment && attachment.type === "sources"),
                     });
 
@@ -171,7 +170,7 @@ export async function POST(req: NextRequest) {
                         after(async () => {
                             try {
                                 try {
-                                    const newHierarchy = await generateNewHierarchyFromCards(null, [], allWrittenCards, "flash-lite");
+                                    const newHierarchy = await generateNewHierarchyFromCards(null, [], allWrittenCards, SECONDARY_GENERATION_MODEL);
                                     if (newHierarchy) {
                                         await writeHierarchy(projectId, newHierarchy);
                                         console.info("[quick-create] background hierarchy updated", {

@@ -104,7 +104,7 @@ export function resolveNewcardRefs(response: string, writtenCards: Card[]): stri
 export function buildFinalChatAttachments(
     chatAttachments: ChatAttachment[],
     writtenCards: Card[],
-    usedChunkUris: Set<string>,
+    _usedChunkUris: Set<string>,
 ): ChatAttachment[] {
     const groundingChunks = chatAttachments.filter((a): a is GroundingChunk => "web" in a);
     const nonGroundingAttachments = chatAttachments.filter((a) => !("web" in a));
@@ -121,11 +121,10 @@ export function buildFinalChatAttachments(
         ...writtenCards,
     ];
 
-    const unmatchedChunks = dedupedGrounding.filter((chunk) => !usedChunkUris.has(chunk.web.uri));
-    if (unmatchedChunks.length > 0) {
+    if (dedupedGrounding.length > 0) {
         finalAttachments.push({
             type: "sources",
-            chunks: unmatchedChunks,
+            chunks: dedupedGrounding,
         });
     }
 

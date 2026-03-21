@@ -9,7 +9,7 @@ import NewCardsPopup from "./new_cards_popup";
 import SourcesPopup from "./sources_popup";
 import AttachmentsList from "./attachments_list";
 
-import { Project, Message, Card, StreamPhase, ChatAttachment, ChatPreferences, DEFAULT_CHAT_PREFERENCES } from "@/lib/types";
+import { Project, Message, Card, StreamPhase, ChatAttachment } from "@/lib/types";
 import { ModalContents, noModal } from "../types";
 
 import { getChatHistory } from "@/app/views/chat";
@@ -30,7 +30,6 @@ interface ChatPanelProps {
     quickCreate?: {
         message: string;
         attachments: ChatAttachment[] | null;
-        preferences: ChatPreferences;
         onProjectCreated: (projectId: string) => void;
     };
 }
@@ -48,8 +47,6 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
 
     // Auto-resize for textarea
     const { textareaRef } = useAutoResize(input);
-
-    const preferences: ChatPreferences = DEFAULT_CHAT_PREFERENCES;
 
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -71,7 +68,7 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
         });
     }
 
-    const onSend = () => sendMessage(input, messages, attachments, project, preferences, addMessage, setNewCards, setStreamPhase, setInput, setLoading, setMessages)
+    const onSend = () => sendMessage(input, messages, attachments, project, addMessage, setNewCards, setStreamPhase, setInput, setLoading, setMessages)
 
     const addMessage = (msg: Message) => {
         setMessages(prev => [
@@ -203,7 +200,6 @@ const ChatPanel = ({ project, setModalContents, attachments, setAttachments, add
         sendQuickCreateMessage(
             quickCreate.message,
             quickCreate.attachments,
-            DEFAULT_CHAT_PREFERENCES,
             addMessage,
             setNewCards,
             setStreamPhase,

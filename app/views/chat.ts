@@ -18,7 +18,6 @@ export async function streamChat(
     messageHistory: Message[],
     attachments: null | ChatAttachment[],
     projectId: string,
-    preferences: ChatPreferences,
     setPhase: (phase: null | StreamPhase) => void,
     setFinalResponseMessage: (message: Message) => void,
     setNewCards: (newCards: Card[]) => void,
@@ -31,7 +30,7 @@ export async function streamChat(
     const idToken = await user.getIdToken();
     const res = await fetch("/api/chat/stream", {
         method: "POST",
-        body: JSON.stringify({ message, messageHistory, attachments, projectId, preferences }),
+        body: JSON.stringify({ message, messageHistory, attachments, projectId }),
         headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${idToken}`,
