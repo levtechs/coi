@@ -121,16 +121,6 @@ export async function POST(req: NextRequest) {
                         cardsToUnlock,
                     });
 
-                    console.info("[chat-stream] pipeline summary", {
-                        projectId,
-                        parsedNewCards: newCardsFromModel.length,
-                        parsedResourceCards: 0,
-                        writtenCards: finalized.allWrittenCards.length,
-                        groundingChunks: groundingChunks.length,
-                        sourceChunks: groundingChunks.length,
-                        hasSourcesAttachment: finalized.finalAttachments.some((attachment) => "type" in attachment && attachment.type === "sources"),
-                    });
-
                     const finalObj = {
                         type: "final" as const,
                         responseMessage: finalized.finalResponseMessage,

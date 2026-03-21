@@ -74,10 +74,7 @@ export async function streamChatResponse(
 
     const resolveNewCardTitle = (title: string): string => {
         const card = writtenCards.find((item) => item.title === title);
-        if (!card) {
-            console.warn(`[chat-stream] Could not resolve NewCardRef with title: "${title}"`);
-            return title;
-        }
+        if (!card) return title;
         return `(card: ${card.id})`;
     };
 
@@ -330,17 +327,6 @@ export async function streamChatResponse(
         const referencedCards = previousCards.filter((card) => referencedCardIds.has(card.id));
         chatAttachments.push(...referencedCards);
     }
-
-    console.info("[chat-stream] parse summary", {
-        rawPreview: accumulatedRaw.slice(0, 300),
-        parsedCards: parsedCards.length,
-        parsedResourceCards: parsedCards.filter((card) => card.tagType === "resource").length,
-        writtenCards: writtenCards.length,
-        groundingChunks: chatAttachments.filter((a) => "web" in a).length,
-        followUpQuestions: followUpQuestions.length,
-        actions: tutorActions.length,
-        unlocks: unlockedCardIds.length,
-    });
 
     return {
         responseMessage: stripTransportTags(responseMessage),
