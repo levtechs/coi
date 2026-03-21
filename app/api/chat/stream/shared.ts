@@ -1,4 +1,5 @@
-import { Card, ChatAttachment, GroundingChunk } from "@/lib/types";
+import { Card } from "@/lib/types/cards";
+import { ChatAttachment, GroundingChunk } from "@/lib/types/chat";
 
 export function resolveNewcardRefs(response: string, writtenCards: Card[]): string {
     let resolved = response;

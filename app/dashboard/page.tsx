@@ -3,7 +3,7 @@
 import { useAuth } from "@/lib/AuthContext";
 import Dashboard from "@/app/components/dashboard/dashboard";
 import { getUserFromId } from "@/app/views/users";
-import { User } from "@/lib/types";
+import { User } from "@/lib/types/user";
 
 import MaintenencePage from "@/app/components/maintenence";
 import LoginPrompt from "../components/login_prompt";

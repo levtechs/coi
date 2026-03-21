@@ -3,7 +3,7 @@ import { adminDb } from "@/lib/firebaseAdmin";
 
 import { getVerifiedUid } from "../../helpers";
 import { getUserById } from "../helpers";
-import { SignUpResponses } from "@/lib/types";
+import { SignUpResponses } from "@/lib/types/general";
 
 // return user data from user id
 export async function GET(req: NextRequest, context: { params: Promise<{ userId: string }> }) {

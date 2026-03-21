@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 
-import { Card, Project, CardFilter, Label } from "@/lib/types";
+import { Card, CardFilter, Label } from "@/lib/types/cards";
+import { Project } from "@/lib/types/project";
 import { LABEL_DEFINITIONS } from "@/lib/labels";
 
 import { postCard } from "@/app/views/cards";

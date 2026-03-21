@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { FiChevronRight, FiChevronDown } from "react-icons/fi";
 import { useAuth } from "@/lib/AuthContext";
 import { getCourses } from "@/app/views/courses";
-import { Course } from "@/lib/types";
+import { Course } from "@/lib/types/course";
 import LoadingComponent from "../loading";
 import CourseCard from "./course_card";
 

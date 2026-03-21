@@ -1,6 +1,7 @@
 import { adminAuth, adminDb } from "@/lib/firebaseAdmin"; // your admin SDK instance
 import { NextRequest } from "next/server";
-import { Project, Course } from "@/lib/types";
+import { Course } from "@/lib/types/course";
+import { Project } from "@/lib/types/project";
 
 // Utility function to fetch userRef by email
 export async function getUserRefByEmail(email: string) {

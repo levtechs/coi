@@ -1,7 +1,7 @@
 // app/api/projects/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { Project } from "@/lib/types";
+import { Project } from "@/lib/types/project";
 import { getVerifiedUid } from "../helpers";
 import { createProject } from "./helpers";
 

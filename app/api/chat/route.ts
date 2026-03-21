@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { Message } from "@/lib/types";
+import { Message } from "@/lib/types/chat";
 import { getVerifiedProjectAccess } from "../helpers";
 
 

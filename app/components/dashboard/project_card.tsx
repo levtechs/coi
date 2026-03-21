@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 
 import { FiEdit2, FiLoader, FiMoreVertical, FiTrash2 } from "react-icons/fi";
 
-import { Project } from "@/lib/types";
+import { Project } from "@/lib/types/project";
 
 import { deleteProject, getProjects } from "@/app/views/projects";
 

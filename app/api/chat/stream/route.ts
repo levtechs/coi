@@ -7,7 +7,9 @@ import { persistModelCards } from "./persist";
 import { getProjectById } from "@/app/api/projects/helpers";
 import { fetchCardsFromProject } from "@/app/api/cards/helpers";
 import { copyUploadsToDb } from "@/app/api/uploads/helpers";
-import { Card, ChatAttachment, FileAttachment, StreamPhase, GroundingChunk, DEFAULT_CHAT_PREFERENCES } from "@/lib/types";
+import { Card } from "@/lib/types/cards";
+import { ChatAttachment, StreamPhase, GroundingChunk, DEFAULT_CHAT_PREFERENCES } from "@/lib/types/chat";
+import { FileAttachment } from "@/lib/types/uploads";
 
 export async function POST(req: NextRequest) {
     const uid = await getVerifiedUid(req);

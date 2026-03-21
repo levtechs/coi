@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-import { ChatAttachment, FileAttachment } from "@/lib/types";
+import { ChatAttachment } from "@/lib/types/chat";
+import { FileAttachment } from "@/lib/types/uploads";
 import { uploadFileToStorageOnly } from "@/app/views/uploads";
 import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/uploadConstants";
 

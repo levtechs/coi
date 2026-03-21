@@ -1,5 +1,5 @@
 import { adminDb } from "@/lib/firebaseAdmin";
-import { FileAttachment } from "@/lib/types";
+import { FileAttachment } from "@/lib/types/uploads";
 
 export const fetchUploadsFromProject = async (projectId: string): Promise<FileAttachment[]> => {
     try {

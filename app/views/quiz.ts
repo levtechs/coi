@@ -1,6 +1,7 @@
 import { apiFetch } from "./helpers";
 
-import { NewCard, QuizSettings, Quiz } from "@/lib/types";
+import { NewCard } from "@/lib/types/cards";
+import { QuizSettings, Quiz } from "@/lib/types/quiz";
 
 // Creates a quiz with cards
 export async function createQuiz(cards: NewCard[], quizSettings: QuizSettings, projectId?: string): Promise<string> {

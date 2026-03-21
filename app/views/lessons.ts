@@ -1,6 +1,7 @@
 import { apiFetch } from "./helpers";
 
-import { CourseLesson, Project } from "@/lib/types";
+import { CourseLesson } from "@/lib/types/course";
+import { Project } from "@/lib/types/project";
 
 export async function getLesson(courseId: string, lessonIdx: number): Promise<{ lesson: CourseLesson; projectIds: string[] } | null> {
     try {

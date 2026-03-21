@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { getVerifiedUid } from "../../helpers";
 import { getUserById } from "../../users/helpers";
-import { Course, CourseLesson, Card, NewCourse, QuizSettings } from "@/lib/types";
+import { Card } from "@/lib/types/cards";
+import { Course, CourseLesson, NewCourse } from "@/lib/types/course";
+import { QuizSettings } from "@/lib/types/quiz";
 import { createCourseFromText, createLessonFromText } from "./helpers";
 import { createQuizFromCards, writeQuizToDb } from "../../quiz/helpers";
 

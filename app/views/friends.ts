@@ -1,5 +1,5 @@
 import { apiFetch } from "./helpers";
-import { LeaderboardEntry } from "@/lib/types";
+import { LeaderboardEntry } from "@/lib/types/friends";
 
 export type { LeaderboardEntry };
 

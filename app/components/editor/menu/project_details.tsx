@@ -1,7 +1,8 @@
 "use client";
 
 import { Timestamp } from "firebase/firestore";
-import { Project, Quiz } from "@/lib/types";
+import { Project } from "@/lib/types/project";
+import { Quiz } from "@/lib/types/quiz";
 import { getQuiz } from "@/app/views/quiz";
 import { getCards } from "@/app/views/cards";
 import { useState, useEffect } from "react";

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
-import { CommentTree, TimestampType } from "@/lib/types";
+import { CommentTree } from "@/lib/types/comments";
+import { TimestampType } from "@/lib/types/timestamp";
 import { updateComment, deleteComment, voteOnComment } from "@/app/views/courses";
 import { Timestamp } from "firebase/firestore";
 import { FiThumbsUp, FiThumbsDown, FiMessageSquare, FiEdit2, FiTrash2, FiMoreVertical } from "react-icons/fi";

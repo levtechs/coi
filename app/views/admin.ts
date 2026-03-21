@@ -1,4 +1,5 @@
-import { Project, User } from "@/lib/types";
+import { Project } from "@/lib/types/project";
+import { User } from "@/lib/types/user";
 import { auth } from "@/lib/firebase";
 
 /**

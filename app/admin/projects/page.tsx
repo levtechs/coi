@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { getAdminDetails, getMoreProjects, getProjectsForUser } from "@/app/views/admin";
-import { Project, User } from "@/lib/types";
+import { Project } from "@/lib/types/project";
+import { User } from "@/lib/types/user";
 import LoadingComponent from "@/app/components/loading";
 import { useAuth } from "@/lib/AuthContext";
 import LoginPrompt from "../../components/login_prompt";

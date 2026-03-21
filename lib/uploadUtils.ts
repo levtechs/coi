@@ -1,5 +1,5 @@
 import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB, MAX_FILES } from './uploadConstants';
-import { ChatAttachment } from './types';
+import { ChatAttachment } from "@/lib/types/chat";
 
 export interface UploadOptions {
     projectId: string;

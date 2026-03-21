@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import * as admin from "firebase-admin";
 import { getVerifiedUid } from "@/app/api/helpers";
-import { Friendship } from "@/lib/types";
+import { Friendship } from "@/lib/types/friends";
 
 /**
  * PUT /api/friends/[friendshipId]

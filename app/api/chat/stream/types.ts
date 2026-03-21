@@ -1,10 +1,8 @@
 import { GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
 
-import {
-    Card,
-    ChatAttachment,
-    TutorAction,
-} from "@/lib/types";
+import { Card } from "@/lib/types/cards";
+import { ChatAttachment } from "@/lib/types/chat";
+import { TutorAction } from "@/lib/types/content";
 
 export type MyPart = { text: string } | { inlineData: { data: string; mimeType: string } };
 export type MyContent = { role: string; parts: MyPart[] };

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 
 import { FiX, FiPlus, FiTrash2 } from "react-icons/fi";
 import Button from "../../button";
-import { Card, Label } from "@/lib/types";
+import { Card, Label } from "@/lib/types/cards";
 import LabelSelector from "./label_selector";
 
 

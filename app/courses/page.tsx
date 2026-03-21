@@ -11,7 +11,7 @@ import Button from "../components/button";
 import CoursesDashboard from "../components/courses/dashboard";
 import CreateCourse from "../components/courses/create/create_course";
 import { getUserFromId } from "../views/users";
-import { User } from "@/lib/types";
+import { User } from "@/lib/types/user";
 
 function CoursesPageContent() {
     const { user, loading } = useAuth();

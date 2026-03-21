@@ -3,7 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
-import { Project, ChatAttachment } from "@/lib/types";
+import { ChatAttachment } from "@/lib/types/chat";
+import { Project } from "@/lib/types/project";
 import { addCollaborator, setTitle } from "@/app/views/projects";
 
 import Editor from "@/app/components/editor/editor";

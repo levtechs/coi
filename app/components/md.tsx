@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
-import { Card } from "@/lib/types";
+import { Card } from "@/lib/types/cards";
 
 
 /**

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import SignUpQuestions from "@/app/components/signup/sign_up_questions";
-import { SignUpResponses } from "@/lib/types";
+import { SignUpResponses } from "@/lib/types/general";
 import { updateUserSignUpResponses } from "@/app/views/users";
 
 interface SignUpQuestionnaireModalProps {

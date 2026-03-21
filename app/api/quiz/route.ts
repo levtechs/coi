@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { NewCard, QuizSettings } from "@/lib/types";
+import { NewCard } from "@/lib/types/cards";
+import { QuizSettings } from "@/lib/types/quiz";
 
 import { getVerifiedUid, getVerifiedProjectAccess } from "@/app/api/helpers"
 

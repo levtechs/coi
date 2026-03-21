@@ -1,6 +1,6 @@
 import { adminDb } from "@/lib/firebaseAdmin";
 import * as admin from "firebase-admin";
-import { Project } from "@/lib/types";
+import { Project } from "@/lib/types/project";
 import { fetchUploadsFromProject } from "../uploads/helpers";
 
 /**

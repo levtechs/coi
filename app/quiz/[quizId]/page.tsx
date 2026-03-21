@@ -6,7 +6,7 @@ import Error from "@/app/components/error";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { getQuiz } from "@/app/views/quiz";
-import { Quiz } from "@/lib/types";
+import { Quiz } from "@/lib/types/quiz";
 import LoadingComponent from "@/app/components/loading";
 
 const QuizPage = () => {

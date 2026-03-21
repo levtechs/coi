@@ -1,7 +1,7 @@
 "use client";
 
 import { FileText, Paperclip, Globe, Brain, Layout, X, Play } from "lucide-react";
-import { ChatAttachment } from "@/lib/types";
+import { ChatAttachment } from "@/lib/types/chat";
 import { Dispatch, SetStateAction } from "react";
 
 interface AttachmentsListProps {

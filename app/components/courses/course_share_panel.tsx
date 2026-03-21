@@ -5,7 +5,8 @@ import { FiUser, FiCopy, FiUserPlus, FiLink, FiLoader, FiCheck } from "react-ico
 import { FaCrown } from "react-icons/fa";
 
 import Button from "@/app/components/button";
-import { Course, User } from "@/lib/types";
+import { Course } from "@/lib/types/course";
+import { User } from "@/lib/types/user";
 import { getUserFromId } from "@/app/views/users";
 import { createCourseInvitation } from "@/app/views/invite";
 import { getFriendships, FriendshipResponse } from "@/app/views/friends";

@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { User } from "firebase/auth";
-import { Project, Course } from "@/lib/types";
+import { Course } from "@/lib/types/course";
+import { Project } from "@/lib/types/project";
 import { getProjects, saveProject, createProject } from "@/app/views/projects"
 import { getCourses } from "@/app/views/courses";
 import funFacts from "@/lib/fun-facts.json";

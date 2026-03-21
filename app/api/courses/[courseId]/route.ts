@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { Filter } from "firebase-admin/firestore";
 import { getVerifiedUid, getVerifiedCourseAccess } from "../../helpers";
-import { Course, CourseLesson, Project, Card } from "@/lib/types";
+import { Card } from "@/lib/types/cards";
+import { Course, CourseLesson } from "@/lib/types/course";
+import { Project } from "@/lib/types/project";
 
 export async function GET(
     req: NextRequest,

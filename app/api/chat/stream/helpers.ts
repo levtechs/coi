@@ -1,13 +1,7 @@
-import {
-    ContentHierarchy,
-    Card,
-    Message,
-    ChatAttachment,
-    GroundingChunk,
-    ChatPreferences,
-    FileAttachment,
-    TutorAction,
-} from "@/lib/types";
+import { Card } from "@/lib/types/cards";
+import { Message, ChatAttachment, GroundingChunk, ChatPreferences } from "@/lib/types/chat";
+import { ContentHierarchy, TutorAction } from "@/lib/types/content";
+import { FileAttachment } from "@/lib/types/uploads";
 import { genAI } from "@/app/api/gemini/config";
 import { buildStreamChatRequest } from "./model_request";
 import { stripTransportTags } from "./prose_helpers";

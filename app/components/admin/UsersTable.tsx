@@ -1,7 +1,7 @@
 "use client";
 
 import Button from "@/app/components/button";
-import { User } from "@/lib/types";
+import { User } from "@/lib/types/user";
 
 interface UsersTableProps {
     users: User[];

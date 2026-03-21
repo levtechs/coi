@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 
-import { Message, StreamPhase, ChatAttachment, Card } from "@/lib/types";
+import { Card } from "@/lib/types/cards";
+import { Message, StreamPhase, ChatAttachment } from "@/lib/types/chat";
 import { useSmoothStream } from "@/app/hooks/use-smooth-stream";
 import { getAttachmentIcon, getAttachmentKey } from "./attachments_list";
 

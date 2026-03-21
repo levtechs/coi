@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { FileAttachment, ChatAttachment } from '@/lib/types';
+import { ChatAttachment } from "@/lib/types/chat";
+import { FileAttachment } from "@/lib/types/uploads";
 import { FiEye, FiPlus, FiUpload } from 'react-icons/fi';
 import { uploadFile } from '@/app/views/uploads';
 import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES } from '@/lib/uploadConstants';

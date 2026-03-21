@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Project, Card, ChatAttachment, CardFilter, DEFAULT_CARD_FILTER } from "@/lib/types";
+import { Card, CardFilter, DEFAULT_CARD_FILTER } from "@/lib/types/cards";
+import { ChatAttachment } from "@/lib/types/chat";
+import { Project } from "@/lib/types/project";
 import Modal from "../modal";
 import MenuBar from "./menu/menu";
 import ContentPanel from "./content";

@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Button from "../../button";
 import InvitePanel from "./invite_panel";
-import { Project } from "@/lib/types";
+import { Project } from "@/lib/types/project";
 import { ModalContents } from "../types";
 
 interface ShareMenuProps {

@@ -1,5 +1,7 @@
 import { Dispatch, SetStateAction } from "react";
-import { Message, Project, Card, StreamPhase, ChatAttachment } from "@/lib/types";
+import { Card } from "@/lib/types/cards";
+import { Message, StreamPhase, ChatAttachment } from "@/lib/types/chat";
+import { Project } from "@/lib/types/project";
 import { streamChat } from "@/app/views/chat";
 import { streamQuickCreate } from "@/app/views/quickCreate";
 

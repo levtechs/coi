@@ -1,6 +1,6 @@
 "use client";
 
-import { GroundingSources } from "@/lib/types";
+import { GroundingSources } from "@/lib/types/chat";
 import { FiExternalLink, FiX } from "react-icons/fi";
 
 interface SourcesPopupProps {

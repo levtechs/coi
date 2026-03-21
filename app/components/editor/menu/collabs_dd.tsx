@@ -8,7 +8,7 @@ import { FiUser, FiLoader} from "react-icons/fi";
 import Button from "@/app/components/button";
 import { auth } from "@/lib/firebase";
 import { getUserFromId } from "@/app/views/users";
-import { User } from "@/lib/types";
+import { User } from "@/lib/types/user";
 
 interface CollaboratorsDropdownProps {
     sharedWith: string[];

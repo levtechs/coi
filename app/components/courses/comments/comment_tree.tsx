@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
-import { CommentTree, CreateCommentData } from "@/lib/types";
+import { CommentTree, CreateCommentData } from "@/lib/types/comments";
 import { createComment } from "@/app/views/courses";
 import CommentForm from "./comment_form";
 import CommentItem from "./comment_item";

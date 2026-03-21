@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/AuthContext";
 import { createComment } from "@/app/views/courses";
-import { CommentTree, CreateCommentData, Comment, TimestampType } from "@/lib/types";
+import { CommentTree, CreateCommentData, Comment } from "@/lib/types/comments";
+import { TimestampType } from "@/lib/types/timestamp";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, onSnapshot, doc, getDoc } from "firebase/firestore";
 import CommentForm from "./comment_form";

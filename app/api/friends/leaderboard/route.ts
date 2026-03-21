@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { getVerifiedUid } from "@/app/api/helpers";
-import { Friendship, LeaderboardEntry } from "@/lib/types";
+import { Friendship, LeaderboardEntry } from "@/lib/types/friends";
 
 /**
  * GET /api/friends/leaderboard

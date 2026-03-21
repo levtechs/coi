@@ -1,7 +1,9 @@
 import { adminDb } from "@/lib/firebaseAdmin";
 import * as admin from "firebase-admin";
 
-import { Message, Card, NewCard, ContentNode, ContentHierarchy, ChatAttachment, GroundingChunk, TutorAction} from "@/lib/types"; // { content: string; isResponse: boolean }
+import { Card, NewCard } from "@/lib/types/cards";
+import { Message, ChatAttachment, GroundingChunk } from "@/lib/types/chat";
+import { ContentNode, ContentHierarchy, TutorAction } from "@/lib/types/content"; // { content: string; isResponse: boolean }
 
 import {
     genAI,

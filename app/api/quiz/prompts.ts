@@ -1,4 +1,4 @@
-import { QuizSettings } from "@/lib/types";
+import { QuizSettings } from "@/lib/types/quiz";
 
 export function gradeFRQsSystemInstruction() {
     return {

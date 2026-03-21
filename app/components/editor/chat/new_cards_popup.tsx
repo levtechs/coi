@@ -1,5 +1,6 @@
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { Card, CourseLesson } from "@/lib/types";
+import { Card } from "@/lib/types/cards";
+import { CourseLesson } from "@/lib/types/course";
 import DetailCard from "../cards/detail_card";
 import { getCards } from "@/app/views/cards";
 import { FiExternalLink } from "react-icons/fi";

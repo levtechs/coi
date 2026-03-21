@@ -1,4 +1,4 @@
-import { Project } from "@/lib/types";
+import { Project } from "@/lib/types/project";
 import { apiFetch } from "./helpers";
 
 import { getCards } from "./cards";

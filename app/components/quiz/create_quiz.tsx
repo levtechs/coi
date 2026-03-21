@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/lib/AuthContext";
 
-import { Card, QuizSettings } from "@/lib/types";
+import { Card } from "@/lib/types/cards";
+import { QuizSettings } from "@/lib/types/quiz";
 
 import { getCards } from "@/app/views/cards";
 import { createQuiz } from "@/app/views/quiz";

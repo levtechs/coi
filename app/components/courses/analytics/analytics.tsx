@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { FiArrowLeft, FiSettings } from "react-icons/fi";
 import { getCourse, fetchAnalytics } from "../../../views/courses";
-import { Course } from "../../../../lib/types";
+import { Course } from "@/lib/types/course";
 
 interface AnalyticsProps {
     courseId: string;

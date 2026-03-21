@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Button from "@/app/components/button";
-import { Project } from "@/lib/types";
+import { Project } from "@/lib/types/project";
 import { createInvitation } from "@/app/views/invite";
 import { FiCopy } from "react-icons/fi";
 

@@ -1,5 +1,6 @@
 import { adminDb } from "@/lib/firebaseAdmin";
-import { Project, User } from "@/lib/types";
+import { Project } from "@/lib/types/project";
+import { User } from "@/lib/types/user";
 
 /**
  * Get projects from the database with pagination.

@@ -1,5 +1,5 @@
 import { adminDb } from "@/lib/firebaseAdmin";
-import { Card, NewCard } from "@/lib/types";
+import { Card, NewCard } from "@/lib/types/cards";
 
 export const fetchCardsFromProject = async (projectId: string): Promise<Card[]> => {
     try {

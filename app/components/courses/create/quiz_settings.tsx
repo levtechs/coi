@@ -1,7 +1,8 @@
 "use client";
 
 import { FiLoader } from "react-icons/fi";
-import { NewCard, QuizSettings } from "@/lib/types";
+import { NewCard } from "@/lib/types/cards";
+import { QuizSettings } from "@/lib/types/quiz";
 import Button from "../../button";
 
 interface QuizSettingsComponentProps {

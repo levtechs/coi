@@ -10,7 +10,9 @@ import {
 } from "@/app/api/chat/helpers";
 import { copyCardsToDb, fetchCardsFromProject } from "@/app/api/cards/helpers";
 import { getProjectById } from "@/app/api/projects/helpers";
-import { Card, ChatAttachment, ContentHierarchy, GroundingChunk } from "@/lib/types";
+import { Card } from "@/lib/types/cards";
+import { ChatAttachment, GroundingChunk } from "@/lib/types/chat";
+import { ContentHierarchy } from "@/lib/types/content";
 import { buildFinalChatAttachments, resolveNewcardRefs } from "./shared";
 import { StreamChatResponseResult } from "./types";
 

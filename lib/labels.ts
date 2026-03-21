@@ -1,4 +1,4 @@
-import { Label } from "./types";
+import { Label } from "@/lib/types/cards";
 import { FiStar, FiX, FiBookOpen, FiFilter, FiSearch, FiCopy } from "react-icons/fi";
 
 export interface LabelDefinition {

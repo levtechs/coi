@@ -2,7 +2,10 @@
 
 import React, { useState, Dispatch, SetStateAction } from "react";
 import { FiChevronRight, FiChevronDown, FiPlus } from "react-icons/fi";
-import { Card, ContentHierarchy, ContentNode, ChatAttachment, CardFilter, Project } from "@/lib/types";
+import { Card, CardFilter } from "@/lib/types/cards";
+import { ChatAttachment } from "@/lib/types/chat";
+import { ContentHierarchy, ContentNode } from "@/lib/types/content";
+import { Project } from "@/lib/types/project";
 import MarkdownArticle from "../md";
 import DetailCard from "./cards/detail_card";
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 import { useAuth } from "@/lib/AuthContext";
 
-import { Quiz } from "@/lib/types";
+import { Quiz } from "@/lib/types/quiz";
 
 import { getQuiz } from "@/app/views/quiz";
 import LoadingComponent from "../loading";

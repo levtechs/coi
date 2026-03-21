@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { getVerifiedUid } from "../../../helpers";
-import { Project } from "@/lib/types";
+import { Project } from "@/lib/types/project";
 import { getLessonFromCourse } from "./helpers";
 import { createProject } from "../../../projects/helpers";
 import { Filter } from "firebase-admin/firestore";

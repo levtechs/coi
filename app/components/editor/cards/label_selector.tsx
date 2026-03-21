@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Label } from "@/lib/types";
+import { Label } from "@/lib/types/cards";
 import { LABEL_DEFINITIONS } from "@/lib/labels";
 
 type LabelSelectorProps = {

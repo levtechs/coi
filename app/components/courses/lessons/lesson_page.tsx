@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CourseLesson, Project, Card, Quiz } from "@/lib/types";
+import { Card } from "@/lib/types/cards";
+import { CourseLesson } from "@/lib/types/course";
+import { Project } from "@/lib/types/project";
+import { Quiz } from "@/lib/types/quiz";
 import { takeLesson } from "@/app/views/lessons";
 import { getQuiz } from "@/app/views/quiz";
 import { getCards } from "@/app/views/cards";

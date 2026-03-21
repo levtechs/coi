@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getVerifiedUid } from "../../helpers";
 import { fetchQuiz, gradeFRQs } from "./helpers";
-import { QuizQuestion } from "@/lib/types"
+import { QuizQuestion } from "@/lib/types/quiz";
 /*
  * Retrieves a quiz by its ID.
  */

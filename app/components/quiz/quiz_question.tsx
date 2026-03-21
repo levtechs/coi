@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { QuizQuestion } from "@/lib/types";
+import { QuizQuestion } from "@/lib/types/quiz";
 import MarkdownArticle from "../md";
 
 interface QuizQuestionElementProps {

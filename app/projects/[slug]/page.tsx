@@ -3,7 +3,9 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
-import { Project, Card, FileAttachment} from "@/lib/types";
+import { Card } from "@/lib/types/cards";
+import { Project } from "@/lib/types/project";
+import { FileAttachment } from "@/lib/types/uploads";
 import { addCollaborator, setTitle } from "@/app/views/projects";
 import { db } from "@/lib/firebase"; // your Firestore instance
 import { doc, collection, onSnapshot, QuerySnapshot, CollectionReference, DocumentSnapshot, DocumentReference, FirestoreError} from "firebase/firestore";

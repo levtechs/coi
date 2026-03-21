@@ -6,7 +6,8 @@ import { finalizeTaggedStream } from "@/app/api/chat/stream/orchestrator";
 import { persistModelCards } from "@/app/api/chat/stream/persist";
 import { createProject } from "@/app/api/projects/helpers";
 import { copyUploadsToDb } from "@/app/api/uploads/helpers";
-import { ChatAttachment, FileAttachment, StreamPhase, GroundingChunk, DEFAULT_CHAT_PREFERENCES } from "@/lib/types";
+import { ChatAttachment, StreamPhase, GroundingChunk, DEFAULT_CHAT_PREFERENCES } from "@/lib/types/chat";
+import { FileAttachment } from "@/lib/types/uploads";
 
 function generateTitleFromMessage(message: string): string {
     const trimmed = message.trim();

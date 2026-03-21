@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Card } from "@/lib/types";
+import { Card } from "@/lib/types/cards";
 
 import { FiX, FiStar, FiGlobe } from "react-icons/fi";
 

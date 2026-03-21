@@ -1,6 +1,6 @@
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
-import { FileAttachment } from '@/lib/types';
+import { FileAttachment } from "@/lib/types/uploads";
 import { apiFetch } from './helpers';
 
 export async function uploadFile(file: File, projectId: string): Promise<FileAttachment> {

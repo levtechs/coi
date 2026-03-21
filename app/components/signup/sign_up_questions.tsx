@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Role, Interest, HowDidYouHear, SignUpResponses } from "@/lib/types";
+import { Role, Interest, HowDidYouHear, SignUpResponses } from "@/lib/types/general";
 import Button from "@/app/components/button";
 import { FiBookOpen, FiUser, FiSearch, FiHeart, FiBriefcase, FiAward, FiHelpCircle, FiMoreHorizontal, FiZap } from "react-icons/fi";
 

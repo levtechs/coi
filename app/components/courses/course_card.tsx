@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { FiLock, FiMoreVertical, FiEdit2, FiTrash2, FiBarChart } from "react-icons/fi";
-import { Course } from "@/lib/types";
+import { Course } from "@/lib/types/course";
 import { deleteCourse } from "@/app/views/courses";
 import { useAuth } from "@/lib/AuthContext";
 

@@ -8,7 +8,7 @@ import { FiHome, FiStar, FiUser, FiUsers, FiActivity, FiFolder, FiUserPlus, FiUs
 import LoadingComponent from "../loading";
 import Error from "../error";
 
-import { User } from "@/lib/types";
+import { User } from "@/lib/types/user";
 import { getUserFromId } from "@/app/views/users";
 import { useAuth } from "@/lib/AuthContext";
 import { getFriendships, sendFriendRequest, acceptFriendRequest, removeFriend, FriendshipResponse } from "@/app/views/friends";

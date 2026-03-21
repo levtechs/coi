@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import * as admin from "firebase-admin";
 import { getVerifiedUid } from "../../../../helpers";
-import { UpdateCommentData } from "@/lib/types";
+import { UpdateCommentData } from "@/lib/types/comments";
 
 export async function PUT(
     req: NextRequest,

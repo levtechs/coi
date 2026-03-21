@@ -1,4 +1,4 @@
-import { Card, NewCard, Label } from "@/lib/types";
+import { Card, NewCard, Label } from "@/lib/types/cards";
 import { apiFetch } from "./helpers";
 
 /**

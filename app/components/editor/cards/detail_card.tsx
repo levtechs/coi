@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Card, Label } from "@/lib/types";
+import { Card, Label } from "@/lib/types/cards";
 import MarkdownArticle from "../../md";
 
 import { FaYoutube } from "react-icons/fa";

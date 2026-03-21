@@ -1,7 +1,9 @@
 // app/views/quickCreate.ts
 
 import { auth } from "@/lib/firebase";
-import { Message, Card, StreamPhase, ContentHierarchy, ChatAttachment } from "@/lib/types";
+import { Card } from "@/lib/types/cards";
+import { Message, StreamPhase, ChatAttachment } from "@/lib/types/chat";
+import { ContentHierarchy } from "@/lib/types/content";
 
 /**
  * Streams a quick-create project request from the API.

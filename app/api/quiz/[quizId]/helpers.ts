@@ -1,5 +1,5 @@
 import { adminDb } from "@/lib/firebaseAdmin";
-import { Quiz, QuizQuestion } from "@/lib/types";
+import { Quiz, QuizQuestion } from "@/lib/types/quiz";
 import { genAI } from "../../gemini/config";
 import { gradeFRQsSystemInstruction } from "../prompts";
 import { Content, Type } from "@google/genai";

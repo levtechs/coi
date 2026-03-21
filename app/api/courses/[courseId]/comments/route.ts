@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import * as admin from "firebase-admin";
 import { getVerifiedCourseAccess } from "../../../helpers";
-import { Comment, CommentTree, CreateCommentData } from "@/lib/types";
+import { Comment, CommentTree, CreateCommentData } from "@/lib/types/comments";
 
 export async function GET(
     req: NextRequest,

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Card } from "@/lib/types";
+import { Card } from "@/lib/types/cards";
 import MarkdownArticle from "../../md";
 
 import { FaYoutube } from "react-icons/fa";

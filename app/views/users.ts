@@ -1,4 +1,5 @@
-import { User, SignUpResponses } from "@/lib/types";
+import { SignUpResponses } from "@/lib/types/general";
+import { User } from "@/lib/types/user";
 
 import { apiFetch } from "./helpers";
 

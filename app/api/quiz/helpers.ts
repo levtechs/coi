@@ -4,7 +4,8 @@ import * as admin from "firebase-admin";
 import { defaultGeneralConfig, llmModel, genAI } from "../gemini/config";
 import { createQuizFromCardsSystemInstruction } from "./prompts";
 
-import { NewCard, QuizSettings } from "@/lib/types";
+import { NewCard } from "@/lib/types/cards";
+import { QuizSettings } from "@/lib/types/quiz";
 import { Content, GenerationConfig, ThinkingConfig, Tool, Type, Schema } from "@google/genai";
 import { MyConfig, MyGenerateContentParameters } from "../gemini/types";
 

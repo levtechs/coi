@@ -6,7 +6,9 @@ import Button from "../../button";
 
 import FastCreatePopup from "./fast_create_popup";
 import QuizSettingsComponent from "./quiz_settings";
-import { CourseLesson, Card, NewCard, QuizSettings } from "@/lib/types";
+import { Card, NewCard } from "@/lib/types/cards";
+import { CourseLesson } from "@/lib/types/course";
+import { QuizSettings } from "@/lib/types/quiz";
 import { createQuiz, getQuiz } from "@/app/views/quiz";
 
 type LessonForm = Omit<CourseLesson, "id" | "courseId" | "index" | "cardsToUnlock"> & { cardsToUnlock: NewCard[] };

@@ -1,5 +1,6 @@
 import { adminDb } from "@/lib/firebaseAdmin";
-import { CourseLesson, Card } from "@/lib/types";
+import { Card } from "@/lib/types/cards";
+import { CourseLesson } from "@/lib/types/course";
 
 /**
  * Fetches a specific lesson from a course and checks user access permissions.

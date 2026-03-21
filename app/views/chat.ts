@@ -3,7 +3,9 @@
 import { auth } from "@/lib/firebase";
 import { apiFetch } from "./helpers"; // adjust path if needed
 
-import { Message, Card, StreamPhase, ContentHierarchy, ChatAttachment } from "@/lib/types";
+import { Card } from "@/lib/types/cards";
+import { Message, StreamPhase, ChatAttachment } from "@/lib/types/chat";
+import { ContentHierarchy } from "@/lib/types/content";
 
 /**
  * Streams a chat response from the API.

@@ -1,6 +1,6 @@
 // ==== prompts ====
 
-import { Card } from "@/lib/types";
+import { Card } from "@/lib/types/cards";
 
 // "Chunk" prompts
 

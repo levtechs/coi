@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Quiz, QuizQuestion } from "@/lib/types";
+import { Quiz, QuizQuestion } from "@/lib/types/quiz";
 import QuizQuestionElement from "./quiz_question";
 import Button from "../button";
 import LoadingComponent from "../loading";

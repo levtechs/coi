@@ -9,7 +9,9 @@ import NewCardsPopup from "./new_cards_popup";
 import SourcesPopup from "./sources_popup";
 import AttachmentsList from "./attachments_list";
 
-import { Project, Message, Card, StreamPhase, ChatAttachment } from "@/lib/types";
+import { Card } from "@/lib/types/cards";
+import { Message, StreamPhase, ChatAttachment } from "@/lib/types/chat";
+import { Project } from "@/lib/types/project";
 import { ModalContents, noModal } from "../types";
 
 import { getChatHistory } from "@/app/views/chat";

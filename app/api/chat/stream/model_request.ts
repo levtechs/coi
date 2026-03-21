@@ -1,13 +1,9 @@
 import { GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
 
-import {
-    Card,
-    ChatAttachment,
-    ChatPreferences,
-    ContentHierarchy,
-    FileAttachment,
-    Message,
-} from "@/lib/types";
+import { Card } from "@/lib/types/cards";
+import { ChatAttachment, ChatPreferences, Message } from "@/lib/types/chat";
+import { ContentHierarchy } from "@/lib/types/content";
+import { FileAttachment } from "@/lib/types/uploads";
 import { getStringFromHierarchyAndCards } from "../helpers";
 import { getGenerationConfig, getLLMModel } from "@/app/api/gemini/config";
 import { getChatResponseSystemInstruction } from "../prompts";

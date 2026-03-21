@@ -2,7 +2,10 @@ import { apiFetch } from "./helpers";
 import React from "react";
 import { auth } from "@/lib/firebase";
 
-import { Course, Project, NewLesson, QuizSettings, CommentTree, CreateCommentData, UpdateCommentData } from "@/lib/types";
+import { CommentTree, CreateCommentData, UpdateCommentData } from "@/lib/types/comments";
+import { Course, NewLesson } from "@/lib/types/course";
+import { Project } from "@/lib/types/project";
+import { QuizSettings } from "@/lib/types/quiz";
 
 type NewCourse = Omit<Course, "id" | "lessons"> & { lessons: NewLesson[] };
 type CourseLessonForm = Omit<NewLesson, "index"> & { id?: string; };

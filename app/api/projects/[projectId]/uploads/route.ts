@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getVerifiedProjectAccess } from '@/app/api/helpers';
 import { writeUploadsToDb } from '@/app/api/uploads/helpers';
-import { FileAttachment } from '@/lib/types';
+import { FileAttachment } from "@/lib/types/uploads";
 
 export async function POST(
     request: NextRequest,

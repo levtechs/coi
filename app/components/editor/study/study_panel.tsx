@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Card } from '@/lib/types';
+import { Card } from "@/lib/types/cards";
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import StudyCard from './study_card';
 import CardPopup from '../cards/card_popup';

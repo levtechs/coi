@@ -12,7 +12,9 @@ import { getCourse } from "../../views/courses";
 import { getCards } from "../../views/cards";
 import { getQuiz } from "../../views/quiz";
 // createCourseInvitation is now handled inside CourseSharePanel
-import { Course, Project, Quiz } from "@/lib/types";
+import { Course } from "@/lib/types/course";
+import { Project } from "@/lib/types/project";
+import { Quiz } from "@/lib/types/quiz";
 import LoadingComponent from "../../components/loading";
 import Button from "../../components/button";
 import Analytics from "../../components/courses/analytics/analytics";

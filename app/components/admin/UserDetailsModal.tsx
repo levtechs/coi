@@ -1,7 +1,7 @@
 "use client";
 
 import Modal from "../modal";
-import { User } from "@/lib/types";
+import { User } from "@/lib/types/user";
 
 interface UserDetailsModalProps {
     selectedUser: User | null;
