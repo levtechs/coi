@@ -958,20 +958,28 @@ export const enrichResourceCards = async (
     cards: Card[],
     existingCards: Card[]
 ): Promise<void> => {
+    const RESOURCE_SCRAPE_BUDGET = 5;
+    const RESOURCE_FETCH_TIMEOUT_MS = 10000;
+    const IMAGE_HEAD_TIMEOUT_MS = 5000;
+    const MAX_YOUTUBE_DESCRIPTION_LENGTH = 80;
+    const MAX_HEADING_LENGTH = 128;
+    const MAX_IMAGE_CANDIDATES = 10;
+    const MIN_IMAGE_BYTES = 1000;
+
     const resourceCards = cards.filter((card) => card.url && !card.iconUrl && !card.refImageUrls?.length);
     if (resourceCards.length === 0) return;
 
     let cost = 0;
 
     for (const card of resourceCards) {
-        if (cost > 5 || !card.url) break;
+        if (cost > RESOURCE_SCRAPE_BUDGET || !card.url) break;
 
         const alreadyEnriched = existingCards.find((c) => c.url === card.url && (c.iconUrl || (c.refImageUrls && c.refImageUrls.length > 0)));
         if (alreadyEnriched) continue;
 
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            const timeoutId = setTimeout(() => controller.abort(), RESOURCE_FETCH_TIMEOUT_MS);
             const response = await fetch(card.url, {
                 redirect: "follow",
                 signal: controller.signal,
@@ -984,7 +992,9 @@ export const enrichResourceCards = async (
             if (response.url.includes("youtube.com") || response.url.includes("youtu.be")) {
                 try {
                     const data = await getYoutubeData(response.url);
-                    const desc = data.description.length > 80 ? data.description.slice(0, 77) + "..." : data.description;
+                    const desc = data.description.length > MAX_YOUTUBE_DESCRIPTION_LENGTH
+                        ? data.description.slice(0, MAX_YOUTUBE_DESCRIPTION_LENGTH - 3) + "..."
+                        : data.description;
                     updates.details = [
                         desc,
                         `Channel: ${data.channelTitle}`,
@@ -1014,14 +1024,14 @@ export const enrichResourceCards = async (
                     const headingMatch = html.match(/<h[1-2][^>]*>([\s\S]*?)<\/h[1-2]>/i);
                     if (headingMatch) {
                         let heading = headingMatch[1].replace(/<[^>]*>/g, '').trim();
-                        if (heading.length > 128) heading = heading.slice(0, 125) + '...';
+                        if (heading.length > MAX_HEADING_LENGTH) heading = heading.slice(0, MAX_HEADING_LENGTH - 3) + '...';
                         if (heading) updates.details = [heading];
                     }
                 }
 
                 const imgMatches = html.match(/<img[^>]*src=["']([^"']*)["'][^>]*>/gi) || [];
                 const imageCandidates: string[] = [];
-                for (const imgTag of imgMatches.slice(0, 10)) {
+                for (const imgTag of imgMatches.slice(0, MAX_IMAGE_CANDIDATES)) {
                     const srcMatch = imgTag.match(/src=["']([^"']*)["']/);
                     if (srcMatch) {
                         try {
@@ -1039,12 +1049,12 @@ export const enrichResourceCards = async (
                     imageCandidates.map(async (url) => {
                         try {
                             const imageController = new AbortController();
-                            const imageTimeout = setTimeout(() => imageController.abort(), 5000);
+                            const imageTimeout = setTimeout(() => imageController.abort(), IMAGE_HEAD_TIMEOUT_MS);
                             const headRes = await fetch(url, { method: 'HEAD', signal: imageController.signal });
                             clearTimeout(imageTimeout);
                             const contentType = headRes.headers.get('content-type') || '';
                             const contentLength = parseInt(headRes.headers.get('content-length') || '0');
-                            if (contentType.startsWith('image/') && contentLength > 1000) {
+                            if (contentType.startsWith('image/') && contentLength > MIN_IMAGE_BYTES) {
                                 return { url, size: contentLength };
                             }
                         } catch {

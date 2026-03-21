@@ -10,7 +10,7 @@ import {
 } from "@/lib/types";
 import { genAI } from "@/app/api/gemini/config";
 import { buildStreamChatRequest } from "./model_request";
-import { replaceInlineRefs, stripTransportTags } from "./prose_helpers";
+import { stripTransportTags } from "./prose_helpers";
 import { createActiveBlock, extractTaggedBodies, findOpenTag, isPotentialPartialTopLevelTag, parseKnowledgeCards, parseResourceCards, parseUnlockCards } from "./tag_parsing";
 import { ActiveBlock, ModelCard, StreamChatResponseResult } from "./types";
 
@@ -74,7 +74,11 @@ export async function streamChatResponse(
 
     const resolveNewCardTitle = (title: string): string => {
         const card = writtenCards.find((item) => item.title === title);
-        return card ? `(card: ${card.id})` : title;
+        if (!card) {
+            console.warn(`[chat-stream] Could not resolve NewCardRef with title: "${title}"`);
+            return title;
+        }
+        return `(card: ${card.id})`;
     };
 
     const replaceInlineRefs = (text: string): string => {
