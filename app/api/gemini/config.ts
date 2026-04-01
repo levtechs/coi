@@ -21,8 +21,8 @@ export const limitedGeneralConfig = {
 export const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 // Model selection based on preferences
-export const getLLMModel = (modelPreference: "normal" | "fast", generationModel?: "flash" | "flash-lite") => {
-    if (generationModel === "flash-lite") {
+export const getLLMModel = (modelPreference: "normal" | "fast") => {
+    if (modelPreference === "fast") {
         return "gemini-2.5-flash-lite";
     }
     return "gemini-2.5-flash";
@@ -41,4 +41,3 @@ export const getGenerationConfig = (modelPreference: "normal" | "fast") => {
 
 // Default model for backward compatibility
 export const llmModel = getLLMModel("normal");
-

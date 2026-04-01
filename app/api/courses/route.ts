@@ -3,6 +3,7 @@ import { adminDb } from "@/lib/firebaseAdmin";
 import { getVerifiedUid } from "../helpers";
 import { Course, CourseLesson } from "@/lib/types/course";
 import { Filter } from "firebase-admin/firestore";
+import { normalizeCourse, normalizeCourseLesson } from "@/app/api/courses/helpers";
 
 /*
  * Fetches all courses available to a user.
@@ -20,6 +21,7 @@ export async function GET(req: NextRequest) {
         const snapshot = await coursesRef.where(
             Filter.or(
                 Filter.where('ownerId', '==', uid),
+                Filter.where('staffIds', 'array-contains', uid),
                 Filter.where('sharedWith', 'array-contains', uid),
                 Filter.where('public', '==', true)
             )
@@ -30,23 +32,9 @@ export async function GET(req: NextRequest) {
                 const data = doc.data();
                 const lessonsRef = doc.ref.collection('lessons');
                 const lessonsSnap = await lessonsRef.get();
-                const lessons = lessonsSnap.docs.map((p) => ({
-                    id: p.id,
-                    courseId: doc.id,
-                    ...p.data(),
-                })) as CourseLesson[];
+                const lessons = lessonsSnap.docs.map((p) => normalizeCourseLesson(doc.id, p.id, p.data(), [])) as CourseLesson[];
 
-                return {
-                    id: doc.id,
-                    title: data.title,
-                    description: data.description,
-                    lessons,
-                    quizIds: data.quizIds || [],
-                    public: data.public,
-                    sharedWith: data.sharedWith,
-                    category: data.category,
-                    ownerId: data.ownerId,
-                } as Course;
+                return normalizeCourse(doc.id, data, lessons) as Course;
             })
         );
         return NextResponse.json(courses);

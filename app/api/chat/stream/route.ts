@@ -7,6 +7,7 @@ import { persistModelCards } from "./persist";
 import { getProjectById } from "@/app/api/projects/helpers";
 import { fetchCardsFromProject } from "@/app/api/cards/helpers";
 import { copyUploadsToDb } from "@/app/api/uploads/helpers";
+import { fetchCourseAndLessonContext } from "@/app/api/courses/helpers";
 import { Card } from "@/lib/types/cards";
 import { ChatAttachment, StreamPhase, GroundingChunk, DEFAULT_CHAT_PREFERENCES } from "@/lib/types/chat";
 import { FileAttachment } from "@/lib/types/uploads";
@@ -53,6 +54,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Project not found or access denied" }, { status: 404 });
         }
 
+        const courseContext = project.courseId
+            ? await fetchCourseAndLessonContext(project.courseId, project.courseLesson?.id)
+            : { course: null, lesson: null };
+        const resolvedLesson = courseContext.lesson || project.courseLesson || null;
+
         const previousContentHierarchy = project.hierarchy;
         const previousCards = await fetchCardsFromProject(projectId);
         const effectivePreviousCards = previousCards.filter((card) => !card.exclude && !card.labels?.includes("exclude from hierarchy"));
@@ -86,7 +92,7 @@ export async function POST(req: NextRequest) {
 
                     updatePhase("starting");
 
-                    const cardsToUnlock = project.courseLesson?.cardsToUnlock || [];
+                    const cardsToUnlock = resolvedLesson?.cardsToUnlock || [];
                     const onNewCards = persistModelCards(projectId, sendUpdate);
 
                     const result = await streamChatResponse(
@@ -102,7 +108,8 @@ export async function POST(req: NextRequest) {
                         },
                         onNewCards,
                         cardsToUnlock,
-                        project.courseLesson,
+                        courseContext.course,
+                        resolvedLesson,
                     );
 
                     const { newCardsFromModel, writtenCards, chatAttachments } = result!;
@@ -121,6 +128,8 @@ export async function POST(req: NextRequest) {
                         previousContentHierarchy,
                         effectivePreviousCards,
                         cardsToUnlock,
+                        courseId: project.courseId,
+                        courseLesson: resolvedLesson,
                     });
 
                     const finalObj = {

@@ -1,6 +1,8 @@
 import { adminDb } from "@/lib/firebaseAdmin";
 import * as admin from "firebase-admin";
 import { Project } from "@/lib/types/project";
+import { NewCard } from "@/lib/types/cards";
+import { stripUndefinedDeep } from "@/lib/firestoreSanitize";
 import { fetchUploadsFromProject } from "../uploads/helpers";
 
 /**
@@ -39,17 +41,19 @@ export async function getProjectById(projectId: string, uid: string): Promise<Pr
  * @throws Error if project creation fails
  */
 export async function createProject(
-    projectData: Omit<Project, 'id' | 'ownerId' | 'collaborators' | 'sharedWith'>,
+    projectData: Omit<Project, 'id' | 'ownerId' | 'collaborators' | 'sharedWith' | 'cards'> & { cards: NewCard[] },
     uid: string
 ): Promise<string> {
     try {
         // Exclude cards from document data, as cards are stored in subcollection
         const { cards, ...docData } = projectData;
+        const sanitizedDocData = stripUndefinedDeep(docData);
+        const sanitizedCards = stripUndefinedDeep(cards);
 
         // 1️⃣ Create the new project document
         const projectsCol = adminDb.collection("projects");
         const docRef = await projectsCol.add({
-            ...docData,
+            ...sanitizedDocData,
             ownerId: uid,
             collaborators: [],
             sharedWith: [],
@@ -57,9 +61,9 @@ export async function createProject(
         });
 
         // 2️⃣ Write cards to subcollection if provided
-        if (cards && cards.length > 0) {
+        if (sanitizedCards && sanitizedCards.length > 0) {
             const { writeCardsToDb } = await import("../cards/helpers");
-            await writeCardsToDb(docRef.id, cards);
+            await writeCardsToDb(docRef.id, sanitizedCards);
         }
 
         // 3️⃣ Add the projectId to the user's projectIds array

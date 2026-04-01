@@ -1,10 +1,10 @@
 import { Card } from "@/lib/types/cards";
 import { ChatAttachment, GroundingChunk } from "@/lib/types/chat";
 
-export function resolveNewcardRefs(response: string, writtenCards: Card[]): string {
+export function resolveNewcardRefs(response: string, availableCards: Card[]): string {
     let resolved = response;
     resolved = resolved.replace(/<NewCardRef\s+title="([^"]+)"\s*\/>/gi, (_match, title: string) => {
-        const card = writtenCards.find((item) => item.title === title);
+        const card = availableCards.find((item) => item.title === title);
         return card ? `(card: ${card.id})` : title;
     });
     resolved = resolved.replace(/<CardRef\s+id="([^"]+)"\s*\/>/gi, (_match, id: string) => `(card: ${id})`);

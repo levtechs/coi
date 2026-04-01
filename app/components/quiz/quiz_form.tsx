@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Quiz, QuizQuestion } from "@/lib/types/quiz";
 import QuizQuestionElement from "./quiz_question";
 import Button from "../button";
@@ -21,6 +21,7 @@ const QuizForm = ({ quiz, isGraded }: QuizFormProps) => {
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [results, setResults] = useState<{isCorrect: boolean, score: number, correctAnswer: string, feedback?: string}[] | null>(null);
     const [isGrading, setIsGrading] = useState(false);
+    const startedAtRef = useRef<number>(Date.now());
 
     // This handler updates the state with the user's selection for a specific question.
     const handleOptionSelect = (questionIndex: number, optionIndex: number) => {
@@ -93,10 +94,10 @@ const QuizForm = ({ quiz, isGraded }: QuizFormProps) => {
                                      setSubmitError(null);
                                      setIsGrading(true);
                                      const answers = quiz.questions.map((q, i) => q.type === "MCQ" ? selectedOptions[i] : frqResponses[i]) as (number | string)[];
-                                     const grading = await gradeQuiz(quiz.id!, answers);
-                                     setResults(grading.results);
-                                     setSubmitted(true);
-                                     setIsGrading(false);
+                                      const grading = await gradeQuiz(quiz.id!, answers, Date.now() - startedAtRef.current);
+                                      setResults(grading.results);
+                                      setSubmitted(true);
+                                      setIsGrading(false);
                                      window.scrollTo({ top: 0, behavior: 'smooth' });
                                  }}
                              >
