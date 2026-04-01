@@ -43,7 +43,7 @@ export async function recordLessonProjectStart(courseId: string, lesson: CourseL
   const startedAt = existingLesson.startedAt || now;
   const shouldMarkComplete = lesson.cardsToUnlock.length === 0 && !existingLesson.completedAt;
 
-  await studentRef.set({
+  await studentRef.update({
     lastActiveAt: now,
     [`${lessonKey}.lessonId`]: lesson.id,
     [`${lessonKey}.lessonIndex`]: lesson.index,
@@ -52,7 +52,7 @@ export async function recordLessonProjectStart(courseId: string, lesson: CourseL
     [`${lessonKey}.projectIds`]: mergedProjectIds,
     [`${lessonKey}.unlockedCardIds`]: existingLesson.unlockedCardIds || [],
     ...((shouldMarkComplete) ? { [`${lessonKey}.completedAt`]: now } : {}),
-  }, { merge: true });
+  });
 }
 
 export async function recordLessonCardUnlocks(courseId: string, lesson: CourseLesson, uid: string, unlockedCardIds: string[]) {
@@ -70,13 +70,13 @@ export async function recordLessonCardUnlocks(courseId: string, lesson: CourseLe
   const lessonKey = `lessonProgress.${lesson.id}`;
   const isComplete = lesson.cardsToUnlock.length === 0 || mergedUnlocked.length >= lesson.cardsToUnlock.length;
 
-  await studentRef.set({
+  await studentRef.update({
     lastActiveAt: new Date().toISOString(),
     [`${lessonKey}.lessonId`]: lesson.id,
     [`${lessonKey}.lessonIndex`]: lesson.index,
     [`${lessonKey}.unlockedCardIds`]: mergedUnlocked,
     ...((isComplete && !existingLesson.completedAt) ? { [`${lessonKey}.completedAt`]: new Date().toISOString() } : {}),
-  }, { merge: true });
+  });
 }
 
 export async function recordQuizAttemptForCourseProgress(quiz: Quiz, uid: string, attempt: QuizAttemptSummary) {
@@ -93,12 +93,12 @@ export async function recordQuizAttemptForCourseProgress(quiz: Quiz, uid: string
     const bestExisting = lessonProgress.bestQuizAttempt;
     const shouldReplaceBest = !bestExisting || attempt.percentScore >= bestExisting.percentScore;
 
-    await studentRef.set({
+    await studentRef.update({
       lastActiveAt: new Date().toISOString(),
       [`lessonProgress.${quiz.lessonId}.lessonId`]: quiz.lessonId,
       [`lessonProgress.${quiz.lessonId}.latestQuizAttempt`]: attempt,
       ...(shouldReplaceBest ? { [`lessonProgress.${quiz.lessonId}.bestQuizAttempt`]: attempt } : {}),
-    }, { merge: true });
+    });
     return;
   }
 
