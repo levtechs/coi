@@ -181,6 +181,22 @@ function optionalLessonSubstantial(params: {
   );
 }
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = [];
+
+  for (let index = 0; index < items.length; index += concurrency) {
+    const chunk = items.slice(index, index + concurrency);
+    const chunkResults = await Promise.all(chunk.map((item) => mapper(item)));
+    results.push(...chunkResults);
+  }
+
+  return results;
+}
+
 export type PortfolioAggregate = {
   courseTitle: string;
   lessonBundles: LessonBundleJson[];
@@ -222,14 +238,14 @@ export async function aggregatePortfolioInput(
     const unlockedCardMap = new Map<string, Card>();
     let userMessageCount = 0;
 
-    const projectArtifacts = await Promise.all(projects.map(async (p) => {
+    const projectArtifacts = await mapWithConcurrency(projects, 5, async (p) => {
       const [msgs, ups, cards] = await Promise.all([
         loadChatMessages(p.id, uid),
         fetchUploadsFromProject(p.id),
         fetchCardsFromProject(p.id),
       ]);
       return { msgs, ups, cards };
-    }));
+    });
 
     for (const { msgs, ups, cards } of projectArtifacts) {
       for (const m of msgs) {

@@ -4,6 +4,7 @@ import { MyGenerateContentParameters } from "@/app/api/gemini/types";
 import { PortfolioAggregate } from "./aggregate";
 
 const REPORT_MODEL = getLLMModel("fast");
+const MAX_REPORT_IMAGE_BYTES = 10 * 1024 * 1024;
 const FIREBASE_STORAGE_BUCKET = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET || `${process.env.FIREBASE_PROJECT_ID}.firebasestorage.app`;
 const TRUSTED_REPORT_IMAGE_HOSTS = new Set([
   "firebasestorage.googleapis.com",
@@ -56,7 +57,28 @@ async function fetchImagePart(url: string, declaredMime: string): Promise<{ mime
 
     const res = await fetch(parsedUrl.toString());
     if (!res.ok) return null;
-    const buf = Buffer.from(await res.arrayBuffer());
+    const declaredLength = Number(res.headers.get("content-length") || 0);
+    if (Number.isFinite(declaredLength) && declaredLength > MAX_REPORT_IMAGE_BYTES) {
+      return null;
+    }
+
+    const reader = res.body?.getReader();
+    if (!reader) return null;
+
+    const chunks: Uint8Array[] = [];
+    let totalBytes = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      totalBytes += value.byteLength;
+      if (totalBytes > MAX_REPORT_IMAGE_BYTES) {
+        return null;
+      }
+      chunks.push(value);
+    }
+
+    const buf = Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
     let mime = declaredMime;
     if (!mime.startsWith("image/") || mime === "image/*") {
       mime = res.headers.get("content-type")?.split(";")[0]?.trim() || "image/jpeg";

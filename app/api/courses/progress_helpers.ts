@@ -36,17 +36,22 @@ export async function recordLessonProjectStart(courseId: string, lesson: CourseL
   const studentRef = getStudentRef(courseId, uid);
   const lessonKey = `lessonProgress.${lesson.id}`;
   const existingSnap = await studentRef.get();
+  const existingLesson = existingSnap.data()?.lessonProgress?.[lesson.id] || {};
   const existingProjectIds = (existingSnap.data()?.lessonProgress?.[lesson.id]?.projectIds || []) as string[];
   const mergedProjectIds = existingProjectIds.includes(projectId) ? existingProjectIds : [...existingProjectIds, projectId];
+  const now = new Date().toISOString();
+  const startedAt = existingLesson.startedAt || now;
+  const shouldMarkComplete = lesson.cardsToUnlock.length === 0 && !existingLesson.completedAt;
 
   await studentRef.set({
-    lastActiveAt: new Date().toISOString(),
+    lastActiveAt: now,
     [`${lessonKey}.lessonId`]: lesson.id,
     [`${lessonKey}.lessonIndex`]: lesson.index,
-    [`${lessonKey}.startedAt`]: new Date().toISOString(),
+    [`${lessonKey}.startedAt`]: startedAt,
     [`${lessonKey}.lastProjectId`]: projectId,
     [`${lessonKey}.projectIds`]: mergedProjectIds,
-    [`${lessonKey}.unlockedCardIds`]: existingSnap.data()?.lessonProgress?.[lesson.id]?.unlockedCardIds || [],
+    [`${lessonKey}.unlockedCardIds`]: existingLesson.unlockedCardIds || [],
+    ...((shouldMarkComplete) ? { [`${lessonKey}.completedAt`]: now } : {}),
   }, { merge: true });
 }
 
@@ -63,7 +68,7 @@ export async function recordLessonCardUnlocks(courseId: string, lesson: CourseLe
 
   const mergedUnlocked = [...new Set([...(existingLesson.unlockedCardIds || []), ...unlockedCardIds])];
   const lessonKey = `lessonProgress.${lesson.id}`;
-  const isComplete = lesson.cardsToUnlock.length > 0 && mergedUnlocked.length >= lesson.cardsToUnlock.length;
+  const isComplete = lesson.cardsToUnlock.length === 0 || mergedUnlocked.length >= lesson.cardsToUnlock.length;
 
   await studentRef.set({
     lastActiveAt: new Date().toISOString(),

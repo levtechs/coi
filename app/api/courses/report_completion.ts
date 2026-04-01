@@ -1,5 +1,4 @@
 import { adminDb } from "@/lib/firebaseAdmin";
-import { fetchCardsFromProject } from "@/app/api/cards/helpers";
 import { fetchQuizAttemptsForUser } from "@/app/api/quiz/[quizId]/helpers";
 import { Course, CourseLesson, CourseQuizReportPolicyEntry, CourseStudentLessonProgress, CourseStudentProgress } from "@/lib/types/course";
 
@@ -31,7 +30,6 @@ export function getQuizReportPolicy(
   return p;
 }
 
-/** Firestore `students/{uid}.lessonProgress` only (may lag if unlocks did not go through chat). */
 function lessonCardsSatisfiedFromStored(lesson: CourseLesson, lp: CourseStudentLessonProgress | undefined): boolean {
   const n = lesson.cardsToUnlock.length;
   if (n === 0) {
@@ -42,32 +40,6 @@ function lessonCardsSatisfiedFromStored(lesson: CourseLesson, lp: CourseStudentL
   return unlocked >= n;
 }
 
-/**
- * Same bar as the course page / analytics: any owned lesson project with enough unlocked cards counts as complete.
- */
-async function lessonCardsSatisfiedFromProjects(
-  lesson: CourseLesson,
-  courseId: string,
-  uid: string,
-): Promise<boolean> {
-  const n = lesson.cardsToUnlock.length;
-  const projectIds = await loadLessonProjectIds(courseId, lesson.id, uid);
-  if (n === 0) {
-    return projectIds.length > 0;
-  }
-  if (projectIds.length === 0) return false;
-  let maxUnlocked = 0;
-  for (const pid of projectIds) {
-    try {
-      const cards = await fetchCardsFromProject(pid);
-      maxUnlocked = Math.max(maxUnlocked, cards.filter((c) => c.isUnlocked).length);
-    } catch {
-      /* ignore */
-    }
-  }
-  return maxUnlocked >= n;
-}
-
 async function lessonSatisfiedForReport(
   lesson: CourseLesson,
   courseId: string,
@@ -75,7 +47,13 @@ async function lessonSatisfiedForReport(
   lp: CourseStudentLessonProgress | undefined,
 ): Promise<boolean> {
   if (lessonCardsSatisfiedFromStored(lesson, lp)) return true;
-  return lessonCardsSatisfiedFromProjects(lesson, courseId, uid);
+
+  // Avoid project/card fanout on report-eligibility checks.
+  const projectIds = await loadLessonProjectIds(courseId, lesson.id, uid);
+  if (lesson.cardsToUnlock.length === 0) {
+    return projectIds.length > 0;
+  }
+  return false;
 }
 
 async function quizGateSatisfied(

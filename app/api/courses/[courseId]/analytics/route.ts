@@ -2,12 +2,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 
 import { getVerifiedUid } from "@/app/api/helpers";
-import { fetchCardsFromProject } from "@/app/api/cards/helpers";
 import { fetchCourseAndLessonContext } from "@/app/api/courses/helpers";
-import { getUserById } from "@/app/api/users/helpers";
 import { fetchCourseStudentProgress } from "@/app/api/courses/progress_helpers";
 import { getCourseMemberIds, isCourseStaff } from "@/app/api/courses/helpers";
 import { CourseStudentLessonProgress, CourseStudentProgress } from "@/lib/types/course";
+import { User } from "@/lib/types/user";
+
+async function loadUsersByIds(userIds: string[]): Promise<Map<string, User>> {
+    if (userIds.length === 0) return new Map();
+
+    const refs = userIds.map((userId) => adminDb.collection("users").doc(userId));
+    const snaps = await adminDb.getAll(...refs);
+    return new Map(
+        snaps
+            .filter((snap) => snap.exists)
+            .map((snap) => {
+                const data = snap.data()!;
+                return [snap.id, {
+                    id: snap.id,
+                    email: data.email,
+                    displayName: data.displayName,
+                    actions: data.actions,
+                    dailyActions: data.dailyActions,
+                    weeklyActions: data.weeklyActions,
+                    projectIds: data.projectIds,
+                    friendIds: data.friendIds,
+                    starUser: data.starUser || false,
+                    signUpResponses: data.signUpResponses,
+                } satisfies User];
+            }),
+    );
+}
 
 async function buildDerivedStudentProgress(courseId: string): Promise<CourseStudentProgress[]> {
     const [{ course }, storedStudents, projectsSnap] = await Promise.all([
@@ -35,10 +60,12 @@ async function buildDerivedStudentProgress(courseId: string): Promise<CourseStud
         ...storedStudents.map((student) => student.userId),
         ...projectsByOwner.keys(),
     ]);
+    const missingStudentIds = [...allStudentIds].filter((studentId) => !storedStudentMap.has(studentId));
+    const usersById = await loadUsersByIds(missingStudentIds);
 
     const derivedStudents = await Promise.all([...allStudentIds].map(async (studentId) => {
         const storedStudent = storedStudentMap.get(studentId);
-        const user = storedStudent ? null : await getUserById(studentId);
+        const user = storedStudent ? null : usersById.get(studentId) || null;
         const ownedProjects = projectsByOwner.get(studentId) || [];
         const ownedProjectsByLessonId = new Map<string, typeof ownedProjects>();
 
@@ -50,46 +77,33 @@ async function buildDerivedStudentProgress(courseId: string): Promise<CourseStud
             ownedProjectsByLessonId.set(lessonId, existing);
         }
 
-        const cardsByProjectId = new Map<string, Awaited<ReturnType<typeof fetchCardsFromProject>>>();
-        await Promise.all(ownedProjects.map(async (projectDoc) => {
-            try {
-                cardsByProjectId.set(projectDoc.id, await fetchCardsFromProject(projectDoc.id));
-            } catch (error) {
-                console.error(`Failed to fetch cards for project ${projectDoc.id}:`, error);
-                cardsByProjectId.set(projectDoc.id, []);
-            }
-        }));
-
         const lessonProgressEntries = await Promise.all(course.lessons.map(async (lesson) => {
             const lessonProjects = ownedProjectsByLessonId.get(lesson.id) || [];
+            const existingLessonProgress = storedStudent?.lessonProgress?.[lesson.id];
             if (lessonProjects.length === 0) {
-                return null;
+                return existingLessonProgress || null;
             }
 
-            const cardSets = lessonProjects.map((projectDoc) => cardsByProjectId.get(projectDoc.id) || []);
-
-            const totalCards = lesson.cardsToUnlock.length;
-            const unlockedCounts = cardSets.map((cards) => cards.filter((card) => card.isUnlocked).length);
-            const maxUnlockedCount = unlockedCounts.length > 0 ? Math.max(...unlockedCounts) : 0;
-            const allUnlockedIds = [...new Set(cardSets.flatMap((cards) => cards.filter((card) => card.isUnlocked).map((card) => card.id)))];
             const sortedProjects = [...lessonProjects].sort((a, b) => {
                 const aTime = new Date(String(a.data().createdAt || 0)).getTime();
                 const bTime = new Date(String(b.data().createdAt || 0)).getTime();
                 return aTime - bTime;
             });
-            const existingLessonProgress = storedStudent?.lessonProgress?.[lesson.id];
-            const isComplete = totalCards > 0 ? maxUnlockedCount >= totalCards : false;
+            const mergedProjectIds = [...new Set([...(existingLessonProgress?.projectIds || []), ...lessonProjects.map((projectDoc) => projectDoc.id)])];
+            const startedAt = existingLessonProgress?.startedAt || sortedProjects[0]?.data().createdAt;
+            const completedAt = existingLessonProgress?.completedAt
+                || (lesson.cardsToUnlock.length === 0 ? sortedProjects[sortedProjects.length - 1]?.data().createdAt : undefined);
 
             const lessonProgress: CourseStudentLessonProgress = {
                 lessonId: lesson.id,
                 lessonIndex: lesson.index,
-                projectIds: lessonProjects.map((projectDoc) => projectDoc.id),
-                unlockedCardIds: allUnlockedIds,
-                startedAt: existingLessonProgress?.startedAt || sortedProjects[0]?.data().createdAt,
+                projectIds: mergedProjectIds,
+                unlockedCardIds: existingLessonProgress?.unlockedCardIds || [],
+                startedAt,
                 lastProjectId: sortedProjects[sortedProjects.length - 1]?.id,
                 latestQuizAttempt: existingLessonProgress?.latestQuizAttempt || null,
                 bestQuizAttempt: existingLessonProgress?.bestQuizAttempt || null,
-                ...(isComplete ? { completedAt: existingLessonProgress?.completedAt || sortedProjects[sortedProjects.length - 1]?.data().createdAt } : {}),
+                ...(completedAt ? { completedAt } : {}),
             };
 
             return lessonProgress;
@@ -146,22 +160,24 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cour
         const invitationsQuery = adminDb.collection("invitations").where("courseId", "==", courseId);
         const invitationSnaps = await invitationsQuery.get();
 
-        const invitations = await Promise.all(invitationSnaps.docs.map(async (doc) => {
-            const data = doc.data();
-            const acceptedByUids = data.acceptedBy || [];
-
-            // Fetch user details for acceptedBy
-            const acceptedByUsers = await Promise.all(acceptedByUids.map(async (uid: string) => {
-                return await getUserById(uid);
-            }));
-
-            return {
-                token: data.token,
-                createdAt: data.createdAt,
-                createdBy: data.createdBy,
-                acceptedBy: acceptedByUsers.filter(user => user !== null),
-            };
+        const invitationRows = invitationSnaps.docs.map((doc) => ({
+            token: doc.data().token,
+            createdAt: doc.data().createdAt,
+            createdBy: doc.data().createdBy,
+            acceptedByUids: doc.data().acceptedBy || [],
         }));
+        const acceptedByUsers = await loadUsersByIds([...new Set(invitationRows.flatMap((row) => row.acceptedByUids))]);
+
+        const invitations = invitationRows.map((row) => {
+            return {
+                token: row.token,
+                createdAt: row.createdAt,
+                createdBy: row.createdBy,
+                acceptedBy: row.acceptedByUids
+                    .map((acceptedUid: string) => acceptedByUsers.get(acceptedUid))
+                    .filter((user: User | undefined): user is User => !!user),
+            };
+        });
 
         const students = await buildDerivedStudentProgress(courseId);
 
