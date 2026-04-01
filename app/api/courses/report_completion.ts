@@ -80,8 +80,12 @@ async function lessonSatisfiedForReport(
 ): Promise<boolean> {
   if (lessonCardsSatisfiedFromStored(lesson, lp)) return true;
 
-  const storedProjectIds = lp?.projectIds || [];
-  const projectIds = storedProjectIds.length > 0 ? storedProjectIds : await loadLessonProjectIds(courseId, lesson.id, uid);
+  // Always union stored ids with all Firestore projects for this lesson. Relying only on
+  // lessonProgress.projectIds misses completed work after a restart (new project id in
+  // progress while an older project still satisfies cards) or any historical partial writes.
+  const fromDb = await loadLessonProjectIds(courseId, lesson.id, uid);
+  const stored = lp?.projectIds || [];
+  const projectIds = [...new Set([...stored, ...fromDb])];
 
   return lessonCardsSatisfiedFromProjects(lesson, projectIds);
 }
