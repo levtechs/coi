@@ -16,7 +16,7 @@ export async function POST(
     const { courseId } = await params;
 
     try {
-        const { userId } = await req.json();
+        const { userId, role } = await req.json() as { userId?: string; role?: "learner" | "staff" };
 
         if (!userId) {
             return NextResponse.json({ error: "userId is required" }, { status: 400 });
@@ -44,6 +44,18 @@ export async function POST(
 
         if (!userSnap.exists) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
+        }
+
+        if (role === "staff") {
+            if (courseData.staffIds && courseData.staffIds.includes(userId)) {
+                return NextResponse.json({ error: "User is already staff" }, { status: 409 });
+            }
+
+            await courseRef.update({
+                staffIds: admin.firestore.FieldValue.arrayUnion(userId),
+            });
+
+            return NextResponse.json({ success: true });
         }
 
         // Check if already shared

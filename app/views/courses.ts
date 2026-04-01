@@ -3,7 +3,7 @@ import React from "react";
 import { auth } from "@/lib/firebase";
 
 import { CommentTree, CreateCommentData, UpdateCommentData } from "@/lib/types/comments";
-import { Course, NewLesson } from "@/lib/types/course";
+import { Course, CoursePortfolioReportSummary, CourseStudentProgress, NewLesson } from "@/lib/types/course";
 import { Project } from "@/lib/types/project";
 import { QuizSettings } from "@/lib/types/quiz";
 
@@ -87,10 +87,10 @@ export async function updateCourse(courseId: string, courseData: Omit<Course, "i
     }
 }
 
-export async function addCourseCollaboratorByUserId(courseId: string, userId: string): Promise<{ success: boolean }> {
+export async function addCourseCollaboratorByUserId(courseId: string, userId: string, role: "learner" | "staff" = "learner"): Promise<{ success: boolean }> {
     return apiFetch<{ success: boolean }>(`/api/courses/${courseId}/share`, {
         method: "POST",
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId, role }),
     });
 }
 
@@ -106,9 +106,9 @@ export async function deleteCourse(courseId: string): Promise<boolean> {
     }
 }
 
-export async function fetchAnalytics(courseId: string): Promise<{ totalUsers: number; invitations: { token: string; createdAt: string; createdBy?: string; acceptedBy: { id: string; email: string; displayName: string; actions?: number; dailyActions?: number; weeklyActions?: number; projectIds?: string[]; }[]; }[]; } | null> {
+export async function fetchAnalytics(courseId: string): Promise<{ totalUsers: number; invitations: { token: string; createdAt: string; createdBy?: string; acceptedBy: { id: string; email: string; displayName: string; actions?: number; dailyActions?: number; weeklyActions?: number; projectIds?: string[]; }[]; }[]; students: CourseStudentProgress[]; } | null> {
     try {
-        const data = await apiFetch<{ totalUsers: number; invitations: { token: string; createdAt: string; createdBy?: string; acceptedBy: { id: string; email: string; displayName: string; actions?: number; dailyActions?: number; weeklyActions?: number; projectIds?: string[]; }[]; }[]; }>(`/api/courses/${courseId}/analytics`, {
+        const data = await apiFetch<{ totalUsers: number; invitations: { token: string; createdAt: string; createdBy?: string; acceptedBy: { id: string; email: string; displayName: string; actions?: number; dailyActions?: number; weeklyActions?: number; projectIds?: string[]; }[]; }[]; students: CourseStudentProgress[]; }>(`/api/courses/${courseId}/analytics`, {
             method: "GET",
         });
         return data;
@@ -116,6 +116,34 @@ export async function fetchAnalytics(courseId: string): Promise<{ totalUsers: nu
         console.error("Error fetching analytics:", err);
         return null;
     }
+}
+
+export async function getPortfolioReportStatus(courseId: string, options?: {
+    studentId?: string;
+    includeHistory?: boolean;
+    reportId?: string;
+}): Promise<{
+    eligible: boolean;
+    eligibilityReasons: string[];
+    report: { markdown: string; generatedAt: string; id: string } | null;
+    reports?: CoursePortfolioReportSummary[];
+    selectedReport?: { markdown: string; generatedAt: string; id: string } | null;
+}> {
+    const params = new URLSearchParams();
+    if (options?.studentId) params.set("studentId", options.studentId);
+    if (options?.includeHistory) params.set("includeHistory", "1");
+    if (options?.reportId) params.set("reportId", options.reportId);
+    const query = params.toString();
+    return apiFetch(`/api/courses/${courseId}/report${query ? `?${query}` : ""}`, { method: "GET" });
+}
+
+export async function regeneratePortfolioReport(courseId: string, studentId?: string): Promise<{
+    markdown: string;
+    generatedAt: string;
+    id: string;
+}> {
+    const query = studentId ? `?${new URLSearchParams({ studentId }).toString()}` : "";
+    return apiFetch(`/api/courses/${courseId}/report${query}`, { method: "POST" });
 }
 
 /**
@@ -135,7 +163,6 @@ export async function streamGenerateCourse(
     setCourseTitle: (title: string) => void,
     setCourseDescription: (description: string) => void,
     setLessons: React.Dispatch<React.SetStateAction<CourseLessonForm[]>>,
-    setCollapsedLessons: (collapsed: boolean[]) => void,
     setCollapsedCards: (cards: { [key: number]: boolean[] }) => void,
     setCourseQuizIds: (quizIds: string[]) => void,
     setCourseQuizzes: React.Dispatch<React.SetStateAction<{id?: string, status: 'creating' | 'created', title?: string}[]>>,
@@ -195,6 +222,10 @@ export async function streamGenerateCourse(
                             title: '',
                             description: '',
                             content: '',
+                            guide: undefined,
+                            tutorConfig: undefined,
+                            resources: [],
+                            baseProjectTemplate: undefined,
                             cardsToUnlock: [],
                             quizIds: []
                         })));
@@ -207,6 +238,10 @@ export async function streamGenerateCourse(
                                 title: update.lesson.title,
                                 description: update.lesson.description,
                                 content: update.lesson.content,
+                                guide: update.lesson.guide || (update.lesson.content ? { body: update.lesson.content } : undefined),
+                                tutorConfig: update.lesson.tutorConfig,
+                                resources: update.lesson.resources || [],
+                                baseProjectTemplate: update.lesson.baseProjectTemplate,
                                 cardsToUnlock: update.lesson.cardsToUnlock,
                                 quizIds: update.lesson.quizIds,
                             };
@@ -222,6 +257,10 @@ export async function streamGenerateCourse(
                             title: lesson.title,
                             description: lesson.description,
                             content: lesson.content,
+                            guide: lesson.guide || (lesson.content ? { body: lesson.content } : undefined),
+                            tutorConfig: lesson.tutorConfig,
+                            resources: lesson.resources || [],
+                            baseProjectTemplate: lesson.baseProjectTemplate,
                             cardsToUnlock: lesson.cardsToUnlock,
                             quizIds: lesson.quizIds,
                         }));
@@ -233,7 +272,6 @@ export async function streamGenerateCourse(
                             status: 'created' as const,
                             title: quiz.title
                         })));
-                        setCollapsedLessons(mappedLessons.map(() => true));
                         const newCollapsedCards: { [lessonIndex: number]: boolean[] } = {};
                         mappedLessons.forEach((lesson: CourseLessonForm, index: number) => {
                             newCollapsedCards[index] = lesson.cardsToUnlock.map(() => true);

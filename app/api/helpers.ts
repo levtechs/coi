@@ -2,6 +2,7 @@ import { adminAuth, adminDb } from "@/lib/firebaseAdmin"; // your admin SDK inst
 import { NextRequest } from "next/server";
 import { Course } from "@/lib/types/course";
 import { Project } from "@/lib/types/project";
+import { canAccessCourse } from "@/app/api/courses/helpers";
 
 // Utility function to fetch userRef by email
 export async function getUserRefByEmail(email: string) {
@@ -101,7 +102,12 @@ export async function getVerifiedAdminUid(req: NextRequest): Promise<string> {
  */
 export async function getVerifiedProjectAccess(req: NextRequest, projectId: string, allowPublic: boolean = false): Promise<string> {
     const uid = await getVerifiedUid(req);
-    
+
+    await assertProjectAccessByUid(uid, projectId, allowPublic);
+    return uid;
+}
+
+export async function assertProjectAccessByUid(uid: string, projectId: string, allowPublic: boolean = false): Promise<void> {
     // Fetch user email for collaborator check
     const userDoc = await adminDb.collection("users").doc(uid).get();
     const userEmail = userDoc.exists ? userDoc.data()?.email : null;
@@ -121,8 +127,6 @@ export async function getVerifiedProjectAccess(req: NextRequest, projectId: stri
     if (!isOwner && !isShared && !isCollaborator && !isPublic) {
         throw new Error("Access denied: You do not have permission to access this project");
     }
-
-    return uid;
 }
 
 /**
@@ -135,6 +139,11 @@ export async function getVerifiedProjectAccess(req: NextRequest, projectId: stri
  */
 export async function getVerifiedCourseAccess(req: NextRequest, courseId: string, allowPublic: boolean = false): Promise<string> {
     const uid = await getVerifiedUid(req);
+    await assertCourseAccessByUid(uid, courseId, allowPublic);
+    return uid;
+}
+
+export async function assertCourseAccessByUid(uid: string, courseId: string, allowPublic: boolean = false): Promise<void> {
     const courseDoc = await adminDb.collection("courses").doc(courseId).get();
 
     if (!courseDoc.exists) {
@@ -142,13 +151,7 @@ export async function getVerifiedCourseAccess(req: NextRequest, courseId: string
     }
 
     const courseData = courseDoc.data() as Course;
-    const isOwner = courseData.ownerId === uid;
-    const isShared = courseData.sharedWith?.includes(uid);
-    const isPublic = allowPublic && courseData.public === true;
-
-    if (!isOwner && !isShared && !isPublic) {
+    if (!canAccessCourse(courseData, uid, allowPublic)) {
         throw new Error("Access denied: You do not have permission to access this course");
     }
-
-    return uid;
 }

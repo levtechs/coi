@@ -29,6 +29,8 @@ export default function CourseSharePanel({ course, courseId, isOwner }: CourseSh
     const [loadingFriends, setLoadingFriends] = useState(true);
     const [addingFriendId, setAddingFriendId] = useState<string | null>(null);
     const [addedFriendIds, setAddedFriendIds] = useState<Set<string>>(new Set());
+    const [addingStaffId, setAddingStaffId] = useState<string | null>(null);
+    const [addedStaffIds, setAddedStaffIds] = useState<Set<string>>(new Set());
 
     // Invite link state
     const [inviteUrl, setInviteUrl] = useState<string | null>(null);
@@ -44,7 +46,8 @@ export default function CourseSharePanel({ course, courseId, isOwner }: CourseSh
             setLoadingMembers(true);
             try {
                 const userIds = [course.ownerId, ...(course.sharedWith || [])].filter((id): id is string => !!id);
-                const uniqueIds = [...new Set(userIds)];
+                const staffIds = (course.staffIds || []).filter((id): id is string => !!id);
+                const uniqueIds = [...new Set([...userIds, ...staffIds])];
                 const users = await Promise.all(uniqueIds.map(id => getUserFromId(id)));
                 setMembers(users.filter((u): u is User => u !== null));
             } catch (err) {
@@ -54,7 +57,7 @@ export default function CourseSharePanel({ course, courseId, isOwner }: CourseSh
             }
         };
         fetchMembers();
-    }, [course.ownerId, course.sharedWith]);
+    }, [course.ownerId, course.sharedWith, course.staffIds]);
 
     // Fetch friends
     useEffect(() => {
@@ -73,16 +76,29 @@ export default function CourseSharePanel({ course, courseId, isOwner }: CourseSh
     }, []);
 
     const sharedSet = new Set([course.ownerId, ...(course.sharedWith || [])].filter(Boolean));
+    const staffSet = new Set((course.staffIds || []).filter(Boolean));
 
-    const handleAddFriend = async (friendId: string) => {
-        setAddingFriendId(friendId);
+    const handleAddFriend = async (friendId: string, role: "learner" | "staff" = "learner") => {
+        if (role === "staff") {
+            setAddingStaffId(friendId);
+        } else {
+            setAddingFriendId(friendId);
+        }
         try {
-            await addCourseCollaboratorByUserId(courseId, friendId);
-            setAddedFriendIds(prev => new Set(prev).add(friendId));
+            await addCourseCollaboratorByUserId(courseId, friendId, role);
+            if (role === "staff") {
+                setAddedStaffIds(prev => new Set(prev).add(friendId));
+            } else {
+                setAddedFriendIds(prev => new Set(prev).add(friendId));
+            }
         } catch (err) {
             console.error("Failed to add friend to course:", err);
         } finally {
-            setAddingFriendId(null);
+            if (role === "staff") {
+                setAddingStaffId(null);
+            } else {
+                setAddingFriendId(null);
+            }
         }
     };
 
@@ -219,7 +235,7 @@ export default function CourseSharePanel({ course, courseId, isOwner }: CourseSh
                     ) : (
                         <ul className="flex flex-col gap-1 max-h-48 overflow-y-auto">
                             {friends.map(f => {
-                                const alreadyAdded = sharedSet.has(f.friend.id) || addedFriendIds.has(f.friend.id);
+                                const alreadyAdded = sharedSet.has(f.friend.id) || staffSet.has(f.friend.id) || addedFriendIds.has(f.friend.id);
                                 const isAdding = addingFriendId === f.friend.id;
 
                                 return (
@@ -262,6 +278,62 @@ export default function CourseSharePanel({ course, courseId, isOwner }: CourseSh
                 </div>
             )}
 
+            {isOwner && (
+                <div className="pt-4 border-t" style={{ borderColor: "var(--neutral-300)" }}>
+                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: "var(--foreground)" }}>
+                        <FiUserPlus size={16} /> Add Staff
+                    </h3>
+                    {loadingFriends ? (
+                        <div className="flex justify-center py-4">
+                            <FiLoader className="animate-spin w-5 h-5" style={{ color: "var(--foreground)" }} />
+                        </div>
+                    ) : friends.length === 0 ? (
+                        <p className="text-sm" style={{ color: "var(--neutral-500)" }}>
+                            No friends yet. <a href="/friends" className="underline" style={{ color: "var(--accent-500)" }}>Find friends</a>
+                        </p>
+                    ) : (
+                        <ul className="flex flex-col gap-1 max-h-48 overflow-y-auto">
+                            {friends.map(f => {
+                                const alreadyStaff = staffSet.has(f.friend.id) || addedStaffIds.has(f.friend.id);
+                                const isAdding = addingStaffId === f.friend.id;
+
+                                return (
+                                    <li
+                                        key={`staff-${f.friend.id}`}
+                                        className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors hover:bg-[var(--neutral-200)]"
+                                    >
+                                        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "var(--accent-500)" }}>
+                                            <FiUser className="text-white" size={14} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <span className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>
+                                                {f.friend.displayName}
+                                            </span>
+                                            <p className="text-xs truncate" style={{ color: "var(--neutral-600)" }}>
+                                                {f.friend.email}
+                                            </p>
+                                        </div>
+                                        {alreadyStaff ? (
+                                            <span className="flex items-center gap-1 text-xs px-2 py-1 rounded" style={{ color: "var(--success)" }}>
+                                                <FiCheck size={12} /> Staff
+                                            </span>
+                                        ) : (
+                                            <Button
+                                                color="var(--neutral-500)"
+                                                onClick={() => handleAddFriend(f.friend.id, "staff")}
+                                                disabled={isAdding}
+                                            >
+                                                {isAdding ? <FiLoader className="animate-spin" size={14} /> : "Add Staff"}
+                                            </Button>
+                                        )}
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )}
+                </div>
+            )}
+
             {/* Section: Members */}
             <div className="pt-4 border-t" style={{ borderColor: "var(--neutral-300)" }}>
                 <h3 className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: "var(--foreground)" }}>
@@ -290,12 +362,22 @@ export default function CourseSharePanel({ course, courseId, isOwner }: CourseSh
                                         <span className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>
                                             {member.displayName}
                                         </span>
-                                        {member.id === course.ownerId && (
-                                            <FaCrown size={12} style={{ color: "var(--accent-500)" }} title="Owner" />
-                                        )}
-                                        {member.email.toLowerCase() === currentUserEmail.toLowerCase() && (
-                                            <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--neutral-300)", color: "var(--foreground)" }}>
-                                                you
+                                         {member.id === course.ownerId && (
+                                             <FaCrown size={12} style={{ color: "var(--accent-500)" }} title="Owner" />
+                                         )}
+                                         {staffSet.has(member.id) && member.id !== course.ownerId && (
+                                             <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--accent-100)", color: "var(--accent-600)" }}>
+                                                 staff
+                                             </span>
+                                         )}
+                                         {sharedSet.has(member.id) && member.id !== course.ownerId && !staffSet.has(member.id) && (
+                                             <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--neutral-300)", color: "var(--foreground)" }}>
+                                                 learner
+                                             </span>
+                                         )}
+                                         {member.email.toLowerCase() === currentUserEmail.toLowerCase() && (
+                                             <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--neutral-300)", color: "var(--foreground)" }}>
+                                                 you
                                             </span>
                                         )}
                                     </div>

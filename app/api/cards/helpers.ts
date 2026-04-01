@@ -1,5 +1,6 @@
 import { adminDb } from "@/lib/firebaseAdmin";
 import { Card, NewCard } from "@/lib/types/cards";
+import { stripUndefinedDeep } from "@/lib/firestoreSanitize";
 
 /**
  * Normalizes title/details for comparing template cards to project cards (legacy-safe).
@@ -100,7 +101,8 @@ export const writeCardsToDb = async (
         const addedCards: Card[] = [];
 
         for (const card of newCards) {
-            const docRef = await cardsCollectionRef.add(card);
+            const sanitizedCard = stripUndefinedDeep(card);
+            const docRef = await cardsCollectionRef.add(sanitizedCard);
             addedCards.push({
                 id: docRef.id,
                 ...card,
@@ -130,7 +132,7 @@ export const copyCardsToDb = async (
 
         for (const card of cards) {
             const docRef = cardsCollectionRef.doc(card.id);
-            await docRef.set(card);
+            await docRef.set(stripUndefinedDeep(card));
         }
 
         return cards;
@@ -147,7 +149,7 @@ export const updateCardInDb = async (
 ): Promise<void> => {
     try {
         const cardRef = adminDb.collection("projects").doc(projectId).collection("cards").doc(cardId);
-        await cardRef.update(updates);
+        await cardRef.update(stripUndefinedDeep(updates));
     } catch (err) {
         console.error(`Error updating card ${cardId} in project ${projectId}:`, err);
         throw err;
