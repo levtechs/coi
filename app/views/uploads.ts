@@ -4,6 +4,18 @@ import { FileAttachment } from "@/lib/types/uploads";
 import { CourseResource } from '@/lib/types/course';
 import { apiFetch } from './helpers';
 
+const MAX_RESOURCE_REFERENCE_TEXT_CHARS = 25_000;
+
+function clipReferenceText(text: string): string {
+    if (text.length <= MAX_RESOURCE_REFERENCE_TEXT_CHARS) return text;
+    return `${text.slice(0, MAX_RESOURCE_REFERENCE_TEXT_CHARS)}\n\n[truncated]`;
+}
+
+function isMarkdownLikeFile(file: File): boolean {
+    const lowerName = file.name.toLowerCase();
+    return lowerName.endsWith('.md') || lowerName.endsWith('.txt') || file.type === 'text/markdown' || file.type === 'text/plain';
+}
+
 async function uploadBlobToStorage(file: File, folder: string): Promise<{ url: string; storagePath: string }> {
     const storagePath = `${folder}/${crypto.randomUUID()}_${file.name}`;
     const storageRef = ref(storage, storagePath);
@@ -45,7 +57,7 @@ export async function uploadFileToStorageOnly(file: File): Promise<FileAttachmen
 function inferCourseResourceKind(file: File): CourseResource['kind'] {
     if (file.type.startsWith('image/')) return 'image';
     if (file.type === 'application/pdf') return 'pdf';
-    if (file.name.toLowerCase().endsWith('.md') || file.type === 'text/markdown') return 'markdown';
+    if (isMarkdownLikeFile(file)) return 'markdown';
     return 'link';
 }
 
@@ -55,8 +67,8 @@ export async function uploadCourseResourceFile(
     overrides?: Partial<CourseResource>
 ): Promise<CourseResource> {
     const { url, storagePath } = await uploadBlobToStorage(file, folder);
-    const isMarkdown = file.name.toLowerCase().endsWith('.md') || file.type === 'text/markdown' || file.type === 'text/plain';
-    const maybeText = isMarkdown ? await file.text() : undefined;
+    const isMarkdown = isMarkdownLikeFile(file);
+    const maybeText = isMarkdown ? clipReferenceText(await file.text()) : undefined;
     const resourceKind = inferCourseResourceKind(file);
 
     return {

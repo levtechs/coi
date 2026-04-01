@@ -40,20 +40,33 @@ async function buildDerivedStudentProgress(courseId: string): Promise<CourseStud
         const storedStudent = storedStudentMap.get(studentId);
         const user = storedStudent ? null : await getUserById(studentId);
         const ownedProjects = projectsByOwner.get(studentId) || [];
+        const ownedProjectsByLessonId = new Map<string, typeof ownedProjects>();
+
+        for (const projectDoc of ownedProjects) {
+            const lessonId = projectDoc.data().courseLesson?.id as string | undefined;
+            if (!lessonId) continue;
+            const existing = ownedProjectsByLessonId.get(lessonId) || [];
+            existing.push(projectDoc);
+            ownedProjectsByLessonId.set(lessonId, existing);
+        }
+
+        const cardsByProjectId = new Map<string, Awaited<ReturnType<typeof fetchCardsFromProject>>>();
+        await Promise.all(ownedProjects.map(async (projectDoc) => {
+            try {
+                cardsByProjectId.set(projectDoc.id, await fetchCardsFromProject(projectDoc.id));
+            } catch (error) {
+                console.error(`Failed to fetch cards for project ${projectDoc.id}:`, error);
+                cardsByProjectId.set(projectDoc.id, []);
+            }
+        }));
+
         const lessonProgressEntries = await Promise.all(course.lessons.map(async (lesson) => {
-            const lessonProjects = ownedProjects.filter((projectDoc) => projectDoc.data().courseLesson?.id === lesson.id);
+            const lessonProjects = ownedProjectsByLessonId.get(lesson.id) || [];
             if (lessonProjects.length === 0) {
                 return null;
             }
 
-            const cardSets = await Promise.all(lessonProjects.map(async (projectDoc) => {
-                try {
-                    return await fetchCardsFromProject(projectDoc.id);
-                } catch (error) {
-                    console.error(`Failed to fetch cards for project ${projectDoc.id}:`, error);
-                    return [];
-                }
-            }));
+            const cardSets = lessonProjects.map((projectDoc) => cardsByProjectId.get(projectDoc.id) || []);
 
             const totalCards = lesson.cardsToUnlock.length;
             const unlockedCounts = cardSets.map((cards) => cards.filter((card) => card.isUnlocked).length);

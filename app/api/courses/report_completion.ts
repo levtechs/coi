@@ -4,8 +4,13 @@ import { fetchQuizAttemptsForUser } from "@/app/api/quiz/[quizId]/helpers";
 import { Course, CourseLesson, CourseQuizReportPolicyEntry, CourseStudentLessonProgress, CourseStudentProgress } from "@/lib/types/course";
 
 async function loadLessonProjectIds(courseId: string, lessonId: string, uid: string): Promise<string[]> {
-  const snap = await adminDb.collection("projects").where("courseId", "==", courseId).where("ownerId", "==", uid).get();
-  return snap.docs.filter((d) => (d.data().courseLesson as { id?: string } | undefined)?.id === lessonId).map((d) => d.id);
+  const snap = await adminDb
+    .collection("projects")
+    .where("courseId", "==", courseId)
+    .where("ownerId", "==", uid)
+    .where("courseLesson.id", "==", lessonId)
+    .get();
+  return snap.docs.map((d) => d.id);
 }
 
 export function collectAllQuizIds(course: Course): string[] {

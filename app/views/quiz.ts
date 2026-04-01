@@ -4,11 +4,11 @@ import { NewCard } from "@/lib/types/cards";
 import { QuizSettings, Quiz, QuizAttemptSummary } from "@/lib/types/quiz";
 
 // Creates a quiz with cards
-export async function createQuiz(cards: NewCard[], quizSettings: QuizSettings, projectId?: string, metadata?: Partial<Quiz>): Promise<string> {
+export async function createQuiz(cards: NewCard[], quizSettings: QuizSettings, projectId?: string): Promise<string> {
     try {
         const data = await apiFetch<{ quizId: string }>(`/api/quiz`, {
             method: "POST",
-            body: JSON.stringify({cards, quizSettings, projectId, metadata}),
+            body: JSON.stringify({cards, quizSettings, projectId}),
         });
         return data.quizId;
     } catch (err) {

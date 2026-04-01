@@ -14,6 +14,13 @@ import {
   MAX_REPORT_IMAGES,
 } from "./constants";
 
+const FIREBASE_STORAGE_BUCKET = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET || `${process.env.FIREBASE_PROJECT_ID}.firebasestorage.app`;
+const TRUSTED_REPORT_IMAGE_HOSTS = new Set([
+  "firebasestorage.googleapis.com",
+  "storage.googleapis.com",
+  FIREBASE_STORAGE_BUCKET,
+]);
+
 export type ReportAsset = {
   id: string;
   sourceUrl: string;
@@ -101,9 +108,21 @@ function buildQuizProgressBlock(label: string, quiz: Quiz, attempts: QuizAttempt
   ].join("\n");
 }
 
-async function loadProjectsForLesson(courseId: string, lessonId: string, uid: string): Promise<{ id: string }[]> {
-  const snap = await adminDb.collection("projects").where("courseId", "==", courseId).where("ownerId", "==", uid).get();
-  return snap.docs.filter((d) => (d.data().courseLesson as { id?: string } | undefined)?.id === lessonId).map((d) => ({ id: d.id }));
+function isTrustedReportAssetUrl(url: string): boolean {
+  try {
+    const parsedUrl = new URL(url);
+    const bucketReference = encodeURIComponent(FIREBASE_STORAGE_BUCKET);
+    return parsedUrl.protocol === "https:"
+      && TRUSTED_REPORT_IMAGE_HOSTS.has(parsedUrl.hostname)
+      && (
+        parsedUrl.hostname === FIREBASE_STORAGE_BUCKET
+        || parsedUrl.pathname.includes(FIREBASE_STORAGE_BUCKET)
+        || parsedUrl.pathname.includes(bucketReference)
+        || parsedUrl.search.includes(bucketReference)
+      );
+  } catch {
+    return false;
+  }
 }
 
 async function loadChatMessages(projectId: string, uid: string): Promise<Message[]> {
@@ -175,10 +194,20 @@ export async function aggregatePortfolioInput(
   lessonProgress: Record<string, CourseStudentLessonProgress> | undefined,
 ): Promise<PortfolioAggregate> {
   const sortedLessons = [...course.lessons].sort((a, b) => a.index - b.index);
+  const projectsSnap = await adminDb.collection("projects").where("courseId", "==", course.id).where("ownerId", "==", uid).get();
+  const projectsByLessonId = new Map<string, { id: string }[]>();
+  for (const doc of projectsSnap.docs) {
+    const lessonId = (doc.data().courseLesson as { id?: string } | undefined)?.id;
+    if (!lessonId) continue;
+    const existing = projectsByLessonId.get(lessonId) || [];
+    existing.push({ id: doc.id });
+    projectsByLessonId.set(lessonId, existing);
+  }
+
   const assetManifest: ReportAsset[] = [];
   let assetCounter = 0;
   const pushAsset = (a: Omit<ReportAsset, "id"> & { lessonId: string }) => {
-    if (assetManifest.length >= MAX_REPORT_IMAGES) return;
+    if (assetManifest.length >= MAX_REPORT_IMAGES || !isTrustedReportAssetUrl(a.sourceUrl)) return;
     const id = `asset_${++assetCounter}`;
     assetManifest.push({ id, ...a });
   };
@@ -187,19 +216,26 @@ export async function aggregatePortfolioInput(
 
   for (const lesson of sortedLessons) {
     const lp = lessonProgress?.[lesson.id];
-    const projects = await loadProjectsForLesson(course.id, lesson.id, uid);
+    const projects = projectsByLessonId.get(lesson.id) || [];
     const allMessages: Message[] = [];
     const allUploads: { name: string; mimeType: string; url: string }[] = [];
     const unlockedCardMap = new Map<string, Card>();
     let userMessageCount = 0;
 
-    for (const p of projects) {
-      const msgs = await loadChatMessages(p.id, uid);
+    const projectArtifacts = await Promise.all(projects.map(async (p) => {
+      const [msgs, ups, cards] = await Promise.all([
+        loadChatMessages(p.id, uid),
+        fetchUploadsFromProject(p.id),
+        fetchCardsFromProject(p.id),
+      ]);
+      return { msgs, ups, cards };
+    }));
+
+    for (const { msgs, ups, cards } of projectArtifacts) {
       for (const m of msgs) {
         allMessages.push(m);
         if (!m.isResponse && m.content?.trim()) userMessageCount++;
       }
-      const ups = await fetchUploadsFromProject(p.id);
       for (const u of ups) {
         allUploads.push({ name: u.name, mimeType: u.mimeType, url: u.url });
         if (u.mimeType.startsWith("image/")) {
@@ -211,7 +247,6 @@ export async function aggregatePortfolioInput(
           });
         }
       }
-      const cards = await fetchCardsFromProject(p.id);
       for (const c of cards) {
         if (c.isUnlocked && !c.exclude) unlockedCardMap.set(c.id, c);
       }

@@ -3,7 +3,13 @@ import { genAI, getGenerationConfig, getLLMModel } from "@/app/api/gemini/config
 import { MyGenerateContentParameters } from "@/app/api/gemini/types";
 import { PortfolioAggregate } from "./aggregate";
 
-const REPORT_MODEL = getLLMModel("normal");
+const REPORT_MODEL = getLLMModel("fast");
+const FIREBASE_STORAGE_BUCKET = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET || `${process.env.FIREBASE_PROJECT_ID}.firebasestorage.app`;
+const TRUSTED_REPORT_IMAGE_HOSTS = new Set([
+  "firebasestorage.googleapis.com",
+  "storage.googleapis.com",
+  FIREBASE_STORAGE_BUCKET,
+]);
 
 const SYSTEM_INSTRUCTION = `You are writing a course portfolio summary for instructors. The document is LLM-generated synthesis (not the student's own words).
 
@@ -40,7 +46,15 @@ function buildDeterministicMarkdown(a: PortfolioAggregate): string {
 
 async function fetchImagePart(url: string, declaredMime: string): Promise<{ mimeType: string; data: string } | null> {
   try {
-    const res = await fetch(url);
+    const parsedUrl = new URL(url);
+    const bucketReference = encodeURIComponent(FIREBASE_STORAGE_BUCKET);
+    const isTrustedBucketUrl = TRUSTED_REPORT_IMAGE_HOSTS.has(parsedUrl.hostname)
+      && (parsedUrl.hostname === FIREBASE_STORAGE_BUCKET || parsedUrl.pathname.includes(FIREBASE_STORAGE_BUCKET) || parsedUrl.pathname.includes(bucketReference) || parsedUrl.search.includes(bucketReference));
+    if (parsedUrl.protocol !== "https:" || !isTrustedBucketUrl) {
+      return null;
+    }
+
+    const res = await fetch(parsedUrl.toString());
     if (!res.ok) return null;
     const buf = Buffer.from(await res.arrayBuffer());
     let mime = declaredMime;

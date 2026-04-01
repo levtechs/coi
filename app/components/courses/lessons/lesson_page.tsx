@@ -34,6 +34,19 @@ const LessonPage = ({ lesson, courseId, lessonIdx, totalLessons, projects, cours
     const [lessonProgress, setLessonProgress] = useState<string | null>(null);
     const [lessonQuizzes, setLessonQuizzes] = useState<Quiz[]>([]);
     const [unlockedCardIds, setUnlockedCardIds] = useState<Set<string>>(new Set());
+    const [unlockedCardSignatures, setUnlockedCardSignatures] = useState<Set<string>>(new Set());
+
+    const getCardSignature = (card: Pick<Card, "title" | "details">) => JSON.stringify({
+        title: card.title.trim().toLowerCase(),
+        details: (card.details || []).map((detail) => detail.trim().toLowerCase()),
+    });
+
+    const isLessonCardUnlocked = (card: Pick<Card, "id" | "title" | "details">) => {
+        if (card.id && unlockedCardIds.has(card.id)) {
+            return true;
+        }
+        return unlockedCardSignatures.has(getCardSignature(card));
+    };
 
     useEffect(() => {
         if (projects.length === 0) {
@@ -48,11 +61,15 @@ const LessonPage = ({ lesson, courseId, lessonIdx, totalLessons, projects, cours
                     const totalCards = lesson.cardsToUnlock.length;
                     const progresses: number[] = [];
                     const allUnlockedIds = new Set<string>();
+                    const allUnlockedSignatures = new Set<string>();
                     for (const project of projects) {
                         try {
                             const cards = await getCards(project.id);
                             const unlockedCards = cards.filter((card) => card.isUnlocked);
-                            unlockedCards.forEach(card => allUnlockedIds.add(card.id));
+                            unlockedCards.forEach(card => {
+                                allUnlockedIds.add(card.id);
+                                allUnlockedSignatures.add(getCardSignature(card));
+                            });
                             const unlockedCount = unlockedCards.length;
                             progresses.push(Math.round((unlockedCount / totalCards) * 100));
                         } catch (error) {
@@ -63,13 +80,16 @@ const LessonPage = ({ lesson, courseId, lessonIdx, totalLessons, projects, cours
                     const maxProgress = Math.max(...progresses);
                     setLessonProgress(`${maxProgress}%`);
                     setUnlockedCardIds(allUnlockedIds);
+                    setUnlockedCardSignatures(allUnlockedSignatures);
                 } else {
                     setLessonProgress("0%");
                     setUnlockedCardIds(new Set());
+                    setUnlockedCardSignatures(new Set());
                 }
             } else {
                 setLessonProgress("0%");
                 setUnlockedCardIds(new Set());
+                setUnlockedCardSignatures(new Set());
             }
         };
 
@@ -165,8 +185,8 @@ const LessonPage = ({ lesson, courseId, lessonIdx, totalLessons, projects, cours
                         {lesson.cardsToUnlock.map((card, index) => (
                             <div key={index} className="shrink-0">
                                 <DetailCard
-                                    card={{ id: index.toString(), title: card.title, details: card.details, isUnlocked: unlockedCardIds.has(card.id) }}
-                                    onClick={() => setClickedCard({ id: index.toString(), title: card.title, details: card.details, isUnlocked: unlockedCardIds.has(card.id) })}
+                                    card={{ id: card.id || index.toString(), title: card.title, details: card.details, isUnlocked: isLessonCardUnlocked(card) }}
+                                    onClick={() => setClickedCard({ id: card.id || index.toString(), title: card.title, details: card.details, isUnlocked: isLessonCardUnlocked(card) })}
                                     useCheckbox={true}
                                 />
                             </div>

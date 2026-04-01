@@ -1,20 +1,22 @@
 import { adminDb } from "@/lib/firebaseAdmin";
 import * as admin from "firebase-admin";
 
-import { defaultGeneralConfig, llmModel, genAI } from "../gemini/config";
+import { genAI } from "../gemini/config";
 import { createQuizFromCardsSystemInstruction } from "./prompts";
 
 import { NewCard } from "@/lib/types/cards";
 import { Quiz, QuizAttempt, QuizAttemptSummary, QuizSettings } from "@/lib/types/quiz";
-import { Content, GenerationConfig, ThinkingConfig, Tool, Type, Schema } from "@google/genai";
+import { Content, Type, Schema } from "@google/genai";
 import { MyConfig, MyGenerateContentParameters } from "../gemini/types";
+
+export type QuizWriteMetadata = Pick<Quiz, "createdBy" | "sourceType" | "projectId" | "courseId" | "lessonId" | "gradedOnly">;
 
 /**
  * Writes a new quiz entry to the project's quizes collection.
  * @param quiz The quiz JSON object to store.
  * @returns The ID of the newly created quiz document.
  */
-export const writeQuizToDb = async (quiz: object, projectId?: string, metadata?: Partial<Quiz>): Promise<string> => {
+export const writeQuizToDb = async (quiz: object, projectId?: string, metadata?: QuizWriteMetadata): Promise<string> => {
     if (!quiz) throw new Error("Missing quiz");
 
     try {

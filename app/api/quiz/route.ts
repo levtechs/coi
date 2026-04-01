@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { NewCard } from "@/lib/types/cards";
-import { Quiz, QuizSettings } from "@/lib/types/quiz";
+import { QuizSettings } from "@/lib/types/quiz";
 
 import { getVerifiedUid, getVerifiedProjectAccess } from "@/app/api/helpers"
 
@@ -13,7 +13,7 @@ import { createQuizFromCards, writeQuizToDb } from "./helpers";
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { cards, quizSettings, projectId, metadata } = body as { cards: NewCard[]; quizSettings: QuizSettings, projectId?: string, metadata?: Partial<Quiz> };
+        const { cards, quizSettings, projectId } = body as { cards: NewCard[]; quizSettings: QuizSettings, projectId?: string };
 
         if (!cards) return NextResponse.json({ error: "No cards provided" }, { status: 400 });
 
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
         if (!quizJson) {
             return NextResponse.json({ error: "Gemini API failed" }, { status: 500 });
         }
-        const quizId = await writeQuizToDb(quizJson, projectId, metadata);
+        const quizId = await writeQuizToDb(quizJson, projectId);
         return NextResponse.json({ quizId });
     } catch (err) {
         return NextResponse.json({ error: (err as Error).message }, { status: 500 });
