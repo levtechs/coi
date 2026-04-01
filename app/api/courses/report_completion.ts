@@ -1,6 +1,8 @@
 import { adminDb } from "@/lib/firebaseAdmin";
+import { fetchCardsFromProject } from "@/app/api/cards/helpers";
 import { fetchQuizAttemptsForUser } from "@/app/api/quiz/[quizId]/helpers";
 import { Course, CourseLesson, CourseQuizReportPolicyEntry, CourseStudentLessonProgress, CourseStudentProgress } from "@/lib/types/course";
+import { Card } from "@/lib/types/cards";
 
 async function loadLessonProjectIds(courseId: string, lessonId: string, uid: string): Promise<string[]> {
   const snap = await adminDb
@@ -10,6 +12,43 @@ async function loadLessonProjectIds(courseId: string, lessonId: string, uid: str
     .where("courseLesson.id", "==", lessonId)
     .get();
   return snap.docs.map((d) => d.id);
+}
+
+function getCardSignature(card: Pick<Card, "title" | "details">): string {
+  return JSON.stringify({
+    title: card.title.trim().toLowerCase(),
+    details: (card.details || []).map((detail) => detail.trim().toLowerCase()),
+  });
+}
+
+async function lessonCardsSatisfiedFromProjects(
+  lesson: CourseLesson,
+  projectIds: string[],
+): Promise<boolean> {
+  if (lesson.cardsToUnlock.length === 0) {
+    return projectIds.length > 0;
+  }
+
+  const requiredSignatures = new Set(lesson.cardsToUnlock.map(getCardSignature));
+  if (requiredSignatures.size === 0) {
+    return false;
+  }
+
+  for (const projectId of projectIds) {
+    const cards = await fetchCardsFromProject(projectId);
+    const unlockedSignatures = new Set(
+      cards
+        .filter((card) => card.isUnlocked)
+        .map(getCardSignature),
+    );
+
+    const isComplete = [...requiredSignatures].every((signature) => unlockedSignatures.has(signature));
+    if (isComplete) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export function collectAllQuizIds(course: Course): string[] {
@@ -48,12 +87,10 @@ async function lessonSatisfiedForReport(
 ): Promise<boolean> {
   if (lessonCardsSatisfiedFromStored(lesson, lp)) return true;
 
-  // Avoid project/card fanout on report-eligibility checks.
-  const projectIds = await loadLessonProjectIds(courseId, lesson.id, uid);
-  if (lesson.cardsToUnlock.length === 0) {
-    return projectIds.length > 0;
-  }
-  return false;
+  const storedProjectIds = lp?.projectIds || [];
+  const projectIds = storedProjectIds.length > 0 ? storedProjectIds : await loadLessonProjectIds(courseId, lesson.id, uid);
+
+  return lessonCardsSatisfiedFromProjects(lesson, projectIds);
 }
 
 async function quizGateSatisfied(
