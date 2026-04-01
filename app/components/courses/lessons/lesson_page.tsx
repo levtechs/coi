@@ -198,7 +198,7 @@ const LessonPage = ({ lesson, courseId, lessonIdx, totalLessons, projects, cours
             {projects.length > 0 && (
                 <div className="mb-6">
                     <h3 className="text-xl font-semibold text-[var(--foreground)] mb-4">Projects from this lesson</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="flex flex-wrap gap-6">
                         {projects.map((project) => (
                             <ProjectCard
                                 key={project.id}
