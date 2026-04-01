@@ -1,7 +1,7 @@
 import { NewCard } from "@/lib/types/cards";
 import { NewCourse, NewLesson } from "@/lib/types/course";
 import { QuizSettings } from "@/lib/types/quiz";
-import { llmModel, limitedGeneralConfig, genAI } from "@/app/api/gemini/config";
+import { getLLMModel, limitedGeneralConfig, genAI } from "@/app/api/gemini/config";
 import { SchemaType, ObjectSchema } from "@google/generative-ai";
 import {
     createLessonFromTextSystemInstruction,
@@ -79,6 +79,8 @@ const lessonContentSchema: ObjectSchema = {
     required: ["content", "cards"]
 };
 
+const COURSE_CREATION_MODEL = getLLMModel("fast");
+
 export const createCourseFromText = async (text: string, enqueue?: (data: string) => void, lessonQuizSettings?: QuizSettings): Promise<NewCourse> => {
     enqueue?.(JSON.stringify({ type: "status", message: "Analyzing input text and creating course structure..." }));
 
@@ -86,7 +88,7 @@ export const createCourseFromText = async (text: string, enqueue?: (data: string
 
     try {
         const requestBody = {
-            model: llmModel,
+            model: COURSE_CREATION_MODEL,
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             systemInstruction: { role: "system", parts: createLessonDescriptionsFromTextSystemInstruction.parts },
             generationConfig: {
@@ -155,7 +157,7 @@ export const createCourseFromText = async (text: string, enqueue?: (data: string
                     });
 
                     const lessonRequestBody = {
-                        model: llmModel,
+                        model: COURSE_CREATION_MODEL,
                         contents: [{ role: "user", parts: [{ text: lessonPrompt }] }],
                         systemInstruction: { role: "system", parts: createLessonFromDescriptionSystemInstruction.parts },
                         generationConfig: {
@@ -264,7 +266,7 @@ export const createLessonFromText = async (text: string): Promise<NewLesson> => 
 
     try {
         const requestBody = {
-            model: llmModel,
+            model: COURSE_CREATION_MODEL,
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             systemInstruction: { role: "system", parts: createLessonFromTextSystemInstruction.parts },
             generationConfig: {

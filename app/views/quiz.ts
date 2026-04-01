@@ -1,14 +1,14 @@
 import { apiFetch } from "./helpers";
 
 import { NewCard } from "@/lib/types/cards";
-import { QuizSettings, Quiz } from "@/lib/types/quiz";
+import { QuizSettings, Quiz, QuizAttemptSummary } from "@/lib/types/quiz";
 
 // Creates a quiz with cards
-export async function createQuiz(cards: NewCard[], quizSettings: QuizSettings, projectId?: string): Promise<string> {
+export async function createQuiz(cards: NewCard[], quizSettings: QuizSettings, projectId?: string, metadata?: Partial<Quiz>): Promise<string> {
     try {
         const data = await apiFetch<{ quizId: string }>(`/api/quiz`, {
             method: "POST",
-            body: JSON.stringify({cards, quizSettings, projectId}),
+            body: JSON.stringify({cards, quizSettings, projectId, metadata}),
         });
         return data.quizId;
     } catch (err) {
@@ -31,11 +31,11 @@ export async function getQuiz(quizId: string): Promise<Quiz | null> {
     }
 }
 
-export async function gradeQuiz(quizId: string, answers: (number | string)[]): Promise<{results: {isCorrect: boolean, score: number, correctAnswer: string, feedback?: string}[], totalScore: number, maxScore: number}> {
+export async function gradeQuiz(quizId: string, answers: (number | string)[], elapsedMs?: number): Promise<{results: {isCorrect: boolean, score: number, correctAnswer: string, feedback?: string}[], totalScore: number, maxScore: number, attempt?: QuizAttemptSummary}> {
     try {
-        const data = await apiFetch<{results: {isCorrect: boolean, score: number, correctAnswer: string, feedback?: string}[], totalScore: number, maxScore: number}>(`/api/quiz/${quizId}`, {
+        const data = await apiFetch<{results: {isCorrect: boolean, score: number, correctAnswer: string, feedback?: string}[], totalScore: number, maxScore: number, attempt?: QuizAttemptSummary}>(`/api/quiz/${quizId}`, {
             method: "PUT",
-            body: JSON.stringify({answers}),
+            body: JSON.stringify({answers, elapsedMs}),
         });
         return data;
     } catch (err) {

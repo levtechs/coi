@@ -6,7 +6,8 @@ import { Card } from "@/lib/types/cards";
 import { Course, CourseLesson, NewCourse } from "@/lib/types/course";
 import { QuizSettings } from "@/lib/types/quiz";
 import { createCourseFromText, createLessonFromText } from "./helpers";
-import { createQuizFromCards, writeQuizToDb } from "../../quiz/helpers";
+import { createQuizFromCards, updateQuizMetadata, writeQuizToDb } from "../../quiz/helpers";
+import { normalizeCourse, normalizeCourseLesson } from "@/app/api/courses/helpers";
 
 /**
  * POST /api/courses/create
@@ -38,8 +39,12 @@ export async function POST(req: NextRequest) {
             description: courseData.description || "",
             public: courseData.public || false,
             sharedWith: courseData.sharedWith || [],
+            staffIds: courseData.staffIds || [],
             quizIds: courseData.quizIds || [],
+            quizReportPolicy: courseData.quizReportPolicy || {},
             category: courseData.category || "",
+            tutorDefaults: courseData.tutorDefaults || null,
+            resources: courseData.resources || [],
             ownerId: uid,
             createdAt: new Date().toISOString(),
         });
@@ -61,31 +66,41 @@ export async function POST(req: NextRequest) {
             }
 
             batch.set(lessonRef, {
-                ...lesson,
                 courseId: courseId,
-                cardsToUnlock: [] // Stored in subcollection
+                index: lesson.index,
+                title: lesson.title,
+                description: lesson.description,
+                content: lesson.content || lesson.guide?.body || "",
+                guide: lesson.guide || null,
+                tutorConfig: lesson.tutorConfig || null,
+                resources: lesson.resources || [],
+                baseProjectTemplate: lesson.baseProjectTemplate || null,
+                quizIds: lesson.quizIds || [],
+                optional: lesson.optional === true,
+                cardsToUnlock: []
             });
 
-            lessons.push({
-                ...lesson,
-                id: lessonRef.id,
-                courseId: courseId,
-                cardsToUnlock
-            });
+            lessons.push(normalizeCourseLesson(courseId, lessonRef.id, lesson, cardsToUnlock));
         }
         await batch.commit();
 
-        // Return the full course object
-        const fullCourse: Course = {
-            id: courseId,
-            title: courseData.title,
-            description: courseData.description,
-            lessons,
-            quizIds: courseData.quizIds || [],
-            public: courseData.public,
-            sharedWith: courseData.sharedWith,
-            category: courseData.category
-        };
+        await Promise.all([
+            ...(courseData.quizIds || []).map((quizId) => updateQuizMetadata(quizId, {
+                sourceType: "course",
+                courseId,
+                gradedOnly: true,
+                createdBy: uid,
+            })),
+            ...lessons.flatMap((lesson) => (lesson.quizIds || []).map((quizId) => updateQuizMetadata(quizId, {
+                sourceType: "lesson",
+                courseId,
+                lessonId: lesson.id,
+                gradedOnly: true,
+                createdBy: uid,
+            }))),
+        ]);
+
+        const fullCourse: Course = normalizeCourse(courseId, { ...courseData, ownerId: uid }, lessons);
 
         return NextResponse.json(fullCourse);
     } catch (error) {

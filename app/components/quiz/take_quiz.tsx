@@ -49,6 +49,10 @@ const TakeQuizPage = ({ quizId, quiz: providedQuiz }: TakeQuizPageProps) => {
     if (isLoading === true) return <LoadingComponent loadingText="Loading quiz..." />;
     if (isLoading === "error" || quiz === null) return (<Error h2="Error loading quiz." p="Please check the quiz ID or try again later." />);
 
+    if (quiz.gradedOnly && isGraded === null) {
+        return <QuizForm quiz={quiz} isGraded={true} />;
+    }
+
     if (isGraded === null) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-[var(--neutral-100)]">
@@ -56,6 +60,14 @@ const TakeQuizPage = ({ quizId, quiz: providedQuiz }: TakeQuizPageProps) => {
                     <h1 className="font-bold text-2xl mb-4">{quiz.title}</h1>
                     <p className="mb-6">{quiz.description}</p>
                     <p className="mb-6 italic">{quiz.questions.length} questions</p>
+                    {quiz.attempts && quiz.attempts.length > 0 && (
+                        <div className="mb-6 text-sm text-[var(--neutral-700)]">
+                            <p className="font-semibold mb-2">Previous attempts</p>
+                            {quiz.latestAttempt && <p>Latest: {quiz.latestAttempt.totalScore}/{quiz.latestAttempt.maxScore} ({quiz.latestAttempt.percentScore}%)</p>}
+                            {quiz.bestAttempt && <p>Best: {quiz.bestAttempt.totalScore}/{quiz.bestAttempt.maxScore} ({quiz.bestAttempt.percentScore}%)</p>}
+                            <p>Total attempts: {quiz.attempts.length}</p>
+                        </div>
+                    )}
                     <div className="flex flex-col gap-4">
                         <Button color="var(--neutral-500)" onClick={() => setIsGraded(false)} className="py-4 text-lg">Preview Quiz - See answers immediately</Button>
                         <Button color="var(--accent-400)" onClick={() => setIsGraded(true)} className="py-4 text-lg">Take Quiz - Graded with feedback</Button>
