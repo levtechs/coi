@@ -4,6 +4,7 @@ import { adminDb } from "@/lib/firebaseAdmin";
 import { getVerifiedUid } from "@/app/api/helpers";
 import { fetchCourseAndLessonContext } from "@/app/api/courses/helpers";
 import { fetchCourseStudentProgress } from "@/app/api/courses/progress_helpers";
+import { deriveLessonProgressFromProjectsForAnalytics } from "@/app/api/courses/report_completion";
 import { getCourseMemberIds, isCourseStaff } from "@/app/api/courses/helpers";
 import { CourseStudentLessonProgress, CourseStudentProgress } from "@/lib/types/course";
 import { User } from "@/lib/types/user";
@@ -80,8 +81,15 @@ async function buildDerivedStudentProgress(courseId: string): Promise<CourseStud
         const lessonProgressEntries = await Promise.all(course.lessons.map(async (lesson) => {
             const lessonProjects = ownedProjectsByLessonId.get(lesson.id) || [];
             const existingLessonProgress = storedStudent?.lessonProgress?.[lesson.id];
-            if (lessonProjects.length === 0) {
-                return existingLessonProgress || null;
+            const mergedProjectIds = [
+                ...new Set([
+                    ...(existingLessonProgress?.projectIds || []),
+                    ...lessonProjects.map((projectDoc) => projectDoc.id),
+                ]),
+            ];
+
+            if (mergedProjectIds.length === 0 && !existingLessonProgress) {
+                return null;
             }
 
             const sortedProjects = [...lessonProjects].sort((a, b) => {
@@ -89,18 +97,48 @@ async function buildDerivedStudentProgress(courseId: string): Promise<CourseStud
                 const bTime = new Date(String(b.data().createdAt || 0)).getTime();
                 return aTime - bTime;
             });
-            const mergedProjectIds = [...new Set([...(existingLessonProgress?.projectIds || []), ...lessonProjects.map((projectDoc) => projectDoc.id)])];
-            const startedAt = existingLessonProgress?.startedAt || sortedProjects[0]?.data().createdAt;
-            const completedAt = existingLessonProgress?.completedAt
-                || (lesson.cardsToUnlock.length === 0 ? sortedProjects[sortedProjects.length - 1]?.data().createdAt : undefined);
+
+            const startedAt =
+                existingLessonProgress?.startedAt ||
+                sortedProjects[0]?.data().createdAt ||
+                undefined;
+
+            let unlockedCardIds = [...(existingLessonProgress?.unlockedCardIds || [])];
+            let completedAt = existingLessonProgress?.completedAt;
+            let derivedUnlockSlotCount: number | undefined;
+
+            if (lesson.cardsToUnlock.length > 0 && mergedProjectIds.length > 0) {
+                const derived = await deriveLessonProgressFromProjectsForAnalytics(lesson, mergedProjectIds);
+                derivedUnlockSlotCount = derived.displayUnlockedCount;
+                unlockedCardIds = [
+                    ...new Set([...unlockedCardIds, ...derived.matchingUnlockedProjectCardIds]),
+                ];
+                if (derived.allRequiredUnlocked && !completedAt) {
+                    const last = sortedProjects.length > 0 ? sortedProjects[sortedProjects.length - 1] : null;
+                    const lastData = last?.data();
+                    completedAt = (lastData?.updatedAt ||
+                        lastData?.createdAt ||
+                        existingLessonProgress?.startedAt) as string | undefined;
+                }
+            } else if (lesson.cardsToUnlock.length === 0) {
+                if (!completedAt && sortedProjects.length > 0) {
+                    completedAt = sortedProjects[sortedProjects.length - 1]?.data().createdAt as string | undefined;
+                }
+            }
+
+            const lastProjectId =
+                sortedProjects.length > 0
+                    ? sortedProjects[sortedProjects.length - 1]!.id
+                    : existingLessonProgress?.lastProjectId;
 
             const lessonProgress: CourseStudentLessonProgress = {
                 lessonId: lesson.id,
                 lessonIndex: lesson.index,
                 projectIds: mergedProjectIds,
-                unlockedCardIds: existingLessonProgress?.unlockedCardIds || [],
+                unlockedCardIds,
+                ...(derivedUnlockSlotCount !== undefined ? { derivedUnlockSlotCount } : {}),
                 startedAt,
-                lastProjectId: sortedProjects[sortedProjects.length - 1]?.id,
+                lastProjectId,
                 latestQuizAttempt: existingLessonProgress?.latestQuizAttempt || null,
                 bestQuizAttempt: existingLessonProgress?.bestQuizAttempt || null,
                 ...(completedAt ? { completedAt } : {}),

@@ -428,7 +428,7 @@ const Analytics = ({ courseId }: AnalyticsProps) => {
                                                                        </div>
                                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-[var(--neutral-600)]">
                                                                            <div>Projects: {entry?.projectIds?.length || 0}</div>
-                                                                           <div>Unlocked cards: {entry?.unlockedCardIds?.length || 0}/{lesson.cardsToUnlock.length}</div>
+                                                                           <div>Unlocked cards: {Math.max(entry?.unlockedCardIds?.length || 0, entry?.derivedUnlockSlotCount || 0)}/{lesson.cardsToUnlock.length}</div>
                                                                            <div>Best lesson quiz: {entry?.bestQuizAttempt ? `${entry.bestQuizAttempt.percentScore}%` : "-"}</div>
                                                                        </div>
                                                                    </div>

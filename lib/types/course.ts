@@ -108,6 +108,8 @@ export interface CourseStudentLessonProgress {
   lessonIndex: number;
   projectIds: string[];
   unlockedCardIds: string[];
+  /** Admin analytics: template slots matched by scanning lesson projects (vs stored unlock events only). */
+  derivedUnlockSlotCount?: number;
   completedAt?: TimestampType;
   startedAt?: TimestampType;
   lastProjectId?: string;

@@ -90,6 +90,71 @@ async function lessonSatisfiedForReport(
   return lessonCardsSatisfiedFromProjects(lesson, projectIds);
 }
 
+/**
+ * Scan lesson project cards for admin analytics / rollups. Matches report eligibility: one project
+ * must contain all required unlock signatures for allRequiredUnlocked.
+ */
+export async function deriveLessonProgressFromProjectsForAnalytics(
+  lesson: CourseLesson,
+  projectIds: string[],
+): Promise<{
+  allRequiredUnlocked: boolean;
+  displayUnlockedCount: number;
+  matchingUnlockedProjectCardIds: string[];
+}> {
+  if (projectIds.length === 0) {
+    return { allRequiredUnlocked: false, displayUnlockedCount: 0, matchingUnlockedProjectCardIds: [] };
+  }
+
+  const byProject = await fetchCardsFromProjectsWithAllSettled(projectIds);
+
+  if (lesson.cardsToUnlock.length === 0) {
+    return { allRequiredUnlocked: true, displayUnlockedCount: 0, matchingUnlockedProjectCardIds: [] };
+  }
+
+  const requiredUnique = [...new Set(lesson.cardsToUnlock.map(getCardSignatureForUnlockMatch))];
+  if (requiredUnique.length === 0) {
+    return { allRequiredUnlocked: false, displayUnlockedCount: 0, matchingUnlockedProjectCardIds: [] };
+  }
+
+  let allRequiredUnlocked = false;
+  const matchingUnlockedProjectCardIds: string[] = [];
+
+  for (const [, cards] of byProject) {
+    const unlockedSignatures = new Set(
+      cards.filter((c) => c.isUnlocked).map(getCardSignatureForUnlockMatch),
+    );
+    if (requiredUnique.every((s) => unlockedSignatures.has(s))) {
+      allRequiredUnlocked = true;
+      const seenSig = new Set<string>();
+      for (const t of lesson.cardsToUnlock) {
+        const sig = getCardSignatureForUnlockMatch(t);
+        const c = cards.find(
+          (x) => x.isUnlocked && getCardSignatureForUnlockMatch(x) === sig,
+        );
+        if (c && !seenSig.has(sig)) {
+          seenSig.add(sig);
+          matchingUnlockedProjectCardIds.push(c.id);
+        }
+      }
+      break;
+    }
+  }
+
+  let displayUnlockedCount = 0;
+  for (const [, cards] of byProject) {
+    const unlockedSignatures = new Set(
+      cards.filter((c) => c.isUnlocked).map(getCardSignatureForUnlockMatch),
+    );
+    const slots = lesson.cardsToUnlock.filter((t) =>
+      unlockedSignatures.has(getCardSignatureForUnlockMatch(t)),
+    ).length;
+    displayUnlockedCount = Math.max(displayUnlockedCount, slots);
+  }
+
+  return { allRequiredUnlocked, displayUnlockedCount, matchingUnlockedProjectCardIds };
+}
+
 async function quizGateSatisfied(
   course: Course,
   uid: string,
