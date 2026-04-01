@@ -3,7 +3,6 @@ import { GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
 import { Card } from "@/lib/types/cards";
 import { ChatAttachment, ChatPreferences, Message } from "@/lib/types/chat";
 import { ContentHierarchy } from "@/lib/types/content";
-import { Course, CourseLesson } from "@/lib/types/course";
 import { FileAttachment } from "@/lib/types/uploads";
 import { getStringFromHierarchyAndCards } from "../helpers";
 import { getGenerationConfig, getLLMModel } from "@/app/api/gemini/config";
@@ -56,8 +55,7 @@ export async function buildStreamChatRequest(
     attachments: null | ChatAttachment[],
     preferences: ChatPreferences,
     cardsToUnlock?: Card[],
-    course?: Pick<Course, "title" | "description" | "tutorDefaults" | "resources"> | null,
-    courseLesson?: CourseLesson | null,
+    courseLesson?: { cardsToUnlock: Card[] },
 ): Promise<MyGenerateContentParameters> {
     const fileParts = await buildInlineFileParts(attachments);
     const contents = buildConversationContents(messageHistory, message, fileParts);
@@ -71,12 +69,7 @@ export async function buildStreamChatRequest(
     }
 
     if (cardsToUnlock && cardsToUnlock.length > 0) {
-        const cardsToUnlockList = cardsToUnlock.map((card) => ({
-            id: card.id,
-            title: card.title,
-            details: card.details,
-            unlockInstruction: (card as Card & { unlockInstruction?: string }).unlockInstruction,
-        }));
+        const cardsToUnlockList = cardsToUnlock.map((card) => ({ id: card.id, title: card.title, details: card.details }));
         contents.push({
             role: "user",
             parts: [{ text: `CARDS AVAILABLE FOR UNLOCKING: ${JSON.stringify(cardsToUnlockList)}` }],
@@ -90,7 +83,6 @@ export async function buildStreamChatRequest(
             preferences.googleSearch,
             preferences.followUpQuestions,
             cardsToUnlock,
-            course,
             courseLesson,
         ).parts as MyPart[],
     };

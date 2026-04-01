@@ -1,5 +1,5 @@
 import { adminDb } from "@/lib/firebaseAdmin";
-import { Quiz, QuizAttempt, QuizAttemptSummary, QuizQuestion } from "@/lib/types/quiz";
+import { Quiz, QuizQuestion } from "@/lib/types/quiz";
 import { genAI } from "../../gemini/config";
 import { gradeFRQsSystemInstruction } from "../prompts";
 import { Content, Type } from "@google/genai";
@@ -15,43 +15,6 @@ export async function fetchQuiz(quizId: string) {
 
     const quizData = quizDocSnap.data();
     return { id: quizDocSnap.id, ...quizData } as Quiz;
-}
-
-export async function fetchQuizAttemptsForUser(quizId: string, uid: string): Promise<QuizAttempt[]> {
-    const attemptsSnap = await adminDb
-        .collection("quizzes")
-        .doc(quizId)
-        .collection("attempts")
-        .where("userId", "==", uid)
-        .get();
-
-    return attemptsSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-    })) as QuizAttempt[];
-}
-
-export function summarizeAttempts(attempts: QuizAttempt[]): { latestAttempt: QuizAttemptSummary | null; bestAttempt: QuizAttemptSummary | null } {
-    if (attempts.length === 0) {
-        return { latestAttempt: null, bestAttempt: null };
-    }
-
-    const sortedByTime = [...attempts].sort((a, b) => new Date(String(b.submittedAt)).getTime() - new Date(String(a.submittedAt)).getTime());
-    const sortedByScore = [...attempts].sort((a, b) => b.percentScore - a.percentScore || new Date(String(b.submittedAt)).getTime() - new Date(String(a.submittedAt)).getTime());
-
-    const toSummary = (attempt: QuizAttempt): QuizAttemptSummary => ({
-        id: attempt.id,
-        totalScore: attempt.totalScore,
-        maxScore: attempt.maxScore,
-        percentScore: attempt.percentScore,
-        submittedAt: attempt.submittedAt,
-        attemptNumber: attempt.attemptNumber,
-    });
-
-    return {
-        latestAttempt: toSummary(sortedByTime[0]),
-        bestAttempt: toSummary(sortedByScore[0]),
-    };
 }
 
 /**

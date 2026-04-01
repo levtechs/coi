@@ -1,7 +1,6 @@
 // ==== prompts ====
 
 import { Card } from "@/lib/types/cards";
-import { Course, CourseLesson, CourseResource, TutorPromptConfig, TutorPromptProfileId } from "@/lib/types/course";
 
 // "Chunk" prompts
 
@@ -92,23 +91,8 @@ Rules:
 - Use the exact card ID for CardRef
 - Use the exact new card title for NewCardRef
 - If you create a new knowledge card for a concept you explain, reference it the first time you explain that concept in the prose
-- Do not use any other card reference syntax in prose (for example, never write raw "(card: ...)" or bare card IDs); the UI only resolves the self-closing <CardRef /> and <NewCardRef /> forms above.
-`
-
-const lessonTutorCardReferenceChunk = `
-=== LESSON TUTOR: LOCKED CARDS AND CARDREF ===
-This session uses lesson cards that unlock over time. The user message includes CARDS AVAILABLE FOR UNLOCKING (with IDs) and may include EXISTING NOTES from the student's project.
-
-LOCKED LESSON CARDS:
-- A card listed only under CARDS AVAILABLE FOR UNLOCKING is not in the student's notes yet. Treat it as locked.
-- Do NOT use <CardRef id="..." /> for any card whose ID appears only there and not in EXISTING NOTES. The student cannot open that link until the card is unlocked and copied into their project.
-- When you need to point at a locked outcome, refer to it by concept or lesson language (title, skills, tasks), not as a notecard link.
-
-UNLOCKED / IN-PROJECT CARDS ONLY:
-- Use <CardRef id="..." /> only for IDs that already appear in EXISTING NOTES (or for cards you add in this response via <NewCardRef ... /> after emitting the matching <NewCard> blocks, per the global rules).
-
-NO LEGACY CARD SYNTAX IN PROSE:
-- Never output "(card: id)", "(card: id1, card: id2)", or similar. Those strings will not render as links for locked or unknown IDs. Always use <CardRef id="..." /> (or <NewCardRef title="..." />) inside <Prose> when you intend a clickable notecard reference.
+- NEVER use square brackets for references
+- NEVER use (card: ...) or (newcard: ...) anymore
 `
 
 const newCardsChunk = `
@@ -212,195 +196,52 @@ export const getSearchChunk = (googleSearch: string): string => {
     }
 };
 
-const tutorPromptProfiles: Record<TutorPromptProfileId, string> = {
-    course_credibility: `
-COURSE CREDIBILITY:
-- Act like a credible course-specific tutor.
-- Use the course's terminology and workflows consistently.
-- If course materials or lesson resources conflict with your memory, prefer the provided course materials.
-- Do not bluff about UI details you are unsure about. Ask the student what they see and reason from that.
-`,
-    guided_practice: `
-GUIDED PRACTICE:
-- Do not turn the lesson into a lecture.
-- Frequently ask the student to go perform concrete actions, try a step, or work an example, then return and report what happened.
-- Use short practice-oriented instructions and keep momentum.
-`,
-    visual_verification: `
-VISUAL VERIFICATION:
-- When the lesson depends on visuals or real app state, strongly prefer asking the student to attach a screenshot or describe exactly what they see.
-- Use uploaded images as evidence when deciding whether the student likely completed the task.
-- If no image is attached, you may still proceed when the student's report is specific and credible, but be more probing before unlocking.
-`,
-    socratic_unlocking: `
-SOCRATIC UNLOCKING:
-- Before unlocking, ask targeted follow-up questions that verify the student's understanding.
-- Prefer guided questions over dumping the answer.
-- Unlock only when the student has demonstrated the lesson outcome clearly enough.
-`,
-    comparative_reasoning: `
-COMPARATIVE REASONING:
-- Ask the student to compare examples, states, strategies, workflows, or outcomes when useful.
-- Encourage them to explain differences, tradeoffs, or why one approach fits better than another.
-`,
-    troubleshooting_reflection: `
-TROUBLESHOOTING AND REFLECTION:
-- Encourage the student to notice confusion, mistakes, friction points, or unresolved uncertainty.
-- If they get stuck or encounter something surprising, help them describe it clearly and reflect on what they still need to understand.
-`,
-};
-
-function getTutorPromptConfigChunk(config?: TutorPromptConfig): string {
-    if (!config) return "";
-
-    const profileChunk = (config.profileIds || [])
-        .map((profileId) => tutorPromptProfiles[profileId])
-        .filter(Boolean)
-        .join("\n");
-
-    const customChunk = config.customInstruction?.trim()
-        ? `CUSTOM TUTOR INSTRUCTIONS:\n${config.customInstruction.trim()}`
-        : "";
-
-    return [profileChunk, customChunk].filter(Boolean).join("\n\n");
-}
-
-function getResourceManifestChunk(resources?: CourseResource[]): string {
-    if (!resources || resources.length === 0) return "";
-
-    const lines = resources
-        .filter((resource) => resource.studentVisible !== false)
-        .map((resource, index) => {
-        const caption = resource.caption ? ` - ${resource.caption}` : "";
-        return `${index + 1}. ${resource.title} [${resource.kind}]${caption}`;
-    });
-
-    if (lines.length === 0) return "";
-
-    return `
-LESSON/COURSE RESOURCES:
-- You may be given a manifest of lesson or course resources.
-- Refer to resources by name when they are relevant.
-- If a student seems confused, it is good to point them toward the most relevant named resource.
-- Resource manifest:
-${lines.join("\n")}
-`;
-}
-
-function getTutorReferenceChunk(resources?: CourseResource[]): string {
-    if (!resources || resources.length === 0) return "";
-
-    const referenceSections = resources
-        .filter((resource) => resource.includeInTutorReference && resource.referenceText?.trim())
-        .map((resource) => {
-            const caption = resource.caption?.trim() ? `\nNotes: ${resource.caption.trim()}` : "";
-            const referenceText = resource.referenceText!.trim().slice(0, 12000);
-            return `### REFERENCE: ${resource.title}${caption}\n${referenceText}`;
-        });
-
-    if (referenceSections.length === 0) return "";
-
-    return `
-=== GROUNDED REFERENCE INFORMATION ===
-The following reference information is provided to ground your teaching. You MUST use this information as the primary source of truth for facts about the app or domain.
-
-INSTRUCTIONS FOR REFERENCE USE:
-- Prefer this information over your background training data when they conflict.
-- Use this information naturally in your explanations.
-- If a student asks about something not covered here and you are unsure, admit that it isn't in your current reference material.
-
-${referenceSections.join("\n\n")}
-=== END REFERENCE INFORMATION ===
-`;
-}
-
-function getCourseAndLessonChunk(course?: Pick<Course, "title" | "description" | "tutorDefaults" | "resources"> | null, lesson?: Pick<CourseLesson, "title" | "description" | "guide" | "tutorConfig" | "resources" | "cardsToUnlock"> | null): string {
-    const parts: string[] = [];
-
-    if (course) {
-        parts.push(`COURSE CONTEXT:\nTitle: ${course.title}${course.description ? `\nDescription: ${course.description}` : ""}`);
-        const courseTutorChunk = getTutorPromptConfigChunk(course.tutorDefaults);
-        if (courseTutorChunk) parts.push(courseTutorChunk);
-        const courseReferenceChunk = getTutorReferenceChunk(course.resources);
-        if (courseReferenceChunk) parts.push(courseReferenceChunk);
-        const courseResources = getResourceManifestChunk(course.resources);
-        if (courseResources) parts.push(courseResources);
-    }
-
-    if (lesson) {
-        parts.push(`LESSON CONTEXT:\nTitle: ${lesson.title}${lesson.description ? `\nDescription: ${lesson.description}` : ""}`);
-        if (lesson.guide?.body) {
-            parts.push(`OPTIONAL LESSON GUIDE:\n${lesson.guide.body}`);
-        }
-        const lessonTutorChunk = getTutorPromptConfigChunk(lesson.tutorConfig);
-        if (lessonTutorChunk) parts.push(lessonTutorChunk);
-        const lessonReferenceChunk = getTutorReferenceChunk(lesson.resources);
-        if (lessonReferenceChunk) parts.push(lessonReferenceChunk);
-        const lessonResources = getResourceManifestChunk(lesson.resources);
-        if (lessonResources) parts.push(lessonResources);
-    }
-
-    return parts.join("\n\n");
-}
-
 const followUpChunk = `
-FOLLOW-UP SUGGESTIONS (USER VOICE):
-Each <FollowUp> must be a short message the **student** might type to you next—not a question you ask the student.
-Write them in first person or as direct requests to the tutor (e.g. "Explain …", "Walk me through …", "What's the difference between …").
-
-Emit 1-3 suggestions after </Prose> using this exact format:
-<FollowUp>…</FollowUp>
+FOLLOW-UP QUESTIONS:
+Always include 1-3 follow-up questions to encourage deeper learning and exploration.
+Emit each follow-up question after </Prose> using this exact format:
+<FollowUp>Your question here?</FollowUp>
 
 STRICT REQUIREMENT:
 - Every response must include at least one <FollowUp>...</FollowUp> tag.
 - Responses without any follow-up tags are incomplete.
 
-WRONG (tutor interviewing the student—do not use):
-- <FollowUp>What specific visual change did you observe when switching views?</FollowUp>
-- <FollowUp>Can you describe one cluster you found and ask a specific question about it?</FollowUp>
-
-RIGHT (examples of what the user might say next):
-- <FollowUp>Explain what the difference between 2D and 2.5D is in the context of Mantis.</FollowUp>
-- <FollowUp>Walk me through how clusters relate to navigation in a real space.</FollowUp>
-
-Avoid generic tutor-meta lines like:
+Make follow-up questions specific to the topic that was just explained.
+Avoid generic follow-ups like:
 - <FollowUp>Do you want to learn more?</FollowUp>
 - <FollowUp>Should I explain this further?</FollowUp>
 
-Prefer suggestions that naturally extend the exact concept you just discussed (still in user voice):
-- Poynting vector: <FollowUp>Explain the divergence of field energy density.</FollowUp>
-- Poynting vector: <FollowUp>How does the Poynting vector apply to a simple electromagnetic wave in free space?</FollowUp>
-- Electric fields: <FollowUp>How do electric field lines change when multiple charges are present?</FollowUp>
+Prefer follow-ups that naturally extend the exact concept that was just discussed.
+Examples of good follow-up questions:
+- If the topic is the Poynting vector: <FollowUp>Explain the divergence of field energy density.</FollowUp>
+- If the topic is the Poynting vector: <FollowUp>How does the Poynting vector apply to a simple electromagnetic wave in free space?</FollowUp>
+- If the topic is electric fields: <FollowUp>How do electric field lines change when multiple charges are present?</FollowUp>
 `
 
 const lessonFollowUpChunk = `
-FOLLOW-UP SUGGESTIONS FOR LESSON PROGRESS (USER VOICE):
-Your goal is to suggest what the **student** might type to you next—short messages in the learner's voice that nudge the conversation toward remaining lesson goals, not questions you ask the student.
+FOLLOW-UP QUESTIONS FOR LESSON PROGRESS:
+Your goal is to guide the student toward discovering the remaining concepts on their own, rather than explaining everything upfront.
 
-Before writing <FollowUp> tags, note which cards are still locked. Suggest user messages that would naturally lead the student to explore those ideas (without dumping the answer).
+IMPORTANT: Before generating follow-up questions, identify which cards are still locked (not yet unlocked). Generate questions that:
+1. Point the student toward the concepts they haven't fully explored yet
+2. Encourage curiosity about the remaining material
+3. Help bridge their current understanding to the next locked concept
 
-Each <FollowUp> must sound like something the user would send to the tutor, e.g. requests to explain, compare, or walk through something.
-
-WRONG (tutor-to-student prompts—do not use):
-- <FollowUp>What did you observe when you switched between 2D and 2.5D?</FollowUp>
-- <FollowUp>Can you describe a cluster you found?</FollowUp>
-
-RIGHT (user-to-tutor messages):
-- <FollowUp>Explain what the difference between 2D and 2.5D is in the context of Mantis.</FollowUp>
-- <FollowUp>I'm not sure what counts as a cluster—can you clarify with an example?</FollowUp>
-
-Heuristics:
-- If 2/5 cards are unlocked, suggest messages that steer toward the remaining concepts (still phrased as the user asking you).
-- Stay specific to this lesson; avoid generic "tell me more" lines.
+For example:
+- If a student has unlocked 2/5 cards, ask questions about the remaining 3 cards
+- If a student is close to unlocking the next card, ask a question that would demonstrate understanding of what's missing
 
 Avoid:
-- Giving away full answers that would trivially unlock the next card in one shot
-- Suggestions about topics they've already clearly mastered
-- Tutor-voice interrogation ("What did you see?", "Can you describe…?")
+- Giving away answers that would immediately unlock cards
+- Asking about concepts they've already demonstrated understanding of
+- Generic questions that don't guide toward specific remaining content
 
-REQUIRED: End with 1-3 <FollowUp>…</FollowUp> tags (user-voice suggestions only).
+REQUIRED: End your response with 1-3 follow-up questions using this format:
+<FollowUp>Your question here?</FollowUp>
 
 Responses without any follow-up tags are incomplete.
+
+The follow-up questions must be specific and concept-building, not generic.
 `
 
 const disableFollowUpChunk = ``
@@ -408,7 +249,7 @@ const disableFollowUpChunk = ``
 /**
  * Returns the appropriate follow-up chunk based on the followUpQuestions preference.
  */
-export const getFollowUpChunk = (followUpQuestions: string, courseLesson?: { cardsToUnlock: Card[] } | null): string => {
+export const getFollowUpChunk = (followUpQuestions: string, courseLesson?: { cardsToUnlock: Card[] }): string => {
     switch (followUpQuestions) {
         case "auto":
             if (courseLesson && courseLesson.cardsToUnlock.length > 0) {
@@ -428,24 +269,24 @@ You will receive a list of cards under "CARDS AVAILABLE FOR UNLOCKING" in the us
 You MUST determine which cards should be unlocked and include the result at the end of your response.
 
 UNLOCKING CRITERIA:
-A card should be unlocked when the student has genuinely demonstrated the intended lesson outcome for that card. This usually includes:
+A card should be unlocked when your response has covered ALL the key concepts in that card. This includes:
 - Explaining all the main details listed in the card
 - Addressing any questions the student asked about the card's topics
 - Connecting concepts that relate to the card's content
-- Respecting any lesson-specific unlock instructions attached to the card
-- Using task evidence, screenshots, or concrete observations when the lesson calls for them
 
-IMPORTANT: After your prose, include <FollowUp> suggestions as defined elsewhere: short lines in the **student's voice** (what they might type next), not interview questions from you to them.
+IMPORTANT: Encourage follow-up questions by ending with thoughtful questions that:
+- Point toward deeper exploration of the topic
+- Ask the student to apply or extend the concepts you just explained
 
 PROCESS:
 1. Review the cards available for unlocking (you'll receive their IDs, titles, and details)
 2. For each card, check if your response has covered all its main concepts
 3. If your response addressed all card details, mark it for unlocking
-4. End with 1-3 user-voice <FollowUp> suggestions when follow-ups are enabled
+4. End with 1-3 follow-up questions to encourage deeper engagement
 
 EXAMPLE:
 If a card asks about "neuron structure" and your response explained dendrites, soma, and axon - unlock it.
-A good <FollowUp> might be: <FollowUp>How does neuron structure affect its function in a network?</FollowUp> (user asking you, not you quizzing them).
+Then ask: "How might the structure of a neuron affect its function in a neural network?"
 
 If one or more cards should be unlocked, emit exactly one tag after </Prose> (and after any <FollowUp> tags):
 <UnlockCards>exact_card_id_1,exact_card_id_2</UnlockCards>
@@ -512,47 +353,20 @@ STRICT RESTRICTIONS - YOU MUST FOLLOW THESE:
 /**
  * Returns the appropriate unlocking chunk based on whether cardsToUnlock are provided.
  */
-function getPerCardUnlockInstructionChunk(cardsToUnlock?: Card[]): string {
-    if (!cardsToUnlock || cardsToUnlock.length === 0) return "";
-
-    const detailedCards = cardsToUnlock
-        .filter((card) => typeof (card as Card & { unlockInstruction?: string }).unlockInstruction === "string" && (card as Card & { unlockInstruction?: string }).unlockInstruction?.trim())
-        .map((card) => {
-            const unlockInstruction = (card as Card & { unlockInstruction?: string }).unlockInstruction?.trim();
-            return `- ${card.title} (${card.id}): ${unlockInstruction}`;
-        });
-
-    if (detailedCards.length === 0) return "";
-
-    return `CARD-SPECIFIC UNLOCK GUIDANCE:\n${detailedCards.join("\n")}`;
-}
-
 export const getUnlockingChunk = (cardsToUnlock?: Card[]): string => {
-    return cardsToUnlock && cardsToUnlock.length > 0
-        ? `${unlockingChunk}\n\n${getPerCardUnlockInstructionChunk(cardsToUnlock)}`.trim()
-        : disableUnlockingChunk;
+    return cardsToUnlock && cardsToUnlock.length > 0 ? unlockingChunk : disableUnlockingChunk;
 };
 
 // ==== Full prompts with new hierarchy examples ====
 
-export const getChatResponseSystemInstruction = (
-    personality: string,
-    googleSearch: string,
-    followUpQuestions: string,
-    cardsToUnlock?: Card[],
-    course?: Pick<Course, "title" | "description" | "tutorDefaults" | "resources"> | null,
-    courseLesson?: CourseLesson | null,
-) => {
+export const getChatResponseSystemInstruction = (personality: string, googleSearch: string, followUpQuestions: string, cardsToUnlock?: Card[], courseLesson?: { cardsToUnlock: Card[] }) => {
     const personalityChunk = getPersonalityChunk(personality);
     const searchChunk = getSearchChunk(googleSearch);
     const followUpChunk = getFollowUpChunk(followUpQuestions, courseLesson);
     const unlockingChunk = getUnlockingChunk(cardsToUnlock);
-    const courseAndLessonChunk = getCourseAndLessonChunk(course, courseLesson);
-    const lessonTutorCardRules =
-        cardsToUnlock && cardsToUnlock.length > 0 ? `\n${lessonTutorCardReferenceChunk}\n` : "";
 
-    const example1FollowUp = followUpQuestions === "auto" ? "\n<FollowUp>Explain how neurons communicate across synapses.</FollowUp>\n<FollowUp>What are the main types of neurons I should know?</FollowUp>" : "";
-    const example2FollowUp = followUpQuestions === "auto" ? "\n<FollowUp>Can you recommend another video with more worked examples?</FollowUp>" : "";
+    const example1FollowUp = followUpQuestions === "auto" ? "\n<FollowUp>How do neurons communicate with each other across synapses?</FollowUp>\n<FollowUp>What are the different types of neurons in the nervous system?</FollowUp>" : "";
+    const example2FollowUp = followUpQuestions === "auto" ? "\n<FollowUp>Want another video with more worked examples?</FollowUp>" : "";
 
     return {
         parts: [{ text: `
@@ -569,7 +383,7 @@ ${userPasteChunk}
 ${chatAttachmentsChunk}
 
 ${cardReferencesChunk}
-${lessonTutorCardRules}
+
 In the responseMessage
 ${markdownChunk}
 
@@ -578,8 +392,6 @@ ${markdownChunk}
  ${followUpChunk}
 
  ${unlockingChunk}
-
- ${courseAndLessonChunk}
 
  ${tutorActionsChunk}
 

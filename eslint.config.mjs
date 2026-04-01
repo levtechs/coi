@@ -14,6 +14,8 @@ const eslintConfig = [
   {
     ignores: [
       "node_modules/**",
+      ".venv-whisperx311/**",
+      "extras/**",
       ".next/**",
       ".next-build/**",
       "out/**",

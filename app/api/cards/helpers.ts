@@ -1,6 +1,5 @@
 import { adminDb } from "@/lib/firebaseAdmin";
 import { Card, NewCard } from "@/lib/types/cards";
-import { stripUndefinedDeep } from "@/lib/firestoreSanitize";
 
 export const fetchCardsFromProject = async (projectId: string): Promise<Card[]> => {
     try {
@@ -50,11 +49,10 @@ export const writeCardsToDb = async (
         const addedCards: Card[] = [];
 
         for (const card of newCards) {
-            const sanitizedCard = stripUndefinedDeep(card);
-            const docRef = await cardsCollectionRef.add(sanitizedCard);
+            const docRef = await cardsCollectionRef.add(card);
             addedCards.push({
                 id: docRef.id,
-                ...sanitizedCard,
+                ...card,
             });
         }
 
@@ -81,7 +79,7 @@ export const copyCardsToDb = async (
 
         for (const card of cards) {
             const docRef = cardsCollectionRef.doc(card.id);
-            await docRef.set(stripUndefinedDeep(card));
+            await docRef.set(card);
         }
 
         return cards;
@@ -98,7 +96,7 @@ export const updateCardInDb = async (
 ): Promise<void> => {
     try {
         const cardRef = adminDb.collection("projects").doc(projectId).collection("cards").doc(cardId);
-        await cardRef.update(stripUndefinedDeep(updates));
+        await cardRef.update(updates);
     } catch (err) {
         console.error(`Error updating card ${cardId} in project ${projectId}:`, err);
         throw err;

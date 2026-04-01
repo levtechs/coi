@@ -97,18 +97,9 @@ const ProjectDetailsPanel = ({ project, quizzes }: ProjectDetailsPanelProps) => 
                         <div className="mt-2">
                             <p className="text-sm font-semibold">Lesson Quiz:</p>
                             {lessonQuizzes.map((quiz, index) => (
-                                <div key={quiz.id || index} className="mb-1">
-                                    <a className="underline text-sm font-bold mr-2" href={`/quiz/${quiz.id}`} target="_blank" rel="noopener noreferrer">
-                                        {quiz.title}
-                                    </a>
-                                    {(quiz.latestAttempt || quiz.bestAttempt) && (
-                                        <p className="text-xs text-[var(--neutral-600)]">
-                                            {quiz.latestAttempt ? `latest ${quiz.latestAttempt.percentScore}%` : ""}
-                                            {quiz.latestAttempt && quiz.bestAttempt ? " • " : ""}
-                                            {quiz.bestAttempt ? `best ${quiz.bestAttempt.percentScore}%` : ""}
-                                        </p>
-                                    )}
-                                </div>
+                                <a key={quiz.id || index} className="underline text-sm font-bold mr-2" href={`/quiz/${quiz.id}`} target="_blank" rel="noopener noreferrer">
+                                    {quiz.title}
+                                </a>
                             ))}
                         </div>
                     )}
@@ -154,22 +145,15 @@ const ProjectDetailsPanel = ({ project, quizzes }: ProjectDetailsPanelProps) => 
                                               {date && <p className="italic text-[var(--neutral-500)]">created {timeAgo(date)} • {formatQuestionCounts(quiz)}</p>}
                                           </div>
                                       )
-                                       return (
-                                           <div key={quiz.id} className="flex flex-col">
-                                               <a className="underline" href={`/quiz/${quiz.id}`} target="_blank" rel="noopener noreferrer">
-                                                   {quiz.title.length > 45 ? quiz.title.slice(0, 45) + "..." : quiz.title}
-                                               </a>
-                                               {date && <p className="italic text-[var(--neutral-500)]">created {timeAgo(date)} • {formatQuestionCounts(quiz)}</p>}
-                                               {(quiz.latestAttempt || quiz.bestAttempt) && (
-                                                   <p className="text-xs text-[var(--neutral-500)]">
-                                                       {quiz.latestAttempt ? `latest ${quiz.latestAttempt.percentScore}%` : ""}
-                                                       {quiz.latestAttempt && quiz.bestAttempt ? " • " : ""}
-                                                       {quiz.bestAttempt ? `best ${quiz.bestAttempt.percentScore}%` : ""}
-                                                   </p>
-                                               )}
-                                           </div>
-                                       )
-                                  })}
+                                      return (
+                                          <div key={quiz.id} className="flex flex-col">
+                                              <a className="underline" href={`/quiz/${quiz.id}`} target="_blank" rel="noopener noreferrer">
+                                                  {quiz.title.length > 45 ? quiz.title.slice(0, 45) + "..." : quiz.title}
+                                              </a>
+                                              {date && <p className="italic text-[var(--neutral-500)]">created {timeAgo(date)} • {formatQuestionCounts(quiz)}</p>}
+                                          </div>
+                                      )
+                                 })}
                              </>
                          ) : (
                              <>

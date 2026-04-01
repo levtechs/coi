@@ -108,11 +108,6 @@ const LandingPage = () => {
                             </li>
                         ))}
                         <li>
-                            <button onClick={() => router.push("/courses")} className="text-[var(--neutral-700)] hover:text-[var(--neutral-900)] transition-colors text-sm">
-                                Courses
-                            </button>
-                        </li>
-                        <li>
                             <button onClick={() => router.push("/dashboard")} className="text-[var(--neutral-700)] hover:text-[var(--neutral-900)] transition-colors text-sm">
                                 Dashboard
                             </button>
