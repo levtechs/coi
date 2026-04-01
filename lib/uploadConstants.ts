@@ -6,7 +6,6 @@ export const ALLOWED_MIME_TYPES = [
     'image/',
     'application/pdf',
     'text/plain',
-    'text/markdown',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 ];

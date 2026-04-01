@@ -1,37 +1,23 @@
+// app/api/quiz/[quizId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { assertCourseAccessByUid, assertProjectAccessByUid, getVerifiedUid } from "../../helpers";
-import { fetchQuiz, fetchQuizAttemptsForUser, gradeFRQs, summarizeAttempts } from "./helpers";
-import { toQuizAttemptSummary, writeQuizAttempt } from "../helpers";
-import { recordQuizAttemptForCourseProgress } from "@/app/api/courses/progress_helpers";
+import { getVerifiedUid } from "../../helpers";
+import { fetchQuiz, gradeFRQs } from "./helpers";
 import { QuizQuestion } from "@/lib/types/quiz";
 /*
  * Retrieves a quiz by its ID.
  */
 export async function GET(
     req: NextRequest,
-    context: { params: Promise<{ quizId: string }> }
+    context: { params: Promise<{ quizId: string }> } // <--- correct type
 ) {
     const uid = await getVerifiedUid(req);
     if (!uid) return NextResponse.json({ error: "No user ID provided" }, { status: 400 });
 
-    const { quizId } = await context.params;
+    const { quizId } = await context.params; // <--- await here
     if (!quizId) return NextResponse.json({ error: "No quiz ID provided" }, { status: 400 });
 
     try {
         const quiz = await fetchQuiz(quizId);
-        if (quiz.courseId) {
-            await assertCourseAccessByUid(uid, quiz.courseId, true);
-        }
-        if (quiz.projectId) {
-            await assertProjectAccessByUid(uid, quiz.projectId, true);
-        }
-
-        const attempts = await fetchQuizAttemptsForUser(quizId, uid);
-        const attemptSummaries = attempts.map((attempt) => toQuizAttemptSummary(attempt));
-        const { latestAttempt, bestAttempt } = summarizeAttempts(attempts);
-        quiz.attempts = attemptSummaries;
-        quiz.latestAttempt = latestAttempt;
-        quiz.bestAttempt = bestAttempt;
         return NextResponse.json(quiz);
     } catch (err) {
         if ((err as Error).message === "Quiz not found") {
@@ -60,16 +46,9 @@ export async function PUT(
 
     const body = await req.json();
     const answers = body.answers; // array of number | string in question order
-    const elapsedMs = typeof body.elapsedMs === "number" ? body.elapsedMs : undefined;
 
     try {
         const quiz = await fetchQuiz(quizId);
-        if (quiz.courseId) {
-            await assertCourseAccessByUid(uid, quiz.courseId, true);
-        }
-        if (quiz.projectId) {
-            await assertProjectAccessByUid(uid, quiz.projectId, true);
-        }
 
         let score = 0;
         let total = 0;
@@ -109,14 +88,7 @@ export async function PUT(
             };
         });
 
-        const attempt = await writeQuizAttempt(quiz, uid, answers, results, score, total, elapsedMs);
-        const attemptSummary = toQuizAttemptSummary(attempt);
-
-        if (quiz.courseId) {
-            await recordQuizAttemptForCourseProgress(quiz, uid, attemptSummary);
-        }
-
-        return NextResponse.json({ results, totalScore: score, maxScore: total, attempt: attemptSummary });
+        return NextResponse.json({ results, totalScore: score, maxScore: total });
     } catch (err) {
         if ((err as Error).message === "Quiz not found") {
             return NextResponse.json({ error: "Quiz not found" }, { status: 404 });

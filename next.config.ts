@@ -1,11 +1,6 @@
 import type { NextConfig } from "next";
-import path from "path";
-
-const isIsolatedBuild = process.env.ISOLATED_BUILD === "true";
 
 const nextConfig: NextConfig = {
-  distDir: isIsolatedBuild ? ".next-build" : ".next",
-  outputFileTracingRoot: path.resolve(process.cwd()),
   turbopack: {
     root: process.cwd(),
   },

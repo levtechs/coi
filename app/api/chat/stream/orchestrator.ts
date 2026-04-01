@@ -10,11 +10,9 @@ import {
 } from "@/app/api/chat/helpers";
 import { copyCardsToDb, fetchCardsFromProject } from "@/app/api/cards/helpers";
 import { getProjectById } from "@/app/api/projects/helpers";
-import { recordLessonCardUnlocks } from "@/app/api/courses/progress_helpers";
 import { Card } from "@/lib/types/cards";
 import { ChatAttachment, GroundingChunk } from "@/lib/types/chat";
 import { ContentHierarchy } from "@/lib/types/content";
-import { CourseLesson } from "@/lib/types/course";
 import { buildFinalChatAttachments, resolveNewcardRefs } from "./shared";
 import { StreamChatResponseResult } from "./types";
 
@@ -34,8 +32,6 @@ type ExistingProjectFinalizeArgs = BaseFinalizeArgs & {
     previousContentHierarchy: ContentHierarchy | null;
     effectivePreviousCards: Card[];
     cardsToUnlock: Card[];
-    courseId?: string;
-    courseLesson?: CourseLesson | null;
 };
 
 type QuickCreateFinalizeArgs = BaseFinalizeArgs & {
@@ -75,23 +71,35 @@ export async function finalizeTaggedStream(args: FinalizeArgs): Promise<{
         : [];
     const allWrittenCards = [...writtenCards, ...writtenResourceCards];
 
+    finalResponseMessage = resolveNewcardRefs(finalResponseMessage, allWrittenCards);
+    const finalAttachments = buildFinalChatAttachments(chatAttachments, allWrittenCards, new Set<string>());
+
+    sendUpdate("responseMessage", finalResponseMessage, finalAttachments);
+    if (writtenResourceCards.length > 0) {
+        sendUpdate("newCards", JSON.stringify(writtenResourceCards));
+    }
+    if (followUpQuestions.length > 0) {
+        sendUpdate("followUpQuestions", JSON.stringify(followUpQuestions));
+    }
+
     let backgroundCards = [...allWrittenCards];
-    let unlockedCards: Card[] = [];
 
     if (args.mode === "existing") {
         const { previousContentHierarchy, effectivePreviousCards, cardsToUnlock } = args;
         const { unlockedCardIds: parsedUnlockedCardIds, tutorActions } = response;
 
+        let unlockedCards: Card[] = [];
         if (parsedUnlockedCardIds.length > 0 && cardsToUnlock.length > 0) {
             const existingCardIds = new Set((effectivePreviousCards || []).map((c) => c.id));
             unlockedCards = unlockCards(parsedUnlockedCardIds, cardsToUnlock, existingCardIds);
             if (unlockedCards.length > 0) {
                 unlockedCards = unlockedCards.map((c) => ({ ...c, isUnlocked: true }));
                 await copyCardsToDb(projectId, unlockedCards);
-                if (args.courseId && args.courseLesson) {
-                    await recordLessonCardUnlocks(args.courseId, args.courseLesson, uid, unlockedCards.map((card) => card.id));
-                }
             }
+        }
+
+        if (unlockedCards.length > 0) {
+            sendUpdate("newCards", JSON.stringify([...unlockedCards]));
         }
 
         if (tutorActions && tutorActions.length > 0) {
@@ -118,20 +126,6 @@ export async function finalizeTaggedStream(args: FinalizeArgs): Promise<{
         }
 
         backgroundCards = [...allWrittenCards, ...unlockedCards];
-    }
-
-    finalResponseMessage = resolveNewcardRefs(finalResponseMessage, backgroundCards);
-    const finalAttachments = buildFinalChatAttachments(chatAttachments, backgroundCards, new Set<string>());
-
-    sendUpdate("responseMessage", finalResponseMessage, finalAttachments);
-    if (backgroundCards.length > 0) {
-        const surfacedCards = [...allWrittenCards, ...unlockedCards];
-        if (surfacedCards.length > 0) {
-            sendUpdate("newCards", JSON.stringify(surfacedCards));
-        }
-    }
-    if (followUpQuestions.length > 0) {
-        sendUpdate("followUpQuestions", JSON.stringify(followUpQuestions));
     }
 
     await writeChatPairToDb(message, attachments, finalResponseMessage, projectId, uid, finalAttachments, followUpQuestions);

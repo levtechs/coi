@@ -1,7 +1,6 @@
 import { Card } from "@/lib/types/cards";
 import { Message, ChatAttachment, GroundingChunk, ChatPreferences } from "@/lib/types/chat";
 import { ContentHierarchy, TutorAction } from "@/lib/types/content";
-import { Course, CourseLesson } from "@/lib/types/course";
 import { FileAttachment } from "@/lib/types/uploads";
 import { genAI } from "@/app/api/gemini/config";
 import { buildStreamChatRequest } from "./model_request";
@@ -23,8 +22,7 @@ export async function streamChatResponse(
     onToken: (token: string) => Promise<void> | void,
     onNewCards?: (cards: ModelCard[]) => Promise<Card[]>,
     cardsToUnlock?: Card[],
-    course?: Pick<Course, "title" | "description" | "tutorDefaults" | "resources"> | null,
-    courseLesson?: CourseLesson | null,
+    courseLesson?: { cardsToUnlock: Card[] }
 ): Promise<StreamChatResponseResult> {
     if (!message || message.trim() === "") throw new Error("Message is required.");
     const params = await buildStreamChatRequest(
@@ -35,7 +33,6 @@ export async function streamChatResponse(
         attachments,
         preferences,
         cardsToUnlock,
-        course,
         courseLesson,
     );
 

@@ -1,22 +1,20 @@
 import { adminDb } from "@/lib/firebaseAdmin";
 import * as admin from "firebase-admin";
 
-import { genAI } from "../gemini/config";
+import { defaultGeneralConfig, llmModel, genAI } from "../gemini/config";
 import { createQuizFromCardsSystemInstruction } from "./prompts";
 
 import { NewCard } from "@/lib/types/cards";
-import { Quiz, QuizAttempt, QuizAttemptSummary, QuizSettings } from "@/lib/types/quiz";
-import { Content, Type, Schema } from "@google/genai";
+import { QuizSettings } from "@/lib/types/quiz";
+import { Content, GenerationConfig, ThinkingConfig, Tool, Type, Schema } from "@google/genai";
 import { MyConfig, MyGenerateContentParameters } from "../gemini/types";
-
-export type QuizWriteMetadata = Pick<Quiz, "createdBy" | "sourceType" | "projectId" | "courseId" | "lessonId" | "gradedOnly">;
 
 /**
  * Writes a new quiz entry to the project's quizes collection.
  * @param quiz The quiz JSON object to store.
  * @returns The ID of the newly created quiz document.
  */
-export const writeQuizToDb = async (quiz: object, projectId?: string, metadata?: QuizWriteMetadata): Promise<string> => {
+export const writeQuizToDb = async (quiz: object, projectId?: string): Promise<string> => {
     if (!quiz) throw new Error("Missing quiz");
 
     try {
@@ -24,7 +22,6 @@ export const writeQuizToDb = async (quiz: object, projectId?: string, metadata?:
         const quizzesColRef = adminDb.collection("quizzes");
         const docRef = await quizzesColRef.add({
             ...quiz,
-            ...(metadata || {}),
             createdAt: new Date().toISOString(),
         });
 
@@ -42,80 +39,6 @@ export const writeQuizToDb = async (quiz: object, projectId?: string, metadata?:
         throw err;
     }
 };
-
-export async function updateQuizMetadata(quizId: string, metadata: Partial<Quiz>): Promise<void> {
-    if (!quizId) return;
-
-    await adminDb.collection("quizzes").doc(quizId).set(metadata, { merge: true });
-}
-
-export async function writeQuizAttempt(
-    quiz: Quiz,
-    uid: string,
-    answers: (number | string)[],
-    results: { isCorrect: boolean; score: number; correctAnswer: string; feedback?: string }[],
-    totalScore: number,
-    maxScore: number,
-    elapsedMs?: number,
-): Promise<QuizAttempt> {
-    if (!quiz.id) {
-        throw new Error("Quiz id is required to store attempts");
-    }
-
-    const attemptsRef = adminDb.collection("quizzes").doc(quiz.id).collection("attempts");
-    const existingAttemptsSnap = await attemptsRef.where("userId", "==", uid).get();
-    const attemptNumber = existingAttemptsSnap.size + 1;
-    const submittedAt = new Date().toISOString();
-    const percentScore = maxScore > 0 ? Math.round((totalScore / maxScore) * 1000) / 10 : 0;
-
-    const payload: Omit<QuizAttempt, "id"> = {
-        quizId: quiz.id,
-        userId: uid,
-        answers,
-        results,
-        totalScore,
-        maxScore,
-        percentScore,
-        submittedAt,
-        attemptNumber,
-        ...(elapsedMs !== undefined ? { elapsedMs } : {}),
-        ...(quiz.courseId ? { courseId: quiz.courseId } : {}),
-        ...(quiz.lessonId ? { lessonId: quiz.lessonId } : {}),
-        ...(quiz.projectId ? { projectId: quiz.projectId } : {}),
-    };
-
-    const attemptRef = await attemptsRef.add(payload);
-    const allAttemptsSnap = await attemptsRef.get();
-    const allAttempts = allAttemptsSnap.docs.map((doc) => doc.data() as Omit<QuizAttempt, "id">);
-    const highestScore = allAttempts.reduce((best, attempt) => Math.max(best, attempt.percentScore || 0), 0);
-    const averageScore = allAttempts.length > 0
-        ? Math.round((allAttempts.reduce((sum, attempt) => sum + (attempt.percentScore || 0), 0) / allAttempts.length) * 10) / 10
-        : 0;
-    const completedByCount = new Set(allAttempts.map((attempt) => attempt.userId)).size;
-
-    await updateQuizMetadata(quiz.id, {
-        attemptCount: allAttempts.length,
-        completedByCount,
-        highestScore,
-        averageScore,
-    });
-
-    return {
-        id: attemptRef.id,
-        ...payload,
-    };
-}
-
-export function toQuizAttemptSummary(attempt: QuizAttempt): QuizAttemptSummary {
-    return {
-        id: attempt.id,
-        totalScore: attempt.totalScore,
-        maxScore: attempt.maxScore,
-        percentScore: attempt.percentScore,
-        submittedAt: attempt.submittedAt,
-        attemptNumber: attempt.attemptNumber,
-    };
-}
 
 /**
  * Calls the Gemini API to get a structured JSON response.

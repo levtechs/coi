@@ -1,6 +1,6 @@
 import { adminDb } from "@/lib/firebaseAdmin";
-import { CourseLesson, CourseResource } from "@/lib/types/course";
-import { canAccessCourse, normalizeCardsToUnlock, normalizeCourseLesson, normalizeResources } from "@/app/api/courses/helpers";
+import { Card } from "@/lib/types/cards";
+import { CourseLesson } from "@/lib/types/course";
 
 /**
  * Fetches a specific lesson from a course and checks user access permissions.
@@ -10,49 +10,56 @@ import { canAccessCourse, normalizeCardsToUnlock, normalizeCourseLesson, normali
  * @param uid - The user ID to check access permissions for
  * @returns An object containing the lesson (if found) and whether the user has access
  */
-export async function getLessonFromCourse(courseId: string, lessonIdx: number, uid: string): Promise<{ lesson: CourseLesson | null; hasAccess: boolean; courseResources?: CourseResource[]; lessonCount?: number }> {
+export async function getLessonFromCourse(courseId: string, lessonIdx: number, uid: string): Promise<{ lesson: CourseLesson | null; hasAccess: boolean }> {
     try {
         const courseRef = adminDb.collection('courses').doc(courseId);
         const courseSnap = await courseRef.get();
 
         if (!courseSnap.exists) {
-            return { lesson: null, hasAccess: false, lessonCount: 0 };
+            return { lesson: null, hasAccess: false };
         }
 
         const courseData = courseSnap.data()!;
 
-        const hasAccess = canAccessCourse(courseData, uid, true);
+        // Check access: owner, shared, or public
+        const hasAccess =
+            courseData.ownerId === uid ||
+            (courseData.sharedWith && courseData.sharedWith.includes(uid)) ||
+            courseData.public === true;
 
         if (!hasAccess) {
-            return { lesson: null, hasAccess: false, lessonCount: 0 };
+            return { lesson: null, hasAccess: false };
         }
 
         // Fetch lessons subcollection
         const lessonsRef = courseRef.collection('lessons');
         const lessonsSnap = await lessonsRef.get();
-        const lessonCount = lessonsSnap.size;
+        const lessons = lessonsSnap.docs.map((p) => ({
+            id: p.id,
+            courseId: courseId,
+            ...p.data(),
+        })) as CourseLesson[];
 
         // Find the lesson by index
-        const lessonDoc = lessonsSnap.docs.find((doc) => doc.data().index === lessonIdx);
+        const lesson = lessons.find((l) => l.index === lessonIdx);
 
-        if (!lessonDoc) {
-            return { lesson: null, hasAccess: false, lessonCount };
+        if (!lesson) {
+            return { lesson: null, hasAccess: false };
         }
 
         // Fetch cardsToUnlock subcollection
-        const cardsRef = lessonDoc.ref.collection('cardsToUnlock');
+        const cardsRef = lessonsRef.doc(lesson.id).collection('cardsToUnlock');
         const cardsSnap = await cardsRef.get();
-        const cardsToUnlock = normalizeCardsToUnlock(cardsSnap.docs.map((c) => ({
+        const cardsToUnlock = cardsSnap.docs.map((c) => ({
             id: c.id,
             ...c.data(),
-        })));
+        })) as Card[];
 
-        const lesson = normalizeCourseLesson(courseId, lessonDoc.id, lessonDoc.data(), cardsToUnlock);
-        const courseResources = normalizeResources(courseData.resources);
+        lesson.cardsToUnlock = cardsToUnlock;
 
-        return { lesson, hasAccess: true, courseResources, lessonCount };
+        return { lesson, hasAccess: true };
     } catch (error) {
         console.error("Error fetching lesson:", error);
-        return { lesson: null, hasAccess: false, lessonCount: 0 };
+        return { lesson: null, hasAccess: false };
     }
 }
