@@ -1,6 +1,60 @@
 import { adminDb } from "@/lib/firebaseAdmin";
 import { Card, NewCard } from "@/lib/types/cards";
 
+/**
+ * Normalizes title/details for comparing template cards to project cards (legacy-safe).
+ */
+export function getCardSignatureForUnlockMatch(card: Pick<Card, "title" | "details">): string {
+    const rawTitle = typeof card.title === "string" ? card.title : "";
+    const rawDetails = Array.isArray(card.details) ? card.details : [];
+    const details = rawDetails
+        .filter((detail): detail is string => typeof detail === "string")
+        .map((detail) => detail.trim().toLowerCase());
+    return JSON.stringify({
+        title: rawTitle.trim().toLowerCase(),
+        details,
+    });
+}
+
+function normalizeCardFromFirestore(id: string, data: NewCard): Card {
+    const title = typeof data.title === "string" ? data.title : "";
+    const rawDetails = Array.isArray(data.details) ? data.details : [];
+    const details = rawDetails.filter((d): d is string => typeof d === "string");
+    return {
+        ...data,
+        id,
+        title,
+        details,
+    };
+}
+
+/**
+ * Fetches cards for many projects in parallel. Per-project failures are logged and omitted
+ * so callers can still evaluate completion from other projects.
+ */
+export async function fetchCardsFromProjectsWithAllSettled(
+    projectIds: string[],
+): Promise<Map<string, Card[]>> {
+    const uniqueIds = [...new Set(projectIds)];
+    const results = await Promise.allSettled(
+        uniqueIds.map(async (projectId) => {
+            const cards = await fetchCardsFromProject(projectId);
+            return { projectId, cards };
+        }),
+    );
+    const map = new Map<string, Card[]>();
+    for (let i = 0; i < results.length; i++) {
+        const r = results[i];
+        const id = uniqueIds[i];
+        if (r.status === "fulfilled") {
+            map.set(r.value.projectId, r.value.cards);
+        } else {
+            console.error(`fetchCardsFromProject failed for project ${id}:`, r.reason);
+        }
+    }
+    return map;
+}
+
 export const fetchCardsFromProject = async (projectId: string): Promise<Card[]> => {
     try {
         const projectRef = adminDb.collection("projects").doc(projectId);
@@ -16,13 +70,10 @@ export const fetchCardsFromProject = async (projectId: string): Promise<Card[]> 
         // Fetch all documents from the subcollection.
         const querySnapshot = await cardsCollectionRef.get();
 
-        // Map the Firestore documents to the Card interface.
-        const cards: Card[] = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data() as NewCard
-        }));
+        const cards: Card[] = querySnapshot.docs.map((doc) =>
+            normalizeCardFromFirestore(doc.id, doc.data() as NewCard),
+        );
 
-        // Return the list of cards.
         return cards;
 
     } catch (err) {
@@ -233,10 +284,9 @@ export const extractWriteCards = async (projectId: string, content: JSON): Promi
 
         // For a final list of cards, fetch again or re-construct.
         const finalCards = await cardsCollectionRef.get();
-        const allCards: Card[] = finalCards.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data() as NewCard,
-        }));
+        const allCards: Card[] = finalCards.docs.map((doc) =>
+            normalizeCardFromFirestore(doc.id, doc.data() as NewCard),
+        );
 
         return allCards;
 
