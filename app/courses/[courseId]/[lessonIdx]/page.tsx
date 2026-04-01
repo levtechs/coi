@@ -4,13 +4,12 @@ import { useAuth } from "@/lib/AuthContext";
 import LoginPrompt from "../../../components/login_prompt";
 import { FlickeringGrid } from "@/app/components/flickering-grid";
 import Sidebar from "@/app/components/sidebar";
-import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { getLesson } from "../../../views/lessons";
-import { CourseLesson } from "@/lib/types/course";
+import { CourseLesson, CourseResource } from "@/lib/types/course";
 import { Project } from "@/lib/types/project";
 import LoadingComponent from "../../../components/loading";
 import LessonPage from "../../../components/courses/lessons/lesson_page";
@@ -22,6 +21,8 @@ export default function LessonDetailPage() {
     const courseId = params.courseId as string;
     const lessonIdx = parseInt(params.lessonIdx as string);
     const [lesson, setLesson] = useState<CourseLesson | null>(null);
+    const [courseResources, setCourseResources] = useState<CourseResource[]>([]);
+    const [lessonCount, setLessonCount] = useState(0);
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -33,6 +34,8 @@ export default function LessonDetailPage() {
                 const result = await getLesson(courseId, lessonIdx);
                 if (result) {
                     setLesson(result.lesson);
+                    setCourseResources(result.courseResources);
+                    setLessonCount(result.lessonCount);
                 }
             } catch (error) {
                 console.error("Failed to fetch lesson:", error);
@@ -109,7 +112,7 @@ export default function LessonDetailPage() {
                         Lesson {lessonIdx + 1}: {lesson.title}
                     </h1>
                 </div>
-                <LessonPage lesson={lesson} courseId={courseId} lessonIdx={lessonIdx} projects={projects} />
+                <LessonPage lesson={lesson} courseId={courseId} lessonIdx={lessonIdx} totalLessons={lessonCount} projects={projects} courseResources={courseResources} />
             </div>
         </div>
     );

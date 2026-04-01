@@ -49,3 +49,6 @@ next-env.d.ts
 
 # Mantis - stuff related to customization for mantis
 /mantis
+
+# local Python venv (WhisperX / tooling)
+/.venv-whisperx311/

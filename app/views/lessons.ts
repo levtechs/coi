@@ -1,14 +1,15 @@
 import { apiFetch } from "./helpers";
 
-import { CourseLesson } from "@/lib/types/course";
+import { CourseLesson, CourseResource } from "@/lib/types/course";
 import { Project } from "@/lib/types/project";
 
-export async function getLesson(courseId: string, lessonIdx: number): Promise<{ lesson: CourseLesson; projectIds: string[] } | null> {
+export async function getLesson(courseId: string, lessonIdx: number): Promise<{ lesson: CourseLesson; projectIds: string[]; courseResources: CourseResource[]; lessonCount: number } | null> {
     try {
-        const data = await apiFetch<{ lesson: CourseLesson; projectIds: string[] }>(`/api/courses/${courseId}/${lessonIdx}`, {
+        const data = await apiFetch<{ lesson: CourseLesson; projectIds: string[]; courseResources?: CourseResource[]; lessonCount?: number }>(`/api/courses/${courseId}/${lessonIdx}`, {
             method: "GET",
         });
-        return data;
+        if (!data) return null;
+        return { ...data, courseResources: data.courseResources ?? [], lessonCount: data.lessonCount ?? 0 };
     } catch (err) {
         console.error("Error fetching lesson:", err);
         return null;

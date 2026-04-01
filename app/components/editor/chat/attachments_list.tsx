@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Paperclip, Globe, Brain, Layout, X, Play } from "lucide-react";
+import { FileText, Paperclip, Globe, Brain, Layout, X, Play, Star } from "lucide-react";
 import { ChatAttachment } from "@/lib/types/chat";
 import { Dispatch, SetStateAction } from "react";
 
@@ -41,6 +41,9 @@ export const getAttachmentIcon = (attachment: ChatAttachment) => {
     } else if ("kind" in attachment && attachment.kind === "resource") {
         return <Globe className="w-3 h-3" />;
     } else if ("details" in attachment) {
+        if (attachment.isUnlocked) {
+            return <Star className="w-3 h-3 fill-current" />;
+        }
         return <FileText className="w-3 h-3" />;
     }
     return <Paperclip className="w-3 h-3" />;
