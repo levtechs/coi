@@ -4,6 +4,7 @@ import { auth } from "@/lib/firebase";
 
 import { CommentTree, CreateCommentData, UpdateCommentData } from "@/lib/types/comments";
 import { Course, CoursePortfolioReportSummary, CourseStudentProgress, NewLesson } from "@/lib/types/course";
+import { CourseAnalyticsRollups } from "@/lib/types/course_analytics";
 import { Project } from "@/lib/types/project";
 import { QuizSettings } from "@/lib/types/quiz";
 
@@ -106,9 +107,29 @@ export async function deleteCourse(courseId: string): Promise<boolean> {
     }
 }
 
-export async function fetchAnalytics(courseId: string): Promise<{ totalUsers: number; invitations: { token: string; createdAt: string; createdBy?: string; acceptedBy: { id: string; email: string; displayName: string; actions?: number; dailyActions?: number; weeklyActions?: number; projectIds?: string[]; }[]; }[]; students: CourseStudentProgress[]; } | null> {
+export type CourseAnalyticsApiResponse = {
+    totalUsers: number;
+    invitations: {
+        token: string;
+        createdAt: string;
+        createdBy?: string;
+        acceptedBy: {
+            id: string;
+            email: string;
+            displayName: string;
+            actions?: number;
+            dailyActions?: number;
+            weeklyActions?: number;
+            projectIds?: string[];
+        }[];
+    }[];
+    students: CourseStudentProgress[];
+    rollups: CourseAnalyticsRollups;
+};
+
+export async function fetchAnalytics(courseId: string): Promise<CourseAnalyticsApiResponse | null> {
     try {
-        const data = await apiFetch<{ totalUsers: number; invitations: { token: string; createdAt: string; createdBy?: string; acceptedBy: { id: string; email: string; displayName: string; actions?: number; dailyActions?: number; weeklyActions?: number; projectIds?: string[]; }[]; }[]; students: CourseStudentProgress[]; }>(`/api/courses/${courseId}/analytics`, {
+        const data = await apiFetch<CourseAnalyticsApiResponse>(`/api/courses/${courseId}/analytics`, {
             method: "GET",
         });
         return data;

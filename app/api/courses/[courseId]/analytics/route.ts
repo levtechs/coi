@@ -6,8 +6,10 @@ import { fetchCourseAndLessonContext } from "@/app/api/courses/helpers";
 import { fetchCourseStudentProgress } from "@/app/api/courses/progress_helpers";
 import { deriveLessonProgressFromProjectsForAnalytics } from "@/app/api/courses/report_completion";
 import { getCourseMemberIds, isCourseStaff } from "@/app/api/courses/helpers";
-import { CourseStudentLessonProgress, CourseStudentProgress } from "@/lib/types/course";
+import { Course, CourseStudentLessonProgress, CourseStudentProgress } from "@/lib/types/course";
+import { CourseAnalyticsRollups } from "@/lib/types/course_analytics";
 import { User } from "@/lib/types/user";
+import { buildCourseAnalyticsRollups } from "@/app/api/courses/[courseId]/analytics/rollups";
 
 async function loadUsersByIds(userIds: string[]): Promise<Map<string, User>> {
     if (userIds.length === 0) return new Map();
@@ -35,7 +37,13 @@ async function loadUsersByIds(userIds: string[]): Promise<Map<string, User>> {
     );
 }
 
-async function buildDerivedStudentProgress(courseId: string): Promise<CourseStudentProgress[]> {
+const emptyRollups: CourseAnalyticsRollups = {
+    quizzes: [],
+    unlocksByLesson: {},
+    lessonTiming: [],
+};
+
+async function buildDerivedStudentProgress(courseId: string): Promise<{ students: CourseStudentProgress[]; course: Course | null }> {
     const [{ course }, storedStudents, projectsSnap] = await Promise.all([
         fetchCourseAndLessonContext(courseId),
         fetchCourseStudentProgress(courseId),
@@ -43,7 +51,7 @@ async function buildDerivedStudentProgress(courseId: string): Promise<CourseStud
     ]);
 
     if (!course) {
-        return storedStudents;
+        return { students: storedStudents, course: null };
     }
 
     const storedStudentMap = new Map(storedStudents.map((student) => [student.userId, student]));
@@ -168,11 +176,13 @@ async function buildDerivedStudentProgress(courseId: string): Promise<CourseStud
         } satisfies CourseStudentProgress;
     }));
 
-    return derivedStudents.sort((a, b) => {
+    const students = derivedStudents.sort((a, b) => {
         const aName = (a.displayName || a.email || a.userId).toLowerCase();
         const bName = (b.displayName || b.email || b.userId).toLowerCase();
         return aName.localeCompare(bName);
     });
+
+    return { students, course };
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
@@ -217,12 +227,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cour
             };
         });
 
-        const students = await buildDerivedStudentProgress(courseId);
+        const { students, course } = await buildDerivedStudentProgress(courseId);
+
+        const rollups =
+            course != null
+                ? await buildCourseAnalyticsRollups(courseId, course, students)
+                : emptyRollups;
 
         return NextResponse.json({
             totalUsers,
             invitations,
             students,
+            rollups,
         });
     } catch (err) {
         return NextResponse.json({ error: (err as Error).message }, { status: 500 });

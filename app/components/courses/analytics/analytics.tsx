@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FiArrowLeft, FiBarChart2, FiBookOpen, FiCopy, FiDownload, FiFileText, FiRefreshCw, FiSettings, FiUsers } from "react-icons/fi";
 import { getCourse, fetchAnalytics, getPortfolioReportStatus, regeneratePortfolioReport } from "../../../views/courses";
 import { Course, CoursePortfolioReportSummary, CourseStudentProgress } from "@/lib/types/course";
+import { CourseAnalyticsRollups } from "@/lib/types/course_analytics";
 import Button from "../../button";
 import Modal from "../../modal";
 import MarkdownArticle from "../../md";
@@ -12,12 +13,28 @@ interface AnalyticsProps {
     courseId: string;
 }
 
+const emptyRollups: CourseAnalyticsRollups = {
+    quizzes: [],
+    unlocksByLesson: {},
+    lessonTiming: [],
+};
+
+function formatDurationMs(ms: number | null): string {
+    if (ms == null || !Number.isFinite(ms)) return "—";
+    const sec = Math.round(ms / 1000);
+    if (sec < 60) return `${sec}s`;
+    const m = Math.floor(sec / 60);
+    const r = sec % 60;
+    return r > 0 ? `${m}m ${r}s` : `${m}m`;
+}
+
 const Analytics = ({ courseId }: AnalyticsProps) => {
     const [course, setCourse] = useState<Course | null>(null);
     const [analyticsData, setAnalyticsData] = useState({
         totalUsers: 0,
         invitations: [] as { token: string; createdAt: string; createdBy?: string; acceptedBy: { id: string; email: string; displayName: string; actions?: number; dailyActions?: number; weeklyActions?: number; projectIds?: string[]; }[]; }[],
         students: [] as CourseStudentProgress[],
+        rollups: emptyRollups,
     });
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
     const [activeView, setActiveView] = useState<"course" | "invites" | "students">("course");
@@ -180,7 +197,10 @@ const Analytics = ({ courseId }: AnalyticsProps) => {
             try {
                 const data = await fetchAnalytics(courseId);
                 if (data) {
-                    setAnalyticsData(data);
+                    setAnalyticsData({
+                        ...data,
+                        rollups: data.rollups ?? emptyRollups,
+                    });
                 } else {
                     console.error("Failed to fetch analytics");
                     // Keep placeholder data
@@ -308,6 +328,125 @@ const Analytics = ({ courseId }: AnalyticsProps) => {
                                                ))}
                                            </div>
                                        </div>
+                                   </div>
+
+                                   <div className="mt-10 space-y-8">
+                                       <h2 className="text-2xl font-semibold text-[var(--foreground)]">Learning insights</h2>
+                                       <p className="text-sm text-[var(--neutral-600)] -mt-4">Aggregated from quiz attempts and lesson progress (attempts must include this course ID).</p>
+
+                                       {analyticsData.rollups.lessonTiming.length > 0 && (
+                                           <div className="bg-[var(--neutral-200)] p-6 rounded-2xl shadow">
+                                               <h3 className="text-xl font-semibold text-[var(--foreground)] mb-2">Time to complete</h3>
+                                               <p className="text-sm text-[var(--neutral-600)] mb-4">Median time from first lesson activity to completion (students who completed).</p>
+                                               <div className="overflow-x-auto">
+                                                   <table className="w-full text-sm">
+                                                       <thead>
+                                                           <tr className="text-left border-b border-[var(--neutral-300)]">
+                                                               <th className="py-2 pr-4">Lesson</th>
+                                                               <th className="py-2 pr-4">Started</th>
+                                                               <th className="py-2 pr-4">Completed</th>
+                                                               <th className="py-2">Median duration</th>
+                                                           </tr>
+                                                       </thead>
+                                                       <tbody>
+                                                           {analyticsData.rollups.lessonTiming.map((row) => (
+                                                               <tr key={row.lessonId} className="border-b border-[var(--neutral-300)]">
+                                                                   <td className="py-3 pr-4 font-medium text-[var(--foreground)]">Lesson {row.lessonIndex + 1}: {row.lessonTitle}</td>
+                                                                   <td className="py-3 pr-4">{row.startedCount}</td>
+                                                                   <td className="py-3 pr-4">{row.completedCount}</td>
+                                                                   <td className="py-3">{formatDurationMs(row.medianMsToComplete)}</td>
+                                                               </tr>
+                                                           ))}
+                                                       </tbody>
+                                                   </table>
+                                               </div>
+                                           </div>
+                                       )}
+
+                                       {analyticsData.rollups.quizzes.filter((q) => q.totalAttempts > 0).length > 0 && (
+                                           <div className="bg-[var(--neutral-200)] p-6 rounded-2xl shadow space-y-6">
+                                               <h3 className="text-xl font-semibold text-[var(--foreground)]">Quiz questions</h3>
+                                               <p className="text-sm text-[var(--neutral-600)]">Wrong rate is incorrect answers divided by attempts that reached that question.</p>
+                                               {analyticsData.rollups.quizzes.filter((q) => q.totalAttempts > 0).map((quiz) => {
+                                                   const lesson = quiz.lessonId ? sortedLessons.find((l) => l.id === quiz.lessonId) : null;
+                                                   const sortedQs = [...quiz.questionStats].filter((s) => s.attemptCount > 0).sort((a, b) => b.wrongPercent - a.wrongPercent);
+                                                   return (
+                                                       <div key={quiz.quizId} className="rounded-xl border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-4">
+                                                           <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+                                                               <div className="font-semibold text-[var(--foreground)]">{quiz.title}</div>
+                                                               <div className="text-xs text-[var(--neutral-600)]">
+                                                                   {quiz.totalAttempts} attempts · {quiz.distinctStudents} students
+                                                                   {quiz.medianElapsedMs != null ? ` · median ${formatDurationMs(quiz.medianElapsedMs)}` : ""}
+                                                                   {lesson ? ` · ${lesson.title}` : ""}
+                                                               </div>
+                                                           </div>
+                                                           {sortedQs.length === 0 ? (
+                                                               <p className="text-sm text-[var(--neutral-600)]">No per-question data.</p>
+                                                           ) : (
+                                                               <div className="overflow-x-auto">
+                                                                   <table className="w-full text-sm">
+                                                                       <thead>
+                                                                           <tr className="text-left border-b border-[var(--neutral-300)]">
+                                                                               <th className="py-2 pr-3">#</th>
+                                                                               <th className="py-2 pr-3">Question</th>
+                                                                               <th className="py-2 pr-3">Wrong rate</th>
+                                                                               <th className="py-2">Attempts</th>
+                                                                           </tr>
+                                                                       </thead>
+                                                                       <tbody>
+                                                                           {sortedQs.map((s) => (
+                                                                               <tr key={s.questionIndex} className="border-b border-[var(--neutral-300)] align-top">
+                                                                                   <td className="py-2 pr-3 text-[var(--neutral-600)]">{s.questionIndex + 1}</td>
+                                                                                   <td className="py-2 pr-3 text-[var(--foreground)]">{s.questionSnippet}</td>
+                                                                                   <td className="py-2 pr-3">{s.wrongPercent}%</td>
+                                                                                   <td className="py-2">{s.attemptCount}</td>
+                                                                               </tr>
+                                                                           ))}
+                                                                       </tbody>
+                                                                   </table>
+                                                               </div>
+                                                           )}
+                                                       </div>
+                                                   );
+                                               })}
+                                           </div>
+                                       )}
+
+                                       {sortedLessons.some((lesson) => (analyticsData.rollups.unlocksByLesson[lesson.id] || []).length > 0) && (
+                                           <div className="bg-[var(--neutral-200)] p-6 rounded-2xl shadow space-y-6">
+                                               <h3 className="text-xl font-semibold text-[var(--foreground)]">Unlock cards</h3>
+                                               <p className="text-sm text-[var(--neutral-600)]">How many students who started the lesson unlocked each template card.</p>
+                                               {sortedLessons.map((lesson) => {
+                                                   const slots = analyticsData.rollups.unlocksByLesson[lesson.id];
+                                                   if (!slots?.length) return null;
+                                                   return (
+                                                       <div key={lesson.id} className="rounded-xl border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-4">
+                                                           <div className="font-semibold text-[var(--foreground)] mb-3">Lesson {lesson.index + 1}: {lesson.title}</div>
+                                                           <div className="overflow-x-auto">
+                                                               <table className="w-full text-sm">
+                                                                   <thead>
+                                                                       <tr className="text-left border-b border-[var(--neutral-300)]">
+                                                                           <th className="py-2 pr-3">Card</th>
+                                                                           <th className="py-2 pr-3">Unlocked</th>
+                                                                           <th className="py-2">Started lesson</th>
+                                                                       </tr>
+                                                                   </thead>
+                                                                   <tbody>
+                                                                       {slots.map((slot) => (
+                                                                           <tr key={slot.cardId} className="border-b border-[var(--neutral-300)]">
+                                                                               <td className="py-2 pr-3 text-[var(--foreground)]">{slot.title}</td>
+                                                                               <td className="py-2 pr-3">{slot.unlockedByCount}</td>
+                                                                               <td className="py-2">{slot.studentsStartedLesson}</td>
+                                                                           </tr>
+                                                                       ))}
+                                                                   </tbody>
+                                                               </table>
+                                                           </div>
+                                                       </div>
+                                                   );
+                                               })}
+                                           </div>
+                                       )}
                                    </div>
                                </>
                            )}
