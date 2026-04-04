@@ -30,20 +30,26 @@ function withNoInternalScroll(html: string): string {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/>${lock}<base target="_blank"/><style>html,body{margin:0;padding:0;overflow:hidden!important;overscroll-behavior:none;height:auto!important;}</style></head><body>${html}</body></html>`;
 }
 
+/**
+ * Prefer a known hero root when present (e.g. Mantis `#splash-container`); otherwise use
+ * document scroll metrics without mixing in getBoundingClientRect on html (avoids runaway
+ * sizes when the iframe has already been stretched tall).
+ */
 function measureIframeDocHeight(iframe: HTMLIFrameElement): number {
   const doc = iframe.contentDocument;
   const body = doc?.body;
   const root = doc?.documentElement;
   if (!body || !root) return 0;
 
-  return Math.max(
-    body.scrollHeight,
-    body.offsetHeight,
-    Math.ceil(body.getBoundingClientRect().height),
-    root.scrollHeight,
-    root.offsetHeight,
-    root.clientHeight,
-    Math.ceil(root.getBoundingClientRect().height),
+  const splash = doc.getElementById("splash-container");
+  if (splash) {
+    return Math.ceil(
+      Math.max(splash.scrollHeight, splash.offsetHeight, splash.getBoundingClientRect().height),
+    );
+  }
+
+  return Math.ceil(
+    Math.max(body.scrollHeight, body.offsetHeight, root.scrollHeight, root.offsetHeight),
   );
 }
 
@@ -70,9 +76,12 @@ export default function CourseBrandedHeader({ course, className = "" }: CourseBr
     if (!el) return;
     const h = measureIframeDocHeight(el);
     if (h <= 0) return;
-    const padded = h + 32;
-    // Prefer the largest measurement so late-loading fonts/CSS don’t clip the bottom; small buffer for subpixel/layout.
-    setEmbedHeight((prev) => Math.max(prev ?? 0, padded));
+    const padded = h + 20;
+    const cap =
+      typeof window !== "undefined" ? Math.max(480, Math.round(window.innerHeight * 0.72)) : 720;
+    const next = Math.min(padded, cap);
+    // Replace (not monotonic max): a tall iframe + root metrics can otherwise lock in huge heights.
+    setEmbedHeight((prev) => (prev !== null && Math.abs(prev - next) < 2 ? prev : next));
   }, []);
 
   useEffect(() => {
@@ -148,7 +157,7 @@ export default function CourseBrandedHeader({ course, className = "" }: CourseBr
           />
         </div>
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-36 bg-gradient-to-t from-[var(--neutral-100)] via-[var(--neutral-100)]/70 to-transparent"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-44 bg-gradient-to-t from-[var(--neutral-100)] from-25% via-[var(--neutral-100)]/55 to-transparent"
           aria-hidden
         />
       </div>
@@ -156,12 +165,12 @@ export default function CourseBrandedHeader({ course, className = "" }: CourseBr
   }
 
   const pxHeight = embedHeight && embedHeight > 0 ? embedHeight : null;
-  /** Generous default until measurement catches external CSS/fonts (Mantis loads remote stylesheets). */
-  const iframeHeightPx = pxHeight ?? 520;
+  /** Short placeholder until measure runs; avoid 50vh minimum (felt like a huge empty band). */
+  const iframeHeightPx = pxHeight ?? 380;
 
   return (
     <div className={shell} aria-label="Course branding">
-      <div className="relative w-full min-h-[min(50vh,520px)]">
+      <div className="relative w-full min-h-[260px] overflow-hidden">
         <iframe
           ref={iframeRef}
           key={`${course.id}-embed-${srcDocKey}`}
@@ -169,7 +178,7 @@ export default function CourseBrandedHeader({ course, className = "" }: CourseBr
           className="pointer-events-none block w-full border-0 bg-transparent"
           style={{
             height: iframeHeightPx,
-            minHeight: "min(50vh, 520px)",
+            minHeight: 260,
             overflow: "hidden",
             display: "block",
           }}
@@ -178,11 +187,11 @@ export default function CourseBrandedHeader({ course, className = "" }: CourseBr
           referrerPolicy="no-referrer"
           scrolling="no"
         />
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-44 bg-gradient-to-t from-[var(--neutral-100)] from-25% via-[var(--neutral-100)]/55 to-transparent"
+          aria-hidden
+        />
       </div>
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-36 bg-gradient-to-t from-[var(--neutral-100)] via-[var(--neutral-100)]/70 to-transparent"
-        aria-hidden
-      />
     </div>
   );
 }
