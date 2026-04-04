@@ -55,56 +55,66 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
         const fetchCourse = async () => {
             if (!user || !courseId) return;
             setLoading(true);
+            setLessonProgresses({});
             try {
                 const result = await getCourse(courseId);
                 if (!result) {
                     setCourse(null);
                     setLessonProjects({});
                     setPortfolioStatus(null);
+                    setLessonProgresses({});
+                    setCourseQuizzes([]);
                 } else {
                     setCourse(result.course);
                     setLessonProjects(result.lessonProjects);
 
-                    // Fetch course quizzes
                     if (result.course.quizIds && result.course.quizIds.length > 0) {
-                        Promise.all(result.course.quizIds.map(id => getQuiz(id))).then(quizzes => {
-                            setCourseQuizzes(quizzes.filter(q => q !== null) as Quiz[]);
-                        }).catch(error => {
-                            console.error('Error fetching course quizzes:', error);
-                        });
+                        Promise.all(result.course.quizIds.map((id) => getQuiz(id)))
+                            .then((quizzes) => {
+                                setCourseQuizzes(quizzes.filter((q) => q !== null) as Quiz[]);
+                            })
+                            .catch((error) => {
+                                console.error("Error fetching course quizzes:", error);
+                            });
+                    } else {
+                        setCourseQuizzes([]);
                     }
 
-                    // Calculate lesson progresses
-                    const progresses: { [lessonId: string]: number } = {};
-                    for (const lesson of result.course.lessons) {
-                        const projects = result.lessonProjects[lesson.id] || [];
-                        if (lesson.cardsToUnlock && lesson.cardsToUnlock.length > 0) {
-                            if (projects.length > 0) {
-                                const totalCards = lesson.cardsToUnlock.length;
-                                const progressesForLesson = await Promise.all(
-                                    projects.map(async (project) => {
-                                        try {
-                                            const cards = await getCards(project.id);
-                                            const unlockedCount = cards.filter((card) => card.isUnlocked).length;
-                                            return Math.round((unlockedCount / totalCards) * 100);
-                                        } catch (error) {
-                                            console.error(`Failed to fetch cards for project ${project.id}:`, error);
-                                            return 0;
-                                        }
-                                    })
-                                );
-                                progresses[lesson.id] = Math.max(...progressesForLesson);
-                            } else {
-                                progresses[lesson.id] = 0;
-                            }
-                        } else {
-                            progresses[lesson.id] = 0;
-                        }
-                    }
-                    setLessonProgresses(progresses);
-                    getPortfolioReportStatus(courseId)
+                    void getPortfolioReportStatus(courseId)
                         .then(setPortfolioStatus)
                         .catch(() => setPortfolioStatus(null));
+
+                    const { lessons } = result.course;
+                    const byLesson = result.lessonProjects;
+                    void (async () => {
+                        try {
+                            const entries = await Promise.all(
+                                lessons.map(async (lesson) => {
+                                    const projects = byLesson[lesson.id] || [];
+                                    const totalCards = lesson.cardsToUnlock?.length ?? 0;
+                                    if (totalCards === 0 || projects.length === 0) {
+                                        return [lesson.id, 0] as const;
+                                    }
+                                    const perProject = await Promise.all(
+                                        projects.map(async (project) => {
+                                            try {
+                                                const cards = await getCards(project.id);
+                                                const unlockedCount = cards.filter((c) => c.isUnlocked).length;
+                                                return Math.round((unlockedCount / totalCards) * 100);
+                                            } catch (error) {
+                                                console.error(`Failed to fetch cards for project ${project.id}:`, error);
+                                                return 0;
+                                            }
+                                        }),
+                                    );
+                                    return [lesson.id, Math.max(...perProject)] as const;
+                                }),
+                            );
+                            setLessonProgresses(Object.fromEntries(entries));
+                        } catch (error) {
+                            console.error("Failed to compute lesson progress:", error);
+                        }
+                    })();
                 }
             } catch (error) {
                 console.error("Failed to fetch course:", error);
