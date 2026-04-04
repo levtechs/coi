@@ -4,6 +4,7 @@ import { auth } from "@/lib/firebase";
 
 import { CommentTree, CreateCommentData, UpdateCommentData } from "@/lib/types/comments";
 import { Course, CoursePortfolioReportSummary, CourseStudentProgress, NewLesson } from "@/lib/types/course";
+import { CourseAnalyticsRollups } from "@/lib/types/course_analytics";
 import { Project } from "@/lib/types/project";
 import { QuizSettings } from "@/lib/types/quiz";
 
@@ -106,15 +107,90 @@ export async function deleteCourse(courseId: string): Promise<boolean> {
     }
 }
 
-export async function fetchAnalytics(courseId: string): Promise<{ totalUsers: number; invitations: { token: string; createdAt: string; createdBy?: string; acceptedBy: { id: string; email: string; displayName: string; actions?: number; dailyActions?: number; weeklyActions?: number; projectIds?: string[]; }[]; }[]; students: CourseStudentProgress[]; } | null> {
+export type CourseAnalyticsApiResponse = {
+    totalUsers: number;
+    invitations: {
+        token: string;
+        createdAt: string;
+        createdBy?: string;
+        acceptedBy: {
+            id: string;
+            email: string;
+            displayName: string;
+            actions?: number;
+            dailyActions?: number;
+            weeklyActions?: number;
+            projectIds?: string[];
+        }[];
+    }[];
+    students: CourseStudentProgress[];
+    rollups: CourseAnalyticsRollups;
+};
+
+export async function fetchAnalytics(courseId: string): Promise<CourseAnalyticsApiResponse | null> {
     try {
-        const data = await apiFetch<{ totalUsers: number; invitations: { token: string; createdAt: string; createdBy?: string; acceptedBy: { id: string; email: string; displayName: string; actions?: number; dailyActions?: number; weeklyActions?: number; projectIds?: string[]; }[]; }[]; students: CourseStudentProgress[]; }>(`/api/courses/${courseId}/analytics`, {
+        const data = await apiFetch<CourseAnalyticsApiResponse>(`/api/courses/${courseId}/analytics`, {
             method: "GET",
         });
         return data;
     } catch (err) {
         console.error("Error fetching analytics:", err);
         return null;
+    }
+}
+
+export type CourseAnalyticsOverviewLatest = { id: string; generatedAt: string; markdown: string };
+
+export type CourseAnalyticsOverviewListResponse = {
+    latest: CourseAnalyticsOverviewLatest | null;
+    history: { id: string; generatedAt: string }[];
+};
+
+export async function fetchCourseAnalyticsOverviewList(courseId: string): Promise<CourseAnalyticsOverviewListResponse | null> {
+    try {
+        return await apiFetch<CourseAnalyticsOverviewListResponse>(`/api/courses/${courseId}/analytics/overview`, {
+            method: "GET",
+        });
+    } catch (err) {
+        console.error("Error fetching analytics overview list:", err);
+        return null;
+    }
+}
+
+export async function fetchCourseAnalyticsOverviewByReportId(
+    courseId: string,
+    reportId: string,
+): Promise<CourseAnalyticsOverviewLatest | null> {
+    try {
+        const data = await apiFetch<{ report: CourseAnalyticsOverviewLatest }>(
+            `/api/courses/${courseId}/analytics/overview?reportId=${encodeURIComponent(reportId)}`,
+            { method: "GET" },
+        );
+        return data.report;
+    } catch (err) {
+        console.error("Error fetching analytics overview by id:", err);
+        return null;
+    }
+}
+
+export type CourseAnalyticsOverviewEnsureResponse = CourseAnalyticsOverviewLatest & { cached: boolean };
+
+export async function ensureCourseAnalyticsOverview(
+    courseId: string,
+    force = false,
+): Promise<CourseAnalyticsOverviewEnsureResponse | null> {
+    try {
+        return await apiFetch<CourseAnalyticsOverviewEnsureResponse>(`/api/courses/${courseId}/analytics/overview`, {
+            method: "POST",
+            body: JSON.stringify({ force }),
+        });
+    } catch (err) {
+        const msg = (err as Error).message || "";
+        if (msg.includes("No learner progress")) {
+            return null;
+        }
+        console.error("Error ensuring analytics overview:", err);
+        throw err;
     }
 }
 

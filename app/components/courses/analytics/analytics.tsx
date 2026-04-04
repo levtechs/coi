@@ -1,9 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { FiArrowLeft, FiBarChart2, FiBookOpen, FiCopy, FiDownload, FiFileText, FiRefreshCw, FiSettings, FiUsers } from "react-icons/fi";
-import { getCourse, fetchAnalytics, getPortfolioReportStatus, regeneratePortfolioReport } from "../../../views/courses";
+import { FiArrowLeft, FiBarChart2, FiBookOpen, FiCopy, FiDownload, FiFileText, FiRefreshCw, FiSettings, FiUsers, FiZap } from "react-icons/fi";
+import {
+    getCourse,
+    fetchAnalytics,
+    fetchCourseAnalyticsOverviewList,
+    fetchCourseAnalyticsOverviewByReportId,
+    ensureCourseAnalyticsOverview,
+    getPortfolioReportStatus,
+    regeneratePortfolioReport,
+} from "../../../views/courses";
 import { Course, CoursePortfolioReportSummary, CourseStudentProgress } from "@/lib/types/course";
+import { CourseAnalyticsRollups } from "@/lib/types/course_analytics";
 import Button from "../../button";
 import Modal from "../../modal";
 import MarkdownArticle from "../../md";
@@ -12,15 +21,47 @@ interface AnalyticsProps {
     courseId: string;
 }
 
+const emptyRollups: CourseAnalyticsRollups = {
+    quizzes: [],
+    unlocksByLesson: {},
+    lessonTiming: [],
+};
+
+function formatDurationMs(ms: number | null): string {
+    if (ms == null || !Number.isFinite(ms)) return "—";
+    const sec = Math.round(ms / 1000);
+    if (sec < 60) return `${sec}s`;
+    const m = Math.floor(sec / 60);
+    const r = sec % 60;
+    return r > 0 ? `${m}m ${r}s` : `${m}m`;
+}
+
+function hasAnalyticsProgress(
+    students: CourseStudentProgress[],
+    rollups: CourseAnalyticsRollups,
+): boolean {
+    if (students.length === 0) return false;
+    if (students.some((s) => Object.keys(s.lessonProgress || {}).length > 0)) return true;
+    if (rollups.quizzes.some((q) => q.totalAttempts > 0)) return true;
+    if (rollups.lessonTiming.some((l) => l.startedCount > 0)) return true;
+    return false;
+}
+
 const Analytics = ({ courseId }: AnalyticsProps) => {
     const [course, setCourse] = useState<Course | null>(null);
     const [analyticsData, setAnalyticsData] = useState({
         totalUsers: 0,
         invitations: [] as { token: string; createdAt: string; createdBy?: string; acceptedBy: { id: string; email: string; displayName: string; actions?: number; dailyActions?: number; weeklyActions?: number; projectIds?: string[]; }[]; }[],
         students: [] as CourseStudentProgress[],
+        rollups: emptyRollups,
     });
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
-    const [activeView, setActiveView] = useState<"course" | "invites" | "students">("course");
+    const [activeView, setActiveView] = useState<"report" | "course" | "invites" | "students">("report");
+    const [overviewMarkdown, setOverviewMarkdown] = useState<string | null>(null);
+    const [overviewMeta, setOverviewMeta] = useState<{ id: string; generatedAt: string } | null>(null);
+    const [overviewHistory, setOverviewHistory] = useState<{ id: string; generatedAt: string }[]>([]);
+    const [overviewBusy, setOverviewBusy] = useState(true);
+    const [overviewRegenerating, setOverviewRegenerating] = useState(false);
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [studentReportState, setStudentReportState] = useState<{
         studentId: string;
@@ -173,28 +214,76 @@ const Analytics = ({ courseId }: AnalyticsProps) => {
     };
 
     const formatStudentName = (student: CourseStudentProgress) => student.displayName || student.email || student.userId;
-    const tabButtonClass = (view: "course" | "invites" | "students") => `rounded-full px-4 py-2 text-sm font-medium transition ${activeView === view ? "bg-[var(--accent-500)] text-white" : "bg-[var(--neutral-200)] text-[var(--foreground)] hover:bg-[var(--neutral-300)]"}`;
+    const tabButtonClass = (view: "report" | "course" | "invites" | "students") =>
+        `rounded-full px-4 py-2 text-sm font-medium transition ${activeView === view ? "bg-[var(--accent-500)] text-white" : "bg-[var(--neutral-200)] text-[var(--foreground)] hover:bg-[var(--neutral-300)]"}`;
 
     useEffect(() => {
-        const fetchAnalyticsData = async () => {
+        const load = async () => {
+            if (!courseId) return;
+            setOverviewBusy(true);
             try {
                 const data = await fetchAnalytics(courseId);
                 if (data) {
-                    setAnalyticsData(data);
+                    setAnalyticsData({
+                        ...data,
+                        rollups: data.rollups ?? emptyRollups,
+                    });
+                }
+
+                const list = await fetchCourseAnalyticsOverviewList(courseId);
+                if (list?.latest) {
+                    setOverviewMarkdown(list.latest.markdown);
+                    setOverviewMeta({ id: list.latest.id, generatedAt: list.latest.generatedAt });
+                    setOverviewHistory(list.history);
                 } else {
-                    console.error("Failed to fetch analytics");
-                    // Keep placeholder data
+                    setOverviewHistory(list?.history || []);
+                }
+
+                const rollups = data?.rollups ?? emptyRollups;
+                const students = data?.students ?? [];
+                if (data && hasAnalyticsProgress(students, rollups)) {
+                    const ensured = await ensureCourseAnalyticsOverview(courseId, false);
+                    if (ensured) {
+                        setOverviewMarkdown(ensured.markdown);
+                        setOverviewMeta({ id: ensured.id, generatedAt: ensured.generatedAt });
+                        const refreshed = await fetchCourseAnalyticsOverviewList(courseId);
+                        if (refreshed?.history) setOverviewHistory(refreshed.history);
+                    }
                 }
             } catch (error) {
-                console.error("Error fetching analytics:", error);
-                // Keep placeholder data
+                console.error("Error loading analytics or overview:", error);
+            } finally {
+                setOverviewBusy(false);
             }
         };
-
-        if (courseId) {
-            fetchAnalyticsData();
-        }
+        load();
     }, [courseId]);
+
+    const regenerateOverview = async () => {
+        setOverviewRegenerating(true);
+        try {
+            const result = await ensureCourseAnalyticsOverview(courseId, true);
+            if (result) {
+                setOverviewMarkdown(result.markdown);
+                setOverviewMeta({ id: result.id, generatedAt: result.generatedAt });
+                const refreshed = await fetchCourseAnalyticsOverviewList(courseId);
+                if (refreshed?.history) setOverviewHistory(refreshed.history);
+            }
+        } catch (error) {
+            console.error("Regenerate overview failed:", error);
+            alert((error as Error).message);
+        } finally {
+            setOverviewRegenerating(false);
+        }
+    };
+
+    const loadOverviewFromHistory = async (reportId: string) => {
+        const report = await fetchCourseAnalyticsOverviewByReportId(courseId, reportId);
+        if (report) {
+            setOverviewMarkdown(report.markdown);
+            setOverviewMeta({ id: report.id, generatedAt: report.generatedAt });
+        }
+    };
 
     return (
         <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] p-6">
@@ -224,17 +313,85 @@ const Analytics = ({ courseId }: AnalyticsProps) => {
                 </div>
 
                 <div className="mb-8 flex flex-wrap gap-3">
-                    <button className={tabButtonClass("course")} onClick={() => setActiveView("course")}><FiBarChart2 className="inline mr-2" />Course</button>
-                    <button className={tabButtonClass("invites")} onClick={() => setActiveView("invites")}><FiBookOpen className="inline mr-2" />Invites</button>
-                    <button className={tabButtonClass("students")} onClick={() => setActiveView("students")}><FiUsers className="inline mr-2" />Students</button>
+                    <button type="button" className={tabButtonClass("report")} onClick={() => setActiveView("report")}><FiFileText className="inline mr-2" />AI overview</button>
+                    <button type="button" className={tabButtonClass("course")} onClick={() => setActiveView("course")}><FiBarChart2 className="inline mr-2" />Course</button>
+                    <button type="button" className={tabButtonClass("invites")} onClick={() => setActiveView("invites")}><FiBookOpen className="inline mr-2" />Invites</button>
+                    <button type="button" className={tabButtonClass("students")} onClick={() => setActiveView("students")}><FiUsers className="inline mr-2" />Students</button>
                 </div>
 
-                 {course?.public ? (
-                      <div className="bg-[var(--neutral-200)] p-6 rounded-lg shadow text-center">
-                          <p className="text-[var(--neutral-600)]">Analytics are not yet available for public courses.</p>
-                      </div>
-                  ) : (
-                      <>
+                <>
+                           {activeView === "report" && (
+                               <div className="bg-[var(--neutral-200)] p-6 rounded-2xl shadow space-y-4">
+                                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                                       <div>
+                                           <h3 className="text-xl font-semibold text-[var(--foreground)]">AI analytics overview</h3>
+                                           <p className="text-sm text-[var(--neutral-600)] mt-1">
+                                               Generated from course metrics and anonymized learner questions. When you open this page, a new overview is generated only if the last saved one is older than about 45 minutes; otherwise you see the cached version.
+                                           </p>
+                                       </div>
+                                       <div className="flex flex-wrap items-center gap-3">
+                                           {overviewHistory.length > 0 ? (
+                                               <label className="text-sm text-[var(--neutral-600)] flex items-center gap-2">
+                                                   <span>History</span>
+                                                   <select
+                                                       className="rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] px-3 py-2 text-sm text-[var(--foreground)]"
+                                                       value={overviewMeta?.id || ""}
+                                                       onChange={(e) => {
+                                                           const v = e.target.value;
+                                                           if (v) void loadOverviewFromHistory(v);
+                                                       }}
+                                                   >
+                                                       {overviewHistory.map((h) => (
+                                                           <option key={h.id} value={h.id}>
+                                                               {new Date(h.generatedAt).toLocaleString()}
+                                                           </option>
+                                                       ))}
+                                                   </select>
+                                               </label>
+                                           ) : null}
+                                           <Button
+                                               color="var(--accent-500)"
+                                               disabled={
+                                                   overviewRegenerating
+                                                   || overviewBusy
+                                                   || !hasAnalyticsProgress(analyticsData.students, analyticsData.rollups)
+                                               }
+                                               onClick={() => void regenerateOverview()}
+                                           >
+                                               <span className="inline-flex items-center gap-2"><FiZap />{overviewRegenerating ? "Generating…" : "Regenerate"}</span>
+                                           </Button>
+                                           {overviewMarkdown && overviewMeta ? (
+                                               <Button
+                                                   color="var(--neutral-300)"
+                                                   onClick={() => downloadMarkdown(overviewMarkdown, `course-overview-${courseId.slice(0, 8)}-${overviewMeta.id.slice(0, 8)}.md`)}
+                                               >
+                                                   <span className="inline-flex items-center gap-2"><FiDownload />Download</span>
+                                               </Button>
+                                           ) : null}
+                                       </div>
+                                   </div>
+
+                                   {overviewBusy ? (
+                                       <p className="text-[var(--neutral-600)] py-8 text-center">Loading overview…</p>
+                                   ) : !hasAnalyticsProgress(analyticsData.students, analyticsData.rollups) ? (
+                                       <p className="text-[var(--neutral-600)] py-8 text-center">There is no learner progress yet. When students start lessons or take quizzes, an overview can be generated here.</p>
+                                   ) : !overviewMarkdown ? (
+                                       <p className="text-[var(--neutral-600)] py-8 text-center">Overview could not be generated. Try Regenerate.</p>
+                                   ) : (
+                                       <div className="rounded-xl border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-4">
+                                           {overviewMeta ? (
+                                               <p className="text-xs text-[var(--neutral-600)] mb-3">
+                                                   {overviewRegenerating ? "Updating…" : `Generated ${new Date(overviewMeta.generatedAt).toLocaleString()}`}
+                                               </p>
+                                           ) : null}
+                                           <div className="max-h-[70vh] overflow-y-auto prose prose-sm dark:prose-invert max-w-none">
+                                               <MarkdownArticle markdown={overviewMarkdown} />
+                                           </div>
+                                       </div>
+                                   )}
+                               </div>
+                           )}
+
                            {activeView === "course" && (
                                <>
                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
@@ -308,6 +465,125 @@ const Analytics = ({ courseId }: AnalyticsProps) => {
                                                ))}
                                            </div>
                                        </div>
+                                   </div>
+
+                                   <div className="mt-10 space-y-8">
+                                       <h2 className="text-2xl font-semibold text-[var(--foreground)]">Learning insights</h2>
+                                       <p className="text-sm text-[var(--neutral-600)] -mt-4">Aggregated from quiz attempts and lesson progress (attempts must include this course ID).</p>
+
+                                       {analyticsData.rollups.lessonTiming.length > 0 && (
+                                           <div className="bg-[var(--neutral-200)] p-6 rounded-2xl shadow">
+                                               <h3 className="text-xl font-semibold text-[var(--foreground)] mb-2">Time to complete</h3>
+                                               <p className="text-sm text-[var(--neutral-600)] mb-4">Median time from first lesson activity to completion (students who completed).</p>
+                                               <div className="overflow-x-auto">
+                                                   <table className="w-full text-sm">
+                                                       <thead>
+                                                           <tr className="text-left border-b border-[var(--neutral-300)]">
+                                                               <th className="py-2 pr-4">Lesson</th>
+                                                               <th className="py-2 pr-4">Started</th>
+                                                               <th className="py-2 pr-4">Completed</th>
+                                                               <th className="py-2">Median duration</th>
+                                                           </tr>
+                                                       </thead>
+                                                       <tbody>
+                                                           {analyticsData.rollups.lessonTiming.map((row) => (
+                                                               <tr key={row.lessonId} className="border-b border-[var(--neutral-300)]">
+                                                                   <td className="py-3 pr-4 font-medium text-[var(--foreground)]">Lesson {row.lessonIndex + 1}: {row.lessonTitle}</td>
+                                                                   <td className="py-3 pr-4">{row.startedCount}</td>
+                                                                   <td className="py-3 pr-4">{row.completedCount}</td>
+                                                                   <td className="py-3">{formatDurationMs(row.medianMsToComplete)}</td>
+                                                               </tr>
+                                                           ))}
+                                                       </tbody>
+                                                   </table>
+                                               </div>
+                                           </div>
+                                       )}
+
+                                       {analyticsData.rollups.quizzes.filter((q) => q.totalAttempts > 0).length > 0 && (
+                                           <div className="bg-[var(--neutral-200)] p-6 rounded-2xl shadow space-y-6">
+                                               <h3 className="text-xl font-semibold text-[var(--foreground)]">Quiz questions</h3>
+                                               <p className="text-sm text-[var(--neutral-600)]">Wrong rate is incorrect answers divided by attempts that reached that question.</p>
+                                               {analyticsData.rollups.quizzes.filter((q) => q.totalAttempts > 0).map((quiz) => {
+                                                   const lesson = quiz.lessonId ? sortedLessons.find((l) => l.id === quiz.lessonId) : null;
+                                                   const sortedQs = [...quiz.questionStats].filter((s) => s.attemptCount > 0).sort((a, b) => b.wrongPercent - a.wrongPercent);
+                                                   return (
+                                                       <div key={quiz.quizId} className="rounded-xl border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-4">
+                                                           <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+                                                               <div className="font-semibold text-[var(--foreground)]">{quiz.title}</div>
+                                                               <div className="text-xs text-[var(--neutral-600)]">
+                                                                   {quiz.totalAttempts} attempts · {quiz.distinctStudents} students
+                                                                   {quiz.medianElapsedMs != null ? ` · median ${formatDurationMs(quiz.medianElapsedMs)}` : ""}
+                                                                   {lesson ? ` · ${lesson.title}` : ""}
+                                                               </div>
+                                                           </div>
+                                                           {sortedQs.length === 0 ? (
+                                                               <p className="text-sm text-[var(--neutral-600)]">No per-question data.</p>
+                                                           ) : (
+                                                               <div className="overflow-x-auto">
+                                                                   <table className="w-full text-sm">
+                                                                       <thead>
+                                                                           <tr className="text-left border-b border-[var(--neutral-300)]">
+                                                                               <th className="py-2 pr-3">#</th>
+                                                                               <th className="py-2 pr-3">Question</th>
+                                                                               <th className="py-2 pr-3">Wrong rate</th>
+                                                                               <th className="py-2">Attempts</th>
+                                                                           </tr>
+                                                                       </thead>
+                                                                       <tbody>
+                                                                           {sortedQs.map((s) => (
+                                                                               <tr key={s.questionIndex} className="border-b border-[var(--neutral-300)] align-top">
+                                                                                   <td className="py-2 pr-3 text-[var(--neutral-600)]">{s.questionIndex + 1}</td>
+                                                                                   <td className="py-2 pr-3 text-[var(--foreground)]">{s.questionSnippet}</td>
+                                                                                   <td className="py-2 pr-3">{s.wrongPercent}%</td>
+                                                                                   <td className="py-2">{s.attemptCount}</td>
+                                                                               </tr>
+                                                                           ))}
+                                                                       </tbody>
+                                                                   </table>
+                                                               </div>
+                                                           )}
+                                                       </div>
+                                                   );
+                                               })}
+                                           </div>
+                                       )}
+
+                                       {sortedLessons.some((lesson) => (analyticsData.rollups.unlocksByLesson[lesson.id] || []).length > 0) && (
+                                           <div className="bg-[var(--neutral-200)] p-6 rounded-2xl shadow space-y-6">
+                                               <h3 className="text-xl font-semibold text-[var(--foreground)]">Unlock cards</h3>
+                                               <p className="text-sm text-[var(--neutral-600)]">How many students who started the lesson unlocked each template card.</p>
+                                               {sortedLessons.map((lesson) => {
+                                                   const slots = analyticsData.rollups.unlocksByLesson[lesson.id];
+                                                   if (!slots?.length) return null;
+                                                   return (
+                                                       <div key={lesson.id} className="rounded-xl border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-4">
+                                                           <div className="font-semibold text-[var(--foreground)] mb-3">Lesson {lesson.index + 1}: {lesson.title}</div>
+                                                           <div className="overflow-x-auto">
+                                                               <table className="w-full text-sm">
+                                                                   <thead>
+                                                                       <tr className="text-left border-b border-[var(--neutral-300)]">
+                                                                           <th className="py-2 pr-3">Card</th>
+                                                                           <th className="py-2 pr-3">Unlocked</th>
+                                                                           <th className="py-2">Started lesson</th>
+                                                                       </tr>
+                                                                   </thead>
+                                                                   <tbody>
+                                                                       {slots.map((slot) => (
+                                                                           <tr key={slot.cardId} className="border-b border-[var(--neutral-300)]">
+                                                                               <td className="py-2 pr-3 text-[var(--foreground)]">{slot.title}</td>
+                                                                               <td className="py-2 pr-3">{slot.unlockedByCount}</td>
+                                                                               <td className="py-2">{slot.studentsStartedLesson}</td>
+                                                                           </tr>
+                                                                       ))}
+                                                                   </tbody>
+                                                               </table>
+                                                           </div>
+                                                       </div>
+                                                   );
+                                               })}
+                                           </div>
+                                       )}
                                    </div>
                                </>
                            )}
@@ -491,8 +767,7 @@ const Analytics = ({ courseId }: AnalyticsProps) => {
                                    </div>
                                </div>
                            )}
-                      </>
-                  )}
+                </>
             </div>
 
             <Modal
