@@ -3,7 +3,13 @@ import React from "react";
 import { auth } from "@/lib/firebase";
 
 import { CommentTree, CreateCommentData, UpdateCommentData } from "@/lib/types/comments";
-import { Course, CoursePortfolioReportSummary, CourseStudentProgress, NewLesson } from "@/lib/types/course";
+import {
+  Course,
+  CourseBrandingHeader,
+  CoursePortfolioReportSummary,
+  CourseStudentProgress,
+  NewLesson,
+} from "@/lib/types/course";
 import { CourseAnalyticsRollups } from "@/lib/types/course_analytics";
 import { Project } from "@/lib/types/project";
 import { QuizSettings } from "@/lib/types/quiz";
@@ -75,7 +81,13 @@ export async function generateLessonFromText(text: string): Promise<NewLesson | 
     }
 }
 
-export async function updateCourse(courseId: string, courseData: Omit<Course, "id">): Promise<boolean> {
+/** PUT body: `null` clears branding fields in Firestore (see API hasOwnProperty + FieldValue.delete). */
+export type CourseUpdatePayload = Omit<Course, "id" | "coverImageUrl" | "courseBrandingHeader"> & {
+    coverImageUrl?: string | null;
+    courseBrandingHeader?: CourseBrandingHeader | null;
+};
+
+export async function updateCourse(courseId: string, courseData: CourseUpdatePayload): Promise<boolean> {
     try {
         await apiFetch(`/api/courses/${courseId}`, {
             method: "PUT",

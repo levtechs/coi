@@ -161,7 +161,7 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
             <FlickeringGrid className="fixed inset-0 z-0 pointer-events-none" />
             <Sidebar current="courses" />
             <div className="relative z-[5] ml-16 flex min-h-screen min-w-0 flex-col">
-                <CourseBrandedHeader course={course} className="w-screen max-w-none shrink-0 -ml-16" />
+                <CourseBrandedHeader course={course} className="w-full shrink-0" />
 
                 <div className="p-6 relative z-[5] flex-1 min-w-0">
                 <div className="flex items-center gap-4 mb-8">

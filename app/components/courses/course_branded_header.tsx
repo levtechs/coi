@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Course } from "@/lib/types/course";
+import { hashString } from "@/lib/hashString";
 
 type CourseBrandedHeaderProps = {
   course: Course;
@@ -26,7 +27,7 @@ function withNoInternalScroll(html: string): string {
       return `${html.slice(0, headEnd)}${lock}${html.slice(headEnd)}`;
     }
   }
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/>${lock}<base target="_blank" rel="noopener noreferrer"/><style>html,body{margin:0;padding:0;overflow:hidden!important;overscroll-behavior:none;height:auto!important;}</style></head><body>${html}</body></html>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/>${lock}<base target="_blank"/><style>html,body{margin:0;padding:0;overflow:hidden!important;overscroll-behavior:none;height:auto!important;}</style></head><body>${html}</body></html>`;
 }
 
 function measureIframeDocHeight(iframe: HTMLIFrameElement): number {
@@ -35,7 +36,7 @@ function measureIframeDocHeight(iframe: HTMLIFrameElement): number {
   const root = doc?.documentElement;
   if (!body || !root) return 0;
 
-  let h = Math.max(
+  return Math.max(
     body.scrollHeight,
     body.offsetHeight,
     Math.ceil(body.getBoundingClientRect().height),
@@ -44,18 +45,6 @@ function measureIframeDocHeight(iframe: HTMLIFrameElement): number {
     root.clientHeight,
     Math.ceil(root.getBoundingClientRect().height),
   );
-
-  const splash = doc.getElementById("splash-container");
-  if (splash) {
-    h = Math.max(
-      h,
-      splash.scrollHeight,
-      splash.offsetHeight,
-      Math.ceil(splash.getBoundingClientRect().height),
-    );
-  }
-
-  return h;
 }
 
 export default function CourseBrandedHeader({ course, className = "" }: CourseBrandedHeaderProps) {
@@ -70,9 +59,11 @@ export default function CourseBrandedHeader({ course, className = "" }: CourseBr
     const raw = header.html;
     if (isFullHtmlDocument(raw)) return withNoInternalScroll(raw);
     return withNoInternalScroll(
-      `<!DOCTYPE html><html><head><meta charset="utf-8"/><base target="_blank" rel="noopener noreferrer"/><style>html,body{margin:0;padding:0;overflow:hidden!important;overscroll-behavior:none;height:auto!important;}</style></head><body>${raw}</body></html>`,
+      `<!DOCTYPE html><html><head><meta charset="utf-8"/><base target="_blank"/><style>html,body{margin:0;padding:0;overflow:hidden!important;overscroll-behavior:none;height:auto!important;}</style></head><body>${raw}</body></html>`,
     );
   }, [header]);
+
+  const srcDocKey = useMemo(() => (srcDoc ? hashString(srcDoc) : ""), [srcDoc]);
 
   const syncEmbedHeight = useCallback(() => {
     const el = iframeRef.current;
@@ -173,7 +164,7 @@ export default function CourseBrandedHeader({ course, className = "" }: CourseBr
       <div className="relative w-full min-h-[min(50vh,520px)]">
         <iframe
           ref={iframeRef}
-          key={`${course.id}-embed-${srcDoc.length}`}
+          key={`${course.id}-embed-${srcDocKey}`}
           title={`${course.title} branding`}
           className="pointer-events-none block w-full border-0 bg-transparent"
           style={{
@@ -183,7 +174,7 @@ export default function CourseBrandedHeader({ course, className = "" }: CourseBr
             display: "block",
           }}
           srcDoc={srcDoc}
-          sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
+          sandbox="allow-scripts allow-same-origin"
           referrerPolicy="no-referrer"
           scrolling="no"
         />

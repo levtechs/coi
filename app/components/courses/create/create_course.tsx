@@ -31,7 +31,13 @@ import {
     CourseBrandingHeader,
 } from "@/lib/types/course";
 import { QuizSettings } from "@/lib/types/quiz";
-import { createCourse, getCourse, updateCourse, streamGenerateCourse } from "@/app/views/courses";
+import {
+    createCourse,
+    getCourse,
+    updateCourse,
+    streamGenerateCourse,
+    type CourseUpdatePayload,
+} from "@/app/views/courses";
 import { getQuiz } from "@/app/views/quiz";
 import { createQuiz } from "@/app/views/quiz";
 import { auth } from "@/lib/firebase";
@@ -400,7 +406,7 @@ export default function CreateCourse() {
             }
 
             if (isEdit && editCourseId) {
-                const courseData = {
+                const courseData: CourseUpdatePayload = {
                     title: courseTitle,
                     description: courseDescription,
                     tutorDefaults: courseTutorDefaults,
@@ -428,8 +434,8 @@ export default function CreateCourse() {
                     staffIds,
                     coverImageUrl: coverImageUrl.trim(),
                     courseBrandingHeader: buildCourseBrandingPayload() ?? null,
-                } as Omit<Course, "id"> & { courseBrandingHeader: CourseBrandingHeader | null };
-                const success = await updateCourse(editCourseId, courseData as Omit<Course, "id">);
+                };
+                const success = await updateCourse(editCourseId, courseData);
                 if (success) {
                     allowNavigationRef.current = true;
                     setHasUnsavedChanges(false);
