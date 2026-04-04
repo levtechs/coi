@@ -6,6 +6,7 @@ import { getVerifiedUid, getVerifiedCourseAccess } from "../../helpers";
 import { Course } from "@/lib/types/course";
 import { Project } from "@/lib/types/project";
 import {
+  courseBrandingEmbedHtmlTooLong,
   isCourseStaff,
   normalizeCardsToUnlock,
   normalizeCourse,
@@ -118,6 +119,12 @@ export async function PUT(
             brandingPatch.coverImageUrl = cover ?? admin.firestore.FieldValue.delete();
         }
         if (Object.prototype.hasOwnProperty.call(courseData, "courseBrandingHeader")) {
+            if (courseBrandingEmbedHtmlTooLong(courseData.courseBrandingHeader)) {
+                return NextResponse.json(
+                    { error: "Branding embed HTML exceeds maximum length" },
+                    { status: 400 },
+                );
+            }
             const header = normalizeCourseBrandingHeader(courseData.courseBrandingHeader);
             brandingPatch.courseBrandingHeader = header ?? admin.firestore.FieldValue.delete();
         }

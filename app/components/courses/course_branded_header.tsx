@@ -9,6 +9,8 @@ type CourseBrandedHeaderProps = {
   className?: string;
 };
 
+const COI_BANNER_HEIGHT_MSG = "__COI_BANNER_H__";
+
 function isFullHtmlDocument(html: string): boolean {
   const t = html.trim().toLowerCase();
   return t.startsWith("<!doctype") || t.startsWith("<html");
@@ -30,116 +32,67 @@ function withNoInternalScroll(html: string): string {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/>${lock}<base target="_blank"/><style>html,body{margin:0;padding:0;overflow:hidden!important;overscroll-behavior:none;height:auto!important;}</style></head><body>${html}</body></html>`;
 }
 
-/**
- * Prefer a known hero root when present (e.g. Mantis `#splash-container`); otherwise use
- * document scroll metrics without mixing in getBoundingClientRect on html (avoids runaway
- * sizes when the iframe has already been stretched tall).
- */
-function measureIframeDocHeight(iframe: HTMLIFrameElement): number {
-  const doc = iframe.contentDocument;
-  const body = doc?.body;
-  const root = doc?.documentElement;
-  if (!body || !root) return 0;
-
-  const splash = doc.getElementById("splash-container");
-  if (splash) {
-    return Math.ceil(
-      Math.max(splash.scrollHeight, splash.offsetHeight, splash.getBoundingClientRect().height),
-    );
-  }
-
-  return Math.ceil(
-    Math.max(body.scrollHeight, body.offsetHeight, root.scrollHeight, root.offsetHeight),
-  );
+/** Injected into srcDoc so height is reported via postMessage (sandbox without allow-same-origin). */
+function injectHeightReporter(html: string, nonce: string): string {
+  const N = JSON.stringify(nonce);
+  const T = JSON.stringify(COI_BANNER_HEIGHT_MSG);
+  const script =
+    `<script>(function(){var N=${N},T=${T};function measure(){var d=document,b=d.body,r=d.documentElement;if(!b||!r)return 0;var e=d.getElementById("splash-container");if(e)return Math.ceil(Math.max(e.scrollHeight,e.offsetHeight,e.getBoundingClientRect().height));return Math.ceil(Math.max(b.scrollHeight,b.offsetHeight,r.scrollHeight,r.offsetHeight));}function send(){var h=measure();if(h>0&&window.parent)window.parent.postMessage({type:T,h:h,nonce:N},"*");}send();document.addEventListener("DOMContentLoaded",send);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(send);try{var ro=new ResizeObserver(send);if(document.body)ro.observe(document.body);if(document.documentElement)ro.observe(document.documentElement);}catch(e){}setTimeout(send,50);setTimeout(send,200);setTimeout(send,600);setTimeout(send,1500);})();<\/script>`;
+  const lower = html.toLowerCase();
+  const i = lower.lastIndexOf("</body>");
+  if (i !== -1) return `${html.slice(0, i)}${script}${html.slice(i)}`;
+  return html + script;
 }
 
 export default function CourseBrandedHeader({ course, className = "" }: CourseBrandedHeaderProps) {
   const header = course.courseBrandingHeader;
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const roRef = useRef<ResizeObserver | null>(null);
-  const delayedRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const embedNonce = useMemo(() => {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }, [header?.kind === "embed" ? header.html : ""]);
+
   const [embedHeight, setEmbedHeight] = useState<number | null>(null);
 
   const srcDoc = useMemo(() => {
     if (!header || header.kind !== "embed") return "";
     const raw = header.html;
-    if (isFullHtmlDocument(raw)) return withNoInternalScroll(raw);
-    return withNoInternalScroll(
-      `<!DOCTYPE html><html><head><meta charset="utf-8"/><base target="_blank"/><style>html,body{margin:0;padding:0;overflow:hidden!important;overscroll-behavior:none;height:auto!important;}</style></head><body>${raw}</body></html>`,
-    );
-  }, [header]);
+    const wrapped = isFullHtmlDocument(raw)
+      ? withNoInternalScroll(raw)
+      : withNoInternalScroll(
+          `<!DOCTYPE html><html><head><meta charset="utf-8"/><base target="_blank"/><style>html,body{margin:0;padding:0;overflow:hidden!important;overscroll-behavior:none;height:auto!important;}</style></head><body>${raw}</body></html>`,
+        );
+    return injectHeightReporter(wrapped, embedNonce);
+  }, [header, embedNonce]);
 
   const srcDocKey = useMemo(() => (srcDoc ? hashString(srcDoc) : ""), [srcDoc]);
 
-  const syncEmbedHeight = useCallback(() => {
-    const el = iframeRef.current;
-    if (!el) return;
-    const h = measureIframeDocHeight(el);
-    if (h <= 0) return;
+  const applyHeight = useCallback((h: number) => {
+    if (!Number.isFinite(h) || h <= 0) return;
     const padded = h + 20;
     const cap =
       typeof window !== "undefined" ? Math.max(480, Math.round(window.innerHeight * 0.72)) : 720;
     const next = Math.min(padded, cap);
-    // Replace (not monotonic max): a tall iframe + root metrics can otherwise lock in huge heights.
     setEmbedHeight((prev) => (prev !== null && Math.abs(prev - next) < 2 ? prev : next));
   }, []);
 
   useEffect(() => {
-    if (!header || header.kind !== "embed" || !srcDoc) return;
+    if (!header || header.kind !== "embed" || !srcDoc || !embedNonce) return;
 
-    roRef.current?.disconnect();
-    roRef.current = null;
-    delayedRef.current.forEach(clearTimeout);
-    delayedRef.current = [];
-    setEmbedHeight(null);
-
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-
-    const scheduleRemeasures = () => {
-      delayedRef.current.push(setTimeout(syncEmbedHeight, 50));
-      delayedRef.current.push(setTimeout(syncEmbedHeight, 200));
-      delayedRef.current.push(setTimeout(syncEmbedHeight, 600));
-      delayedRef.current.push(setTimeout(syncEmbedHeight, 1500));
+    const onMessage = (ev: MessageEvent) => {
+      if (ev.source !== iframeRef.current?.contentWindow) return;
+      const data = ev.data as { type?: string; h?: unknown; nonce?: string };
+      if (!data || data.type !== COI_BANNER_HEIGHT_MSG || data.nonce !== embedNonce) return;
+      const h = typeof data.h === "number" ? data.h : Number(data.h);
+      applyHeight(h);
     };
 
-    const attach = () => {
-      const doc = iframe.contentDocument;
-      if (!doc?.body) return;
-
-      syncEmbedHeight();
-      requestAnimationFrame(() => {
-        syncEmbedHeight();
-        requestAnimationFrame(syncEmbedHeight);
-      });
-
-      const fontsReady = doc.fonts?.ready;
-      if (fontsReady) {
-        void fontsReady.then(() => syncEmbedHeight());
-      }
-
-      scheduleRemeasures();
-
-      roRef.current?.disconnect();
-      const ro = new ResizeObserver(() => syncEmbedHeight());
-      ro.observe(doc.body);
-      ro.observe(doc.documentElement);
-      roRef.current = ro;
-    };
-
-    iframe.addEventListener("load", attach);
-    if (iframe.contentDocument?.readyState === "complete") {
-      attach();
-    }
-
-    return () => {
-      iframe.removeEventListener("load", attach);
-      roRef.current?.disconnect();
-      roRef.current = null;
-      delayedRef.current.forEach(clearTimeout);
-      delayedRef.current = [];
-    };
-  }, [header, srcDoc, syncEmbedHeight]);
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [header, srcDoc, embedNonce, applyHeight]);
 
   if (!header) return null;
 
@@ -165,7 +118,7 @@ export default function CourseBrandedHeader({ course, className = "" }: CourseBr
   }
 
   const pxHeight = embedHeight && embedHeight > 0 ? embedHeight : null;
-  /** Short placeholder until measure runs; avoid 50vh minimum (felt like a huge empty band). */
+  /** Short placeholder until postMessage measure runs. */
   const iframeHeightPx = pxHeight ?? 380;
 
   return (
@@ -183,7 +136,7 @@ export default function CourseBrandedHeader({ course, className = "" }: CourseBr
             display: "block",
           }}
           srcDoc={srcDoc}
-          sandbox="allow-scripts allow-same-origin"
+          sandbox="allow-scripts"
           referrerPolicy="no-referrer"
           scrolling="no"
         />

@@ -12,7 +12,7 @@ import {
 import { adminDb } from "@/lib/firebaseAdmin";
 import { stripUndefinedDeep } from "@/lib/firestoreSanitize";
 
-const MAX_COURSE_EMBED_HTML_CHARS = 300_000;
+export const MAX_COURSE_EMBED_HTML_CHARS = 300_000;
 
 type CourseDocLike = Partial<Omit<Course, "id" | "lessons">> & { ownerId?: string; quizReportPolicy?: unknown };
 
@@ -33,12 +33,25 @@ export function normalizeCourseBrandingHeader(value: unknown): CourseBrandingHea
     return { kind: "image", imageUrl, ...(alt ? { alt } : {}) };
   }
   if (kindRaw === "embed" && typeof v.html === "string") {
-    const html = v.html.length > MAX_COURSE_EMBED_HTML_CHARS ? v.html.slice(0, MAX_COURSE_EMBED_HTML_CHARS) : v.html;
-    if (!html.trim()) return undefined;
-    return { kind: "embed", html };
+    if (v.html.length > MAX_COURSE_EMBED_HTML_CHARS) return undefined;
+    if (!v.html.trim()) return undefined;
+    return { kind: "embed", html: v.html };
   }
   return undefined;
 }
+
+/** True when the client sent an embed whose HTML exceeds the stored limit (caller should 400, not silently drop). */
+export function courseBrandingEmbedHtmlTooLong(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const v = value as { kind?: unknown; html?: unknown };
+  return (
+    typeof v.kind === "string"
+    && v.kind.toLowerCase() === "embed"
+    && typeof v.html === "string"
+    && v.html.length > MAX_COURSE_EMBED_HTML_CHARS
+  );
+}
+
 type LessonDocLike = Partial<Omit<CourseLesson, "id" | "courseId" | "cardsToUnlock">> & { content?: string; optional?: boolean };
 
 export function normalizeTutorPromptConfig(value: unknown): TutorPromptConfig | undefined {

@@ -8,6 +8,7 @@ import { QuizSettings } from "@/lib/types/quiz";
 import { createCourseFromText, createLessonFromText } from "./helpers";
 import { createQuizFromCards, updateQuizMetadata, writeQuizToDb } from "../../quiz/helpers";
 import {
+  courseBrandingEmbedHtmlTooLong,
   normalizeCourse,
   normalizeCourseBrandingHeader,
   normalizeCourseLesson,
@@ -36,6 +37,13 @@ export async function POST(req: NextRequest) {
         // Validate required fields
         if (!courseData.title || !courseData.lessons) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        }
+
+        if (courseBrandingEmbedHtmlTooLong(courseData.courseBrandingHeader)) {
+            return NextResponse.json(
+                { error: "Branding embed HTML exceeds maximum length" },
+                { status: 400 },
+            );
         }
 
         const coverImageUrl = normalizeCoverImageUrl(courseData.coverImageUrl);

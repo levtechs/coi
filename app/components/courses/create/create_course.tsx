@@ -412,7 +412,7 @@ export default function CreateCourse() {
                     tutorDefaults: courseTutorDefaults,
                     resources: courseResources,
                     lessons: lessons.map((lesson, index) => ({
-                            id: lesson.id!,
+                            id: lesson.id,
                             courseId: editCourseId,
                             index,
                             title: lesson.title,
