@@ -42,3 +42,14 @@ export interface CourseAnalyticsRollups {
   unlocksByLesson: Record<string, CourseAnalyticsUnlockSlotRollup[]>;
   lessonTiming: CourseAnalyticsLessonTimingRollup[];
 }
+
+/** Stored at courses/{courseId}/analyticsOverviews/{id} (server-only writes) */
+export interface CourseAnalyticsOverviewDoc {
+  markdown: string;
+  generatedAt: string;
+  schemaVersion?: number;
+}
+
+export interface CourseAnalyticsOverviewRecord extends CourseAnalyticsOverviewDoc {
+  id: string;
+}

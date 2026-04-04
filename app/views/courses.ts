@@ -139,6 +139,61 @@ export async function fetchAnalytics(courseId: string): Promise<CourseAnalyticsA
     }
 }
 
+export type CourseAnalyticsOverviewLatest = { id: string; generatedAt: string; markdown: string };
+
+export type CourseAnalyticsOverviewListResponse = {
+    latest: CourseAnalyticsOverviewLatest | null;
+    history: { id: string; generatedAt: string }[];
+};
+
+export async function fetchCourseAnalyticsOverviewList(courseId: string): Promise<CourseAnalyticsOverviewListResponse | null> {
+    try {
+        return await apiFetch<CourseAnalyticsOverviewListResponse>(`/api/courses/${courseId}/analytics/overview`, {
+            method: "GET",
+        });
+    } catch (err) {
+        console.error("Error fetching analytics overview list:", err);
+        return null;
+    }
+}
+
+export async function fetchCourseAnalyticsOverviewByReportId(
+    courseId: string,
+    reportId: string,
+): Promise<CourseAnalyticsOverviewLatest | null> {
+    try {
+        const data = await apiFetch<{ report: CourseAnalyticsOverviewLatest }>(
+            `/api/courses/${courseId}/analytics/overview?reportId=${encodeURIComponent(reportId)}`,
+            { method: "GET" },
+        );
+        return data.report;
+    } catch (err) {
+        console.error("Error fetching analytics overview by id:", err);
+        return null;
+    }
+}
+
+export type CourseAnalyticsOverviewEnsureResponse = CourseAnalyticsOverviewLatest & { cached: boolean };
+
+export async function ensureCourseAnalyticsOverview(
+    courseId: string,
+    force = false,
+): Promise<CourseAnalyticsOverviewEnsureResponse | null> {
+    try {
+        return await apiFetch<CourseAnalyticsOverviewEnsureResponse>(`/api/courses/${courseId}/analytics/overview`, {
+            method: "POST",
+            body: JSON.stringify({ force }),
+        });
+    } catch (err) {
+        const msg = (err as Error).message || "";
+        if (msg.includes("No learner progress")) {
+            return null;
+        }
+        console.error("Error ensuring analytics overview:", err);
+        throw err;
+    }
+}
+
 export async function getPortfolioReportStatus(courseId: string, options?: {
     studentId?: string;
     includeHistory?: boolean;
