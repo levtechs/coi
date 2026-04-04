@@ -21,7 +21,15 @@ import FastCreatePopup from "./fast_create_popup";
 import QuizSettingsComponent from "./quiz_settings";
 import LessonComponent from "./edit_lesson";
 import { Card, NewCard } from "@/lib/types/cards";
-import { Course, NewCourse, CourseCategory, NewLesson, CourseResource, CourseQuizReportPolicyEntry } from "@/lib/types/course";
+import {
+    Course,
+    NewCourse,
+    CourseCategory,
+    NewLesson,
+    CourseResource,
+    CourseQuizReportPolicyEntry,
+    CourseBrandingHeader,
+} from "@/lib/types/course";
 import { QuizSettings } from "@/lib/types/quiz";
 import { createCourse, getCourse, updateCourse, streamGenerateCourse } from "@/app/views/courses";
 import { getQuiz } from "@/app/views/quiz";
@@ -119,6 +127,11 @@ export default function CreateCourse() {
     const [staffIds, setStaffIds] = useState<string[]>([]);
     const [quizReportPolicy, setQuizReportPolicy] = useState<Record<string, CourseQuizReportPolicyEntry>>({});
     const [quizPolicyTitles, setQuizPolicyTitles] = useState<Record<string, string>>({});
+    const [coverImageUrl, setCoverImageUrl] = useState("");
+    const [headerMode, setHeaderMode] = useState<"none" | "image" | "embed">("none");
+    const [headerImageUrl, setHeaderImageUrl] = useState("");
+    const [headerImageAlt, setHeaderImageAlt] = useState("");
+    const [headerEmbedHtml, setHeaderEmbedHtml] = useState("");
 
     const allQuizIdsForPolicy = useMemo(() => {
         const s = new Set<string>();
@@ -188,6 +201,24 @@ export default function CreateCourse() {
                     setCourseCategory(course.category || "");
                     setCourseTutorDefaults(course.tutorDefaults);
                     setCourseResources(course.resources || []);
+                    setCoverImageUrl(course.coverImageUrl || "");
+                    const bh = course.courseBrandingHeader;
+                    if (!bh) {
+                        setHeaderMode("none");
+                        setHeaderImageUrl("");
+                        setHeaderImageAlt("");
+                        setHeaderEmbedHtml("");
+                    } else if (bh.kind === "image") {
+                        setHeaderMode("image");
+                        setHeaderImageUrl(bh.imageUrl);
+                        setHeaderImageAlt(bh.alt || "");
+                        setHeaderEmbedHtml("");
+                    } else {
+                        setHeaderMode("embed");
+                        setHeaderImageUrl("");
+                        setHeaderImageAlt("");
+                        setHeaderEmbedHtml(bh.html);
+                    }
                     setSharedWithIds(course.sharedWith || []);
                     setStaffIds(course.staffIds || []);
                     const loadedLessons: CourseLessonForm[] = course.lessons.map((lesson) => ({
@@ -347,6 +378,19 @@ export default function CreateCourse() {
         markChanged();
     };
 
+    const buildCourseBrandingPayload = (): CourseBrandingHeader | null => {
+        if (headerMode === "none") return null;
+        if (headerMode === "image") {
+            const u = headerImageUrl.trim();
+            if (!u) return null;
+            const alt = headerImageAlt.trim();
+            return { kind: "image", imageUrl: u, ...(alt ? { alt } : {}) };
+        }
+        const html = headerEmbedHtml;
+        if (!html.trim()) return null;
+        return { kind: "embed", html };
+    };
+
     const handleSubmit = async () => {
         setIsCreatingCourse(true);
         try {
@@ -382,14 +426,17 @@ export default function CreateCourse() {
                     category: courseCategory === "" ? undefined : courseCategory,
                     sharedWith: sharedWithIds,
                     staffIds,
-                };
-                const success = await updateCourse(editCourseId, courseData);
+                    coverImageUrl: coverImageUrl.trim(),
+                    courseBrandingHeader: buildCourseBrandingPayload() ?? null,
+                } as Omit<Course, "id"> & { courseBrandingHeader: CourseBrandingHeader | null };
+                const success = await updateCourse(editCourseId, courseData as Omit<Course, "id">);
                 if (success) {
                     allowNavigationRef.current = true;
                     setHasUnsavedChanges(false);
                     window.location.href = `/courses/${editCourseId}`;
                 }
             } else {
+                const newBranding = buildCourseBrandingPayload();
                 const courseData: NewCourse & { quizIds?: string[] } = {
                     title: courseTitle,
                     description: courseDescription,
@@ -414,6 +461,8 @@ export default function CreateCourse() {
                     category: courseCategory === "" ? undefined : courseCategory,
                     sharedWith: sharedWithIds,
                     staffIds,
+                    ...(coverImageUrl.trim() ? { coverImageUrl: coverImageUrl.trim() } : {}),
+                    ...(newBranding ? { courseBrandingHeader: newBranding } : {}),
                 };
                 const data = await createCourse(courseData);
                 if (data) {
@@ -560,6 +609,93 @@ export default function CreateCourse() {
                                         className="w-full p-4 border border-[var(--neutral-300)] rounded-lg bg-[var(--neutral-100)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)] h-48 transition-all resize-none text-lg leading-relaxed"
                                         placeholder="What will students learn in this course?"
                                     />
+                                </div>
+                                <div className="border-t border-[var(--neutral-300)] pt-8">
+                                    <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-[var(--neutral-600)]">
+                                        Branding
+                                    </h3>
+                                    <p className="mb-6 text-sm text-[var(--neutral-600)]">
+                                        List cards can show a cover image. The course page can use a banner image or a custom HTML block (shown in a sandboxed frame; scripts are allowed).
+                                    </p>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-[var(--neutral-600)]">
+                                                Cover image URL (course list)
+                                            </label>
+                                            <input
+                                                type="url"
+                                                value={coverImageUrl}
+                                                onChange={(e) => {
+                                                    setCoverImageUrl(e.target.value);
+                                                    markChanged();
+                                                }}
+                                                className="w-full rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-3 text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)]"
+                                                placeholder="https://…"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-[var(--neutral-600)]">
+                                                Course page header
+                                            </label>
+                                            <select
+                                                value={headerMode}
+                                                onChange={(e) => {
+                                                    setHeaderMode(e.target.value as typeof headerMode);
+                                                    markChanged();
+                                                }}
+                                                className="w-full rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-3 text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)]"
+                                            >
+                                                <option value="none">None</option>
+                                                <option value="image">Image banner</option>
+                                                <option value="embed">HTML embed</option>
+                                            </select>
+                                        </div>
+                                        {headerMode === "image" && (
+                                            <div className="space-y-4 rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-4">
+                                                <div>
+                                                    <label className="mb-2 block text-xs font-bold text-[var(--neutral-600)]">Image URL</label>
+                                                    <input
+                                                        type="url"
+                                                        value={headerImageUrl}
+                                                        onChange={(e) => {
+                                                            setHeaderImageUrl(e.target.value);
+                                                            markChanged();
+                                                        }}
+                                                        className="w-full rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-200)] p-3 text-[var(--foreground)]"
+                                                        placeholder="https://…"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="mb-2 block text-xs font-bold text-[var(--neutral-600)]">Alt text (optional)</label>
+                                                    <input
+                                                        type="text"
+                                                        value={headerImageAlt}
+                                                        onChange={(e) => {
+                                                            setHeaderImageAlt(e.target.value);
+                                                            markChanged();
+                                                        }}
+                                                        className="w-full rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-200)] p-3 text-[var(--foreground)]"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                        {headerMode === "embed" && (
+                                            <div>
+                                                <label className="mb-2 block text-xs font-bold text-[var(--neutral-600)]">
+                                                    HTML (full document or body fragment)
+                                                </label>
+                                                <textarea
+                                                    value={headerEmbedHtml}
+                                                    onChange={(e) => {
+                                                        setHeaderEmbedHtml(e.target.value);
+                                                        markChanged();
+                                                    }}
+                                                    className="h-56 w-full resize-y rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-4 font-mono text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)]"
+                                                    spellCheck={false}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>

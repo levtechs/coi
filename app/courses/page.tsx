@@ -43,25 +43,36 @@ function CoursesPageContent() {
             <FlickeringGrid className="fixed inset-0 z-0 pointer-events-none" />
             <Sidebar current="courses" />
             <div className="ml-16 p-6 relative z-5">
-                <div className="flex items-center gap-4 mb-8">
-                    {isCreateMode && (
-                        <Button color="var(--neutral-300)" onClick={() => window.location.href = '/courses'}>
-                            Back to Courses
-                        </Button>
-                    )}
-                    <h1 className="text-3xl font-extrabold text-[var(--foreground)]">
-                        {isCreateMode ? (searchParams.has('edit') ? 'Edit Course' : 'Create Course') : 'Courses'}
-                    </h1>
-                    {!isCreateMode && userData?.starUser && (
-                        <Link
-                            href="/courses?new"
-                            className="px-4 py-2 bg-[var(--accent-500)] text-white rounded hover:bg-[var(--accent-600)]"
-                        >
-                            Create Course
-                        </Link>
-                    )}
+                <div className="mx-auto max-w-6xl">
+                    <div className="mb-2 flex flex-col gap-4 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-wrap items-center gap-4">
+                            {isCreateMode && (
+                                <Button color="var(--neutral-300)" onClick={() => window.location.href = '/courses'}>
+                                    Back to Courses
+                                </Button>
+                            )}
+                            <div>
+                                <h1 className="text-3xl font-extrabold tracking-tight text-[var(--foreground)]">
+                                    {isCreateMode ? (searchParams.has('edit') ? 'Edit Course' : 'Create Course') : 'Courses'}
+                                </h1>
+                                {!isCreateMode && (
+                                    <p className="mt-1 max-w-xl text-sm text-[var(--neutral-600)]">
+                                        Your enrolled and shared courses, grouped by category.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                        {!isCreateMode && userData?.starUser && (
+                            <Link
+                                href="/courses?new"
+                                className="inline-flex w-fit items-center justify-center rounded-lg bg-[var(--accent-500)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--accent-600)]"
+                            >
+                                Create Course
+                            </Link>
+                        )}
+                    </div>
+                    {isCreateMode ? <CreateCourse /> : <CoursesDashboard />}
                 </div>
-                {isCreateMode ? <CreateCourse /> : <CoursesDashboard />}
             </div>
         </div>
     );

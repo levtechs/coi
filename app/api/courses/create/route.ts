@@ -7,7 +7,12 @@ import { Course, CourseLesson, NewCourse } from "@/lib/types/course";
 import { QuizSettings } from "@/lib/types/quiz";
 import { createCourseFromText, createLessonFromText } from "./helpers";
 import { createQuizFromCards, updateQuizMetadata, writeQuizToDb } from "../../quiz/helpers";
-import { normalizeCourse, normalizeCourseLesson } from "@/app/api/courses/helpers";
+import {
+  normalizeCourse,
+  normalizeCourseBrandingHeader,
+  normalizeCourseLesson,
+  normalizeCoverImageUrl,
+} from "@/app/api/courses/helpers";
 
 /**
  * POST /api/courses/create
@@ -33,6 +38,9 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
+        const coverImageUrl = normalizeCoverImageUrl(courseData.coverImageUrl);
+        const courseBrandingHeader = normalizeCourseBrandingHeader(courseData.courseBrandingHeader);
+
         // Create the course document
         const courseRef = await adminDb.collection('courses').add({
             title: courseData.title,
@@ -47,6 +55,8 @@ export async function POST(req: NextRequest) {
             resources: courseData.resources || [],
             ownerId: uid,
             createdAt: new Date().toISOString(),
+            ...(coverImageUrl ? { coverImageUrl } : {}),
+            ...(courseBrandingHeader ? { courseBrandingHeader } : {}),
         });
 
         const courseId = courseRef.id;

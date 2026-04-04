@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { FiChevronRight, FiChevronDown } from "react-icons/fi";
 import { useAuth } from "@/lib/AuthContext";
 import { getCourses } from "@/app/views/courses";
@@ -21,6 +21,7 @@ const CoursesDashboard = () => {
         life_skills: true,
         social_studies: true,
         computer_science: true,
+        other: true,
     });
 
     useEffect(() => {
@@ -39,35 +40,40 @@ const CoursesDashboard = () => {
         fetchCourses();
     }, [user]);
 
-    if (loading) {
-        return <LoadingComponent small={true} />;
-    }
+    const uniqueCourses = useMemo(() => {
+        const byId = new Map<string, Course>();
+        for (const c of courses) {
+            if (!byId.has(c.id)) byId.set(c.id, c);
+        }
+        return [...byId.values()];
+    }, [courses]);
 
-    // Group courses by category
-    const grouped: { [key: string]: Course[] } = {
-        math: [],
-        science: [],
-        history: [],
-        health: [],
-        business: [],
-        life_skills: [],
-        social_studies: [],
-        computer_science: [],
-        other: [],
-    };
-
-    courses.forEach((course) => {
-        const cat = course.category?.toLowerCase();
-        if (cat === "math") grouped.math.push(course);
-        else if (cat === "science") grouped.science.push(course);
-        else if (cat === "history") grouped.history.push(course);
-        else if (cat === "health") grouped.health.push(course);
-        else if (cat === "business") grouped.business.push(course);
-        else if (cat === "life skills") grouped.life_skills.push(course);
-        else if (cat === "social studies") grouped.social_studies.push(course);
-        else if (cat === "computer science") grouped.computer_science.push(course);
-        else grouped.other.push(course);
-    });
+    const grouped = useMemo(() => {
+        const g: Record<string, Course[]> = {
+            math: [],
+            science: [],
+            history: [],
+            health: [],
+            business: [],
+            life_skills: [],
+            social_studies: [],
+            computer_science: [],
+            other: [],
+        };
+        for (const course of uniqueCourses) {
+            const cat = course.category?.toLowerCase();
+            if (cat === "math") g.math.push(course);
+            else if (cat === "science") g.science.push(course);
+            else if (cat === "history") g.history.push(course);
+            else if (cat === "health") g.health.push(course);
+            else if (cat === "business") g.business.push(course);
+            else if (cat === "life skills") g.life_skills.push(course);
+            else if (cat === "social studies") g.social_studies.push(course);
+            else if (cat === "computer science") g.computer_science.push(course);
+            else g.other.push(course);
+        }
+        return g;
+    }, [uniqueCourses]);
 
     const categories = [
         { name: "Math", key: "math" },
@@ -80,45 +86,69 @@ const CoursesDashboard = () => {
         { name: "Computer Science", key: "computer_science" },
     ];
 
+    if (loading) {
+        return <LoadingComponent small={true} />;
+    }
+
     return (
-        <div className="mt-8 space-y-4">
+        <div className="mx-auto mt-6 max-w-6xl space-y-10">
             {categories.map(({ name, key }) => (
                 grouped[key].length > 0 && (
-                    <div key={key} className="flex flex-col">
-                        <div
-                            onClick={() => setExpanded(prev => ({ ...prev, [key]: !prev[key] }))}
-                            className="group flex items-center gap-2 cursor-pointer mb-2"
+                    <section key={key} className="space-y-4">
+                        <button
+                            type="button"
+                            onClick={() => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}
+                            className="group flex w-full items-center gap-2 text-left"
                         >
                             {expanded[key] ? (
-                                <FiChevronDown className="text-[var(--neutral-500)]" size={24} />
+                                <FiChevronDown className="shrink-0 text-[var(--neutral-500)]" size={22} />
                             ) : (
-                                <FiChevronRight className="text-[var(--neutral-500)]" size={24} />
+                                <FiChevronRight className="shrink-0 text-[var(--neutral-500)]" size={22} />
                             )}
-                            <h2 className="text-2xl font-semibold text-[var(--foreground)]">
+                            <h2 className="text-xl font-semibold tracking-tight text-[var(--foreground)] md:text-2xl">
                                 {name}
                             </h2>
-                        </div>
+                            <span className="rounded-full bg-[var(--neutral-300)] px-2.5 py-0.5 text-xs font-medium text-[var(--neutral-700)]">
+                                {grouped[key].length}
+                            </span>
+                        </button>
                         {expanded[key] && (
-                            <div className="ml-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
                                 {grouped[key].map((course) => (
                                     <CourseCard key={course.id} course={course} />
                                 ))}
                             </div>
                         )}
-                    </div>
+                    </section>
                 )
             ))}
             {grouped.other.length > 0 && (
-                <div className="flex flex-col">
-                    <h2 className="text-2xl font-semibold text-[var(--foreground)] mb-4">
-                        Other
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {grouped.other.map((course) => (
-                            <CourseCard key={course.id} course={course} />
-                        ))}
-                    </div>
-                </div>
+                <section className="space-y-4">
+                    <button
+                        type="button"
+                        onClick={() => setExpanded((prev) => ({ ...prev, other: !prev.other }))}
+                        className="group flex w-full items-center gap-2 text-left"
+                    >
+                        {expanded.other ? (
+                            <FiChevronDown className="shrink-0 text-[var(--neutral-500)]" size={22} />
+                        ) : (
+                            <FiChevronRight className="shrink-0 text-[var(--neutral-500)]" size={22} />
+                        )}
+                        <h2 className="text-xl font-semibold tracking-tight text-[var(--foreground)] md:text-2xl">
+                            Other
+                        </h2>
+                        <span className="rounded-full bg-[var(--neutral-300)] px-2.5 py-0.5 text-xs font-medium text-[var(--neutral-700)]">
+                            {grouped.other.length}
+                        </span>
+                    </button>
+                    {expanded.other && (
+                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                            {grouped.other.map((course) => (
+                                <CourseCard key={course.id} course={course} />
+                            ))}
+                        </div>
+                    )}
+                </section>
             )}
         </div>
     );

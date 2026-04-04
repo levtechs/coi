@@ -21,6 +21,7 @@ import Analytics from "../../components/courses/analytics/analytics";
 import CommentSection from "../../components/courses/comments/comment_section";
 import CourseSharePanel from "../../components/courses/course_share_panel";
 import CourseResourcePills, { visibleStudentResources } from "../../components/courses/course_resource_pills";
+import CourseBrandedHeader from "../../components/courses/course_branded_header";
 import Modal from "../../components/modal";
 import MarkdownArticle from "../../components/md";
 
@@ -155,11 +156,14 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
     const courseStudentResources = visibleStudentResources(course.resources);
 
     return (
-        <div className="min-h-screen text-[var(--foreground)]">
+        <div className="min-h-screen overflow-x-hidden text-[var(--foreground)]">
             <div className="fixed inset-0 bg-[var(--neutral-100)] pointer-events-none"></div>
             <FlickeringGrid className="fixed inset-0 z-0 pointer-events-none" />
             <Sidebar current="courses" />
-            <div className="ml-16 p-6 relative z-5">
+            <div className="relative z-[5] ml-16 flex min-h-screen min-w-0 flex-col">
+                <CourseBrandedHeader course={course} className="w-screen max-w-none shrink-0 -ml-16" />
+
+                <div className="p-6 relative z-[5] flex-1 min-w-0">
                 <div className="flex items-center gap-4 mb-8">
                     <Button color="var(--neutral-300)" onClick={() => window.location.href = '/courses'}>
                         Back to Courses
@@ -345,6 +349,7 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
                 </div>
 
                 <CommentSection courseId={courseId} isCourseOwner={isOwner} />
+                </div>
             </div>
 
             <Modal

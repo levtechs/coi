@@ -1,7 +1,14 @@
+const fs = require("fs");
+const path = require("path");
 const { loadEnvConfig } = require("@next/env");
 const admin = require("firebase-admin");
 
 const EXISTING_MANTIS_COURSE_ID = "ODAQN0LrgapbAdACrugT";
+
+/** Built from live https://home.withmantis.com/ head styles + splash markup (no 3D island, no GitHub corner, no CTAs). */
+function loadMantisHeroEmbedHtml() {
+  return fs.readFileSync(path.join(__dirname, "mantis_hero_embed_document.html"), "utf8");
+}
 
 function initAdmin() {
   loadEnvConfig(process.cwd());
@@ -107,6 +114,8 @@ function buildCourseBlueprint() {
     description:
       "A mission-based onboarding course for learning Mantis by using it: navigating spaces, inspecting evidence, organizing views, shaping spaces around goals, interpreting patterns carefully, and turning observations into useful feedback or recommendations.",
     category: "computer science",
+    coverImageUrl: "https://home.withmantis.com/favicon.png",
+    courseBrandingHeader: { kind: "embed", html: loadMantisHeroEmbedHtml() },
     tutorDefaults: {
       profileIds: [
         "course_credibility",
@@ -637,6 +646,8 @@ async function createCourse(db, ownerId, blueprint) {
     tutorDefaults: blueprint.tutorDefaults,
     resources: blueprint.resources,
     createdAt: new Date().toISOString(),
+    ...(blueprint.coverImageUrl ? { coverImageUrl: blueprint.coverImageUrl } : {}),
+    ...(blueprint.courseBrandingHeader ? { courseBrandingHeader: blueprint.courseBrandingHeader } : {}),
   });
 
   const lessonRefs = [];
@@ -733,6 +744,8 @@ async function replaceCourseContent(db, courseId, ownerId, blueprint) {
     resources: blueprint.resources,
     createdAt: existing.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    ...(blueprint.coverImageUrl ? { coverImageUrl: blueprint.coverImageUrl } : {}),
+    ...(blueprint.courseBrandingHeader ? { courseBrandingHeader: blueprint.courseBrandingHeader } : {}),
   }, { merge: true });
 
   const lessonRefs = [];
@@ -798,9 +811,62 @@ async function replaceCourseContent(db, courseId, ownerId, blueprint) {
   };
 }
 
+async function patchCourseBrandingOnly(db, courseId) {
+  const html = loadMantisHeroEmbedHtml();
+  const ref = db.collection("courses").doc(courseId);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    throw new Error(`Course ${courseId} not found`);
+  }
+  await ref.update({
+    coverImageUrl: "https://home.withmantis.com/favicon.png",
+    courseBrandingHeader: { kind: "embed", html },
+    updatedAt: new Date().toISOString(),
+  });
+  return { courseId, title: snap.data()?.title };
+}
+
+/**
+ * Patch courses whose title matches (case-insensitive). Uses a title-only scan so it still works if
+ * casing in Firestore differs from the blueprint string.
+ */
+async function patchCourseBrandingByTitle(db, titleQuery) {
+  const html = loadMantisHeroEmbedHtml();
+  const want = titleQuery.trim().toLowerCase();
+  const snap = await db.collection("courses").select("title").get();
+  const matches = snap.docs.filter((d) => (d.data().title || "").trim().toLowerCase() === want);
+  if (matches.length === 0) {
+    throw new Error(`No course with title matching "${titleQuery}" (case-insensitive).`);
+  }
+  const out = [];
+  for (const doc of matches) {
+    await doc.ref.update({
+      coverImageUrl: "https://home.withmantis.com/favicon.png",
+      courseBrandingHeader: { kind: "embed", html },
+      updatedAt: new Date().toISOString(),
+    });
+    out.push({ courseId: doc.id, title: doc.data()?.title });
+  }
+  return out;
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const db = initAdmin();
+
+  if (args["patch-branding"]) {
+    const courseId = args["patch-branding"];
+    const r = await patchCourseBrandingOnly(db, courseId);
+    console.log(JSON.stringify({ patched: true, ...r }, null, 2));
+    return;
+  }
+
+  if (args["patch-branding-title"]) {
+    const rows = await patchCourseBrandingByTitle(db, args["patch-branding-title"]);
+    console.log(JSON.stringify({ patched: rows.length, courses: rows }, null, 2));
+    return;
+  }
+
   const ownerId = await resolveOwnerId(db, args["owner-id"]);
   const blueprint = buildCourseBlueprint();
   const result = args["update-course-id"]

@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as admin from "firebase-admin";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { Filter } from "firebase-admin/firestore";
 import { getVerifiedUid, getVerifiedCourseAccess } from "../../helpers";
 import { Course } from "@/lib/types/course";
 import { Project } from "@/lib/types/project";
-import { isCourseStaff, normalizeCardsToUnlock, normalizeCourse, normalizeCourseLesson } from "@/app/api/courses/helpers";
+import {
+  isCourseStaff,
+  normalizeCardsToUnlock,
+  normalizeCourse,
+  normalizeCourseBrandingHeader,
+  normalizeCourseLesson,
+  normalizeCoverImageUrl,
+} from "@/app/api/courses/helpers";
 import { updateQuizMetadata } from "@/app/api/quiz/helpers";
 
 export async function GET(
@@ -104,6 +112,16 @@ export async function PUT(
             return NextResponse.json({ error: "Access denied" }, { status: 403 });
         }
 
+        const brandingPatch: Record<string, unknown> = {};
+        if (Object.prototype.hasOwnProperty.call(courseData, "coverImageUrl")) {
+            const cover = normalizeCoverImageUrl(courseData.coverImageUrl);
+            brandingPatch.coverImageUrl = cover ?? admin.firestore.FieldValue.delete();
+        }
+        if (Object.prototype.hasOwnProperty.call(courseData, "courseBrandingHeader")) {
+            const header = normalizeCourseBrandingHeader(courseData.courseBrandingHeader);
+            brandingPatch.courseBrandingHeader = header ?? admin.firestore.FieldValue.delete();
+        }
+
         // Update the course document
         await courseRef.update({
             title: courseData.title,
@@ -116,6 +134,7 @@ export async function PUT(
             tutorDefaults: courseData.tutorDefaults || null,
             resources: courseData.resources || [],
             quizReportPolicy: courseData.quizReportPolicy || {},
+            ...brandingPatch,
         });
 
         // Handle lessons: update existing, create new, delete removed

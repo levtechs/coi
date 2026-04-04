@@ -1,5 +1,6 @@
 import {
   Course,
+  CourseBrandingHeader,
   CourseLesson,
   CourseQuizReportPolicyEntry,
   CourseResource,
@@ -11,7 +12,33 @@ import {
 import { adminDb } from "@/lib/firebaseAdmin";
 import { stripUndefinedDeep } from "@/lib/firestoreSanitize";
 
+const MAX_COURSE_EMBED_HTML_CHARS = 300_000;
+
 type CourseDocLike = Partial<Omit<Course, "id" | "lessons">> & { ownerId?: string; quizReportPolicy?: unknown };
+
+export function normalizeCoverImageUrl(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const t = value.trim();
+  return t.length > 0 ? t : undefined;
+}
+
+export function normalizeCourseBrandingHeader(value: unknown): CourseBrandingHeader | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const v = value as { kind?: unknown; imageUrl?: unknown; html?: unknown; alt?: unknown };
+  const kindRaw = typeof v.kind === "string" ? v.kind.toLowerCase() : "";
+  if (kindRaw === "image" && typeof v.imageUrl === "string") {
+    const imageUrl = v.imageUrl.trim();
+    if (!imageUrl) return undefined;
+    const alt = typeof v.alt === "string" ? v.alt.trim() : undefined;
+    return { kind: "image", imageUrl, ...(alt ? { alt } : {}) };
+  }
+  if (kindRaw === "embed" && typeof v.html === "string") {
+    const html = v.html.length > MAX_COURSE_EMBED_HTML_CHARS ? v.html.slice(0, MAX_COURSE_EMBED_HTML_CHARS) : v.html;
+    if (!html.trim()) return undefined;
+    return { kind: "embed", html };
+  }
+  return undefined;
+}
 type LessonDocLike = Partial<Omit<CourseLesson, "id" | "courseId" | "cardsToUnlock">> & { content?: string; optional?: boolean };
 
 export function normalizeTutorPromptConfig(value: unknown): TutorPromptConfig | undefined {
@@ -124,6 +151,8 @@ export function normalizeCourseLesson(courseId: string, lessonId: string, lesson
 }
 
 export function normalizeCourse(courseId: string, courseData: CourseDocLike, lessons: CourseLesson[]): Course {
+  const courseBrandingHeader = normalizeCourseBrandingHeader(courseData.courseBrandingHeader);
+  const coverImageUrl = normalizeCoverImageUrl(courseData.coverImageUrl);
   return {
     id: courseId,
     title: courseData.title || "Untitled Course",
@@ -138,6 +167,8 @@ export function normalizeCourse(courseId: string, courseData: CourseDocLike, les
     tutorDefaults: normalizeTutorPromptConfig(courseData.tutorDefaults),
     resources: normalizeResources(courseData.resources),
     quizReportPolicy: normalizeQuizReportPolicy(courseData.quizReportPolicy),
+    ...(coverImageUrl ? { coverImageUrl } : {}),
+    ...(courseBrandingHeader ? { courseBrandingHeader } : {}),
   };
 }
 
