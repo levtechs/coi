@@ -4,8 +4,10 @@ import { fetchCourseStudentProgress } from "@/app/api/courses/progress_helpers";
 import { deriveLessonProgressFromProjectsForAnalytics } from "@/app/api/courses/report_completion";
 import { Course, CourseStudentLessonProgress, CourseStudentProgress } from "@/lib/types/course";
 import { CourseAnalyticsRollups } from "@/lib/types/course_analytics";
+import type { TimestampType } from "@/lib/types/timestamp";
 import { User } from "@/lib/types/user";
 import { buildCourseAnalyticsRollups } from "@/app/api/courses/[courseId]/analytics/rollups";
+import { timestampToMillis } from "@/app/api/courses/[courseId]/analytics/timestamp_ms";
 
 async function loadUsersByIds(userIds: string[]): Promise<Map<string, User>> {
     if (userIds.length === 0) return new Map();
@@ -97,8 +99,8 @@ export async function buildDerivedStudentProgress(courseId: string): Promise<{ s
             }
 
             const sortedProjects = [...lessonProjects].sort((a, b) => {
-                const aTime = new Date(String(a.data().createdAt || 0)).getTime();
-                const bTime = new Date(String(b.data().createdAt || 0)).getTime();
+                const aTime = timestampToMillis(a.data().createdAt) ?? 0;
+                const bTime = timestampToMillis(b.data().createdAt) ?? 0;
                 return aTime - bTime;
             });
 
@@ -120,13 +122,18 @@ export async function buildDerivedStudentProgress(courseId: string): Promise<{ s
                 if (derived.allRequiredUnlocked && !completedAt) {
                     const last = sortedProjects.length > 0 ? sortedProjects[sortedProjects.length - 1] : null;
                     const lastData = last?.data();
-                    completedAt = (lastData?.updatedAt ||
-                        lastData?.createdAt ||
-                        existingLessonProgress?.startedAt) as string | undefined;
+                    const raw =
+                        lastData?.updatedAt ?? lastData?.createdAt ?? existingLessonProgress?.startedAt;
+                    if (raw !== undefined && raw !== null) {
+                        completedAt = raw as TimestampType;
+                    }
                 }
             } else if (lesson.cardsToUnlock.length === 0) {
                 if (!completedAt && sortedProjects.length > 0) {
-                    completedAt = sortedProjects[sortedProjects.length - 1]?.data().createdAt as string | undefined;
+                    const raw = sortedProjects[sortedProjects.length - 1]?.data().createdAt;
+                    if (raw !== undefined && raw !== null) {
+                        completedAt = raw as TimestampType;
+                    }
                 }
             }
 

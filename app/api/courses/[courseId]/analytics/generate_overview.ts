@@ -1,3 +1,4 @@
+import type { GenerateContentParameters } from "@google/genai";
 import { genAI, getGenerationConfig, getLLMModel } from "@/app/api/gemini/config";
 import { MyGenerateContentParameters } from "@/app/api/gemini/types";
 
@@ -56,7 +57,7 @@ ${input.learnerQuestionsBlock}`;
     };
 
     try {
-        const result = await genAI.models.generateContent(params as never);
+        const result = await genAI.models.generateContent(params as unknown as GenerateContentParameters);
         const text =
             result?.candidates?.[0]?.content?.parts?.map((p) => ("text" in p && p.text ? p.text : "")).join("") || "";
         const trimmed = text.trim();

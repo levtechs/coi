@@ -9,6 +9,18 @@ import {
   CourseAnalyticsUnlockSlotRollup,
 } from "@/lib/types/course_analytics";
 import { Quiz, QuizAttempt, QuizQuestion } from "@/lib/types/quiz";
+import { timestampToMillis } from "@/app/api/courses/[courseId]/analytics/timestamp_ms";
+
+const QUIZ_ROLLUP_CONCURRENCY = 5;
+
+async function mapPool<T, R>(items: T[], concurrency: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const chunk = items.slice(i, i + concurrency);
+    out.push(...(await Promise.all(chunk.map(fn))));
+  }
+  return out;
+}
 
 function median(nums: number[]): number | null {
   if (nums.length === 0) return null;
@@ -80,8 +92,10 @@ async function buildQuizRollups(courseId: string, course: Course): Promise<Cours
   const quizIds = collectCourseQuizIds(course);
   const quizToLesson = quizIdToLessonId(course);
 
-  const rollups = await Promise.all(
-    quizIds.map(async (quizId): Promise<CourseAnalyticsQuizRollup | null> => {
+  const rollups = await mapPool(
+    quizIds,
+    QUIZ_ROLLUP_CONCURRENCY,
+    async (quizId): Promise<CourseAnalyticsQuizRollup | null> => {
       let quiz: Quiz;
       try {
         quiz = await fetchQuiz(quizId);
@@ -120,7 +134,7 @@ async function buildQuizRollups(courseId: string, course: Course): Promise<Cours
         distinctStudents,
         medianElapsedMs: median(elapsedList),
       };
-    }),
+    },
   );
 
   return rollups.filter((r): r is CourseAnalyticsQuizRollup => r !== null);
@@ -170,9 +184,9 @@ function buildLessonTimingRollups(course: Course, students: CourseStudentProgres
         startedCount += 1;
         if (lp.completedAt) {
           completedCount += 1;
-          const start = lp.startedAt ? new Date(String(lp.startedAt)).getTime() : NaN;
-          const end = new Date(String(lp.completedAt)).getTime();
-          if (Number.isFinite(start) && Number.isFinite(end) && end >= start) {
+          const start = timestampToMillis(lp.startedAt);
+          const end = timestampToMillis(lp.completedAt);
+          if (start != null && end != null && end >= start) {
             durations.push(end - start);
           }
         }

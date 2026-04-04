@@ -326,7 +326,7 @@ const Analytics = ({ courseId }: AnalyticsProps) => {
                                        <div>
                                            <h3 className="text-xl font-semibold text-[var(--foreground)]">AI analytics overview</h3>
                                            <p className="text-sm text-[var(--neutral-600)] mt-1">
-                                               Generated from course metrics and anonymized learner questions. Refreshes automatically when you open this page if data has changed enough (cached ~45 minutes).
+                                               Generated from course metrics and anonymized learner questions. When you open this page, a new overview is generated only if the last saved one is older than about 45 minutes; otherwise you see the cached version.
                                            </p>
                                        </div>
                                        <div className="flex flex-wrap items-center gap-3">

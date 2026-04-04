@@ -24,15 +24,21 @@ function clip(s: string, max: number): string {
     return `${s.slice(0, max)}…`;
 }
 
-/**
- * Compact rollups + tiny student summary for LLM (deterministic, bounded size).
- */
-export function buildCompactMetricsPayload(
+type MetricsCaps = {
+    maxStudents: number;
+    maxQuizzes: number;
+    maxUnlockLessons: number;
+    maxSlotsPerLesson: number;
+    maxTopWeak: number;
+};
+
+function buildMetricsObject(
     courseTitle: string,
     students: CourseStudentProgress[],
     rollups: CourseAnalyticsRollups,
-): string {
-    const studentSummary = students.slice(0, 40).map((s) => ({
+    caps: MetricsCaps,
+) {
+    const studentSummary = students.slice(0, caps.maxStudents).map((s) => ({
         id: s.userId.slice(0, 8),
         lessonsComplete: s.completedLessonsCount ?? 0,
         bestCourseQuiz: s.bestCourseQuizAttempt?.percentScore ?? null,
@@ -40,7 +46,7 @@ export function buildCompactMetricsPayload(
 
     const quizzes = rollups.quizzes
         .filter((q) => q.totalAttempts > 0)
-        .slice(0, 12)
+        .slice(0, caps.maxQuizzes)
         .map((q) => ({
             title: clip(q.title, 80),
             attempts: q.totalAttempts,
@@ -48,7 +54,7 @@ export function buildCompactMetricsPayload(
             topWeak: q.questionStats
                 .filter((s) => s.attemptCount > 0)
                 .sort((a, b) => b.wrongPercent - a.wrongPercent)
-                .slice(0, 3)
+                .slice(0, caps.maxTopWeak)
                 .map((s) => ({
                     q: clip(s.questionSnippet, 100),
                     wrongPct: s.wrongPercent,
@@ -62,16 +68,16 @@ export function buildCompactMetricsPayload(
         done: t.completedCount,
     }));
 
-    const unlocks = Object.entries(rollups.unlocksByLesson).slice(0, 8).map(([lessonId, slots]) => ({
+    const unlocks = Object.entries(rollups.unlocksByLesson).slice(0, caps.maxUnlockLessons).map(([lessonId, slots]) => ({
         lessonId: lessonId.slice(0, 8),
-        slots: slots.slice(0, 6).map((sl) => ({
+        slots: slots.slice(0, caps.maxSlotsPerLesson).map((sl) => ({
             card: clip(sl.title, 60),
             unlocked: sl.unlockedByCount,
             of: sl.studentsStartedLesson,
         })),
     }));
 
-    const payload = {
+    return {
         courseTitle: clip(courseTitle, 120),
         learnerCount: students.length,
         studentSummary,
@@ -79,12 +85,58 @@ export function buildCompactMetricsPayload(
         lessonTiming: timing,
         unlocksByLesson: unlocks,
     };
+}
 
-    let json = JSON.stringify(payload);
-    if (json.length > MAX_METRICS_JSON) {
-        json = json.slice(0, MAX_METRICS_JSON) + "\n…[truncated]";
+/**
+ * Compact rollups + tiny student summary for LLM (deterministic, bounded size, always valid JSON).
+ */
+export function buildCompactMetricsPayload(
+    courseTitle: string,
+    students: CourseStudentProgress[],
+    rollups: CourseAnalyticsRollups,
+): string {
+    let caps: MetricsCaps = {
+        maxStudents: 40,
+        maxQuizzes: 12,
+        maxUnlockLessons: 8,
+        maxSlotsPerLesson: 6,
+        maxTopWeak: 3,
+    };
+
+    for (;;) {
+        const payload = buildMetricsObject(courseTitle, students, rollups, caps);
+        const json = JSON.stringify(payload);
+        if (json.length <= MAX_METRICS_JSON) {
+            return json;
+        }
+        if (caps.maxStudents <= 8 && caps.maxQuizzes <= 3 && caps.maxUnlockLessons <= 2) {
+            let tight = buildMetricsObject(courseTitle, students, rollups, caps);
+            let json = JSON.stringify({
+                ...tight,
+                _note: "Metrics trimmed to fit token budget; some detail omitted.",
+            });
+            if (json.length > MAX_METRICS_JSON) {
+                tight = {
+                    ...tight,
+                    unlocksByLesson: [],
+                    quizzes: tight.quizzes.slice(0, 2),
+                    studentSummary: tight.studentSummary.slice(0, 8),
+                };
+                json = JSON.stringify({
+                    ...tight,
+                    _note: "Metrics heavily trimmed to fit token budget.",
+                });
+            }
+            return json;
+        }
+        caps = {
+            maxStudents: Math.max(8, caps.maxStudents - 8),
+            maxQuizzes: Math.max(3, caps.maxQuizzes - 2),
+            maxUnlockLessons: Math.max(2, caps.maxUnlockLessons - 2),
+            maxSlotsPerLesson: Math.max(3, caps.maxSlotsPerLesson - 1),
+            maxTopWeak: Math.max(1, caps.maxTopWeak - 1),
+        };
     }
-    return json;
 }
 
 /**
@@ -97,10 +149,13 @@ export async function collectLearnerQuestionSamples(courseId: string, studentIds
     const lines: string[] = [];
     let totalChars = 0;
 
-    const ownersToVisit = projectsSnap.docs
-        .map((d) => ({ id: d.id, ownerId: d.data().ownerId as string | undefined }))
-        .filter((p): p is { id: string; ownerId: string } => !!p.ownerId && studentIds.has(p.ownerId))
-        .slice(0, MAX_LEARNERS_WITH_CHATS);
+    const firstProjectByOwner = new Map<string, { id: string; ownerId: string }>();
+    for (const doc of projectsSnap.docs) {
+        const ownerId = doc.data().ownerId as string | undefined;
+        if (!ownerId || !studentIds.has(ownerId) || firstProjectByOwner.has(ownerId)) continue;
+        firstProjectByOwner.set(ownerId, { id: doc.id, ownerId });
+    }
+    const ownersToVisit = Array.from(firstProjectByOwner.values()).slice(0, MAX_LEARNERS_WITH_CHATS);
 
     for (const { id: projectId, ownerId } of ownersToVisit) {
         if (totalChars >= MAX_TOTAL_CHAT_CHARS) break;
