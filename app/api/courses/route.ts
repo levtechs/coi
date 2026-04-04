@@ -27,8 +27,11 @@ export async function GET(req: NextRequest) {
             )
         ).get();
 
+        // Firestore OR queries can return the same document more than once when it matches multiple disjuncts.
+        const uniqueDocs = [...new Map(snapshot.docs.map((d) => [d.id, d])).values()];
+
         const courses = await Promise.all(
-            snapshot.docs.map(async (doc) => {
+            uniqueDocs.map(async (doc) => {
                 const data = doc.data();
                 const lessonsRef = doc.ref.collection('lessons');
                 const lessonsSnap = await lessonsRef.get();

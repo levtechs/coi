@@ -69,6 +69,11 @@ export interface CourseQuizReportPolicyEntry {
   minPercent?: number;
 }
 
+/** Shown at the top of the course page (channel-style). Image is a simple banner; embed is HTML/JS in a sandboxed iframe. */
+export type CourseBrandingHeader =
+  | { kind: "image"; imageUrl: string; alt?: string }
+  | { kind: "embed"; html: string };
+
 export interface Course {
   id: string;
   title: string;
@@ -84,6 +89,9 @@ export interface Course {
   ownerId?: string;
   tutorDefaults?: TutorPromptConfig;
   resources?: CourseResource[];
+  /** Thumbnail for course list cards; falls back to branding header image when unset. */
+  coverImageUrl?: string;
+  courseBrandingHeader?: CourseBrandingHeader;
 }
 
 export interface CourseLesson {
