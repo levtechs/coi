@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getVerifiedUid } from "@/app/api/helpers";
+import { buildCourseTutorGroundingContext } from "@/app/api/chat/course_tutor_context";
 import { streamChatResponse } from "./helpers";
 import { finalizeTaggedStream } from "./orchestrator";
 import { persistModelCards } from "./persist";
@@ -53,6 +54,13 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Project not found or access denied" }, { status: 404 });
         }
 
+        let courseTutorGrounding: string | null = null;
+        try {
+            courseTutorGrounding = await buildCourseTutorGroundingContext(uid, project);
+        } catch (ctxErr) {
+            console.error("Course tutor grounding context failed:", ctxErr);
+        }
+
         const previousContentHierarchy = project.hierarchy;
         const previousCards = await fetchCardsFromProject(projectId);
         const effectivePreviousCards = previousCards.filter((card) => !card.exclude && !card.labels?.includes("exclude from hierarchy"));
@@ -103,6 +111,7 @@ export async function POST(req: NextRequest) {
                         onNewCards,
                         cardsToUnlock,
                         project.courseLesson,
+                        courseTutorGrounding,
                     );
 
                     const { newCardsFromModel, writtenCards, chatAttachments } = result!;

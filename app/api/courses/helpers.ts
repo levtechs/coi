@@ -224,7 +224,9 @@ export async function fetchCourseAndLessonContext(courseId: string, lessonId?: s
     }),
   );
 
-  const course = normalizeCourse(courseId, courseSnap.data() || {}, lessons);
+  const { loadCourseResources } = await import("@/app/api/courses/course_resources_firestore");
+  const resources = await loadCourseResources(courseId);
+  const course = normalizeCourse(courseId, { ...(courseSnap.data() || {}), resources }, lessons);
   return {
     course,
     lesson: lessonId ? lessons[0] || null : null,

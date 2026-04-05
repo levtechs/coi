@@ -14,6 +14,7 @@ import {
   normalizeCourseLesson,
   normalizeCoverImageUrl,
 } from "@/app/api/courses/helpers";
+import { loadCourseResources, syncCourseResources } from "@/app/api/courses/course_resources_firestore";
 import { updateQuizMetadata } from "@/app/api/quiz/helpers";
 
 export async function GET(
@@ -76,7 +77,8 @@ export async function GET(
             })
         );
 
-        const course: Course = normalizeCourse(courseSnap.id, courseData, lessons);
+        const resources = await loadCourseResources(courseId);
+        const course: Course = normalizeCourse(courseSnap.id, { ...courseData, resources }, lessons);
 
         return NextResponse.json({ course, lessonProjects });
     } catch (error) {
@@ -129,7 +131,7 @@ export async function PUT(
             brandingPatch.courseBrandingHeader = header ?? admin.firestore.FieldValue.delete();
         }
 
-        // Update the course document
+        // Update the course document (course-level resources live in courseResources subcollection)
         await courseRef.update({
             title: courseData.title,
             description: courseData.description || "",
@@ -139,10 +141,17 @@ export async function PUT(
             quizIds: courseData.quizIds || [],
             category: courseData.category || "",
             tutorDefaults: courseData.tutorDefaults || null,
-            resources: courseData.resources || [],
             quizReportPolicy: courseData.quizReportPolicy || {},
             ...brandingPatch,
         });
+
+        try {
+            await syncCourseResources(courseId, courseData.resources);
+        } catch (syncErr) {
+            const msg = syncErr instanceof Error ? syncErr.message : "Failed to sync course resources";
+            const status = msg.includes("exceeds") ? 400 : 500;
+            return NextResponse.json({ error: msg }, { status });
+        }
 
         // Handle lessons: update existing, create new, delete removed
         const lessonsRef = courseRef.collection('lessons');
@@ -254,14 +263,7 @@ export async function DELETE(
             return NextResponse.json({ error: "Access denied" }, { status: 403 });
         }
 
-        // Delete all lessons in the subcollection
-        const lessonsRef = courseRef.collection('lessons');
-        const lessonsSnap = await lessonsRef.get();
-        const deleteLessonPromises = lessonsSnap.docs.map((lessonDoc) => lessonDoc.ref.delete());
-        await Promise.all(deleteLessonPromises);
-
-        // Delete the course document
-        await courseRef.delete();
+        await adminDb.recursiveDelete(courseRef);
 
         return NextResponse.json({ success: true });
     } catch (error) {

@@ -1,6 +1,7 @@
 import { adminDb } from "@/lib/firebaseAdmin";
 import { CourseLesson, CourseResource } from "@/lib/types/course";
-import { canAccessCourse, normalizeCardsToUnlock, normalizeCourseLesson, normalizeResources } from "@/app/api/courses/helpers";
+import { loadCourseResources } from "@/app/api/courses/course_resources_firestore";
+import { canAccessCourse, normalizeCardsToUnlock, normalizeCourseLesson } from "@/app/api/courses/helpers";
 
 /**
  * Fetches a specific lesson from a course and checks user access permissions.
@@ -48,7 +49,7 @@ export async function getLessonFromCourse(courseId: string, lessonIdx: number, u
         })));
 
         const lesson = normalizeCourseLesson(courseId, lessonDoc.id, lessonDoc.data(), cardsToUnlock);
-        const courseResources = normalizeResources(courseData.resources);
+        const courseResources = await loadCourseResources(courseId);
 
         return { lesson, hasAccess: true, courseResources, lessonCount };
     } catch (error) {

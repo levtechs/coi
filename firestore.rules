@@ -60,6 +60,10 @@ service cloud.firestore {
       match /lessons/{lessonId} {
         allow read: if canReadCourse(get(/databases/$(database)/documents/courses/$(courseId)).data);
       }
+
+      match /courseResources/{resourceId} {
+        allow read: if canReadCourse(get(/databases/$(database)/documents/courses/$(courseId)).data);
+      }
       
       match /comments/{commentId} {
         allow read: if canReadCourse(get(/databases/$(database)/documents/courses/$(courseId)).data);

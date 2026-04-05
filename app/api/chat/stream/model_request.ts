@@ -1,4 +1,4 @@
-import { GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
+import type { Content, GenerationConfig, Part, ThinkingConfig, Tool } from "@google/genai";
 
 import { Card } from "@/lib/types/cards";
 import { ChatAttachment, ChatPreferences, Message } from "@/lib/types/chat";
@@ -56,6 +56,7 @@ export async function buildStreamChatRequest(
     preferences: ChatPreferences,
     cardsToUnlock?: Card[],
     courseLesson?: { cardsToUnlock: Card[] },
+    courseTutorGrounding: string | null = null,
 ): Promise<MyGenerateContentParameters> {
     const fileParts = await buildInlineFileParts(attachments);
     const contents = buildConversationContents(messageHistory, message, fileParts);
@@ -76,25 +77,37 @@ export async function buildStreamChatRequest(
         });
     }
 
-    const systemInstruction = {
-        role: "user",
-        parts: getChatResponseSystemInstruction(
-            preferences.personality,
-            preferences.googleSearch,
-            preferences.followUpQuestions,
-            cardsToUnlock,
-            courseLesson,
-        ).parts as MyPart[],
+    const baseSystemParts = getChatResponseSystemInstruction(
+        preferences.personality,
+        preferences.googleSearch,
+        preferences.followUpQuestions,
+        cardsToUnlock,
+        courseLesson,
+    ).parts as MyPart[];
+
+    const systemParts: MyPart[] = courseTutorGrounding?.trim()
+        ? [
+            ...baseSystemParts,
+            {
+                text: `\n\n=== COURSE_TUTOR_GROUNDING ===\n${courseTutorGrounding.trim()}\n=== END_COURSE_TUTOR_GROUNDING ===\n`,
+            },
+        ]
+        : baseSystemParts;
+
+    /** Gemini `systemInstruction` (stable for this request); conversation + volatile context stay in `contents`. */
+    const systemInstructionContent: Content = {
+        role: "system",
+        parts: systemParts as Part[],
     };
 
-    const allContents = [systemInstruction, ...contents];
     const shouldUseSearch = preferences.googleSearch !== "disable";
     const selectedModel = getLLMModel(PRIMARY_CHAT_MODEL);
 
     return {
         model: selectedModel,
-        contents: allContents,
+        contents,
         config: {
+            systemInstruction: systemInstructionContent,
             generationConfig: {
                 ...(getGenerationConfig(PRIMARY_CHAT_MODEL) as GenerationConfig),
                 responseMimeType: "text/plain",

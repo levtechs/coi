@@ -14,6 +14,7 @@ import {
   normalizeCourseLesson,
   normalizeCoverImageUrl,
 } from "@/app/api/courses/helpers";
+import { loadCourseResources, syncCourseResources } from "@/app/api/courses/course_resources_firestore";
 
 /**
  * POST /api/courses/create
@@ -60,7 +61,6 @@ export async function POST(req: NextRequest) {
             quizReportPolicy: courseData.quizReportPolicy || {},
             category: courseData.category || "",
             tutorDefaults: courseData.tutorDefaults || null,
-            resources: courseData.resources || [],
             ownerId: uid,
             createdAt: new Date().toISOString(),
             ...(coverImageUrl ? { coverImageUrl } : {}),
@@ -102,6 +102,16 @@ export async function POST(req: NextRequest) {
         }
         await batch.commit();
 
+        try {
+            await syncCourseResources(courseId, courseData.resources);
+        } catch (syncErr) {
+            console.error("Failed to sync course resources:", syncErr);
+            return NextResponse.json(
+                { error: syncErr instanceof Error ? syncErr.message : "Failed to sync course resources" },
+                { status: syncErr instanceof Error && syncErr.message.includes("exceeds") ? 400 : 500 },
+            );
+        }
+
         await Promise.all([
             ...(courseData.quizIds || []).map((quizId) => updateQuizMetadata(quizId, {
                 sourceType: "course",
@@ -118,7 +128,8 @@ export async function POST(req: NextRequest) {
             }))),
         ]);
 
-        const fullCourse: Course = normalizeCourse(courseId, { ...courseData, ownerId: uid }, lessons);
+        const resources = await loadCourseResources(courseId);
+        const fullCourse: Course = normalizeCourse(courseId, { ...courseData, ownerId: uid, resources }, lessons);
 
         return NextResponse.json(fullCourse);
     } catch (error) {

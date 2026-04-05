@@ -4,13 +4,6 @@ import { FileAttachment } from "@/lib/types/uploads";
 import { CourseResource } from '@/lib/types/course';
 import { apiFetch } from './helpers';
 
-const MAX_RESOURCE_REFERENCE_TEXT_CHARS = 25_000;
-
-function clipReferenceText(text: string): string {
-    if (text.length <= MAX_RESOURCE_REFERENCE_TEXT_CHARS) return text;
-    return `${text.slice(0, MAX_RESOURCE_REFERENCE_TEXT_CHARS)}\n\n[truncated]`;
-}
-
 function isMarkdownLikeFile(file: File): boolean {
     const lowerName = file.name.toLowerCase();
     return lowerName.endsWith('.md') || lowerName.endsWith('.txt') || file.type === 'text/markdown' || file.type === 'text/plain';
@@ -68,7 +61,7 @@ export async function uploadCourseResourceFile(
 ): Promise<CourseResource> {
     const { url, storagePath } = await uploadBlobToStorage(file, folder);
     const isMarkdown = isMarkdownLikeFile(file);
-    const maybeText = isMarkdown ? clipReferenceText(await file.text()) : undefined;
+    const maybeText = isMarkdown ? await file.text() : undefined;
     const resourceKind = inferCourseResourceKind(file);
 
     return {
