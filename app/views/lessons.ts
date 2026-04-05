@@ -1,15 +1,34 @@
 import { apiFetch } from "./helpers";
 
-import { CourseLesson, CourseResource } from "@/lib/types/course";
+import { CourseBrandingFooter, CourseLesson, CourseResource } from "@/lib/types/course";
 import { Project } from "@/lib/types/project";
 
-export async function getLesson(courseId: string, lessonIdx: number): Promise<{ lesson: CourseLesson; projectIds: string[]; courseResources: CourseResource[]; lessonCount: number } | null> {
+export async function getLesson(courseId: string, lessonIdx: number): Promise<{
+    lesson: CourseLesson;
+    projectIds: string[];
+    courseResources: CourseResource[];
+    lessonCount: number;
+    courseTitle: string;
+    courseBrandingFooter?: CourseBrandingFooter;
+} | null> {
     try {
-        const data = await apiFetch<{ lesson: CourseLesson; projectIds: string[]; courseResources?: CourseResource[]; lessonCount?: number }>(`/api/courses/${courseId}/${lessonIdx}`, {
+        const data = await apiFetch<{
+            lesson: CourseLesson;
+            projectIds: string[];
+            courseResources?: CourseResource[];
+            lessonCount?: number;
+            courseTitle?: string;
+            courseBrandingFooter?: CourseBrandingFooter;
+        }>(`/api/courses/${courseId}/${lessonIdx}`, {
             method: "GET",
         });
         if (!data) return null;
-        return { ...data, courseResources: data.courseResources ?? [], lessonCount: data.lessonCount ?? 0 };
+        return {
+            ...data,
+            courseResources: data.courseResources ?? [],
+            lessonCount: data.lessonCount ?? 0,
+            courseTitle: data.courseTitle ?? "Course",
+        };
     } catch (err) {
         console.error("Error fetching lesson:", err);
         return null;

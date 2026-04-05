@@ -5,6 +5,7 @@ import { auth } from "@/lib/firebase";
 import { CommentTree, CreateCommentData, UpdateCommentData } from "@/lib/types/comments";
 import {
   Course,
+  CourseBrandingFooter,
   CourseBrandingHeader,
   CourseLesson,
   CoursePortfolioReportSummary,
@@ -85,9 +86,13 @@ export async function generateLessonFromText(text: string): Promise<NewLesson | 
 export type CourseUpdateLessonPayload = Omit<CourseLesson, "id"> & { id?: string };
 
 /** PUT body: `null` clears branding fields in Firestore (see API hasOwnProperty + FieldValue.delete). */
-export type CourseUpdatePayload = Omit<Course, "id" | "coverImageUrl" | "courseBrandingHeader" | "lessons"> & {
+export type CourseUpdatePayload = Omit<
+  Course,
+  "id" | "coverImageUrl" | "courseBrandingHeader" | "courseBrandingFooter" | "lessons"
+> & {
     coverImageUrl?: string | null;
     courseBrandingHeader?: CourseBrandingHeader | null;
+    courseBrandingFooter?: CourseBrandingFooter | null;
     lessons: CourseUpdateLessonPayload[];
 };
 

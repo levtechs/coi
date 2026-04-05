@@ -74,6 +74,20 @@ export type CourseBrandingHeader =
   | { kind: "image"; imageUrl: string; alt?: string }
   | { kind: "embed"; html: string };
 
+/** Shown at the bottom of the course (and lesson) pages. All fields optional; links need both label and URL. */
+export interface CourseBrandingFooter {
+  /** Plain email; rendered as a mailto link. */
+  outreachEmail?: string;
+  logoUrl?: string;
+  logoAlt?: string;
+  primaryLinkLabel?: string;
+  primaryLinkUrl?: string;
+  secondaryLinkLabel?: string;
+  secondaryLinkUrl?: string;
+  /** Short plain-text note (e.g. office hours, support copy). */
+  customLine?: string;
+}
+
 export interface Course {
   id: string;
   title: string;
@@ -92,6 +106,7 @@ export interface Course {
   /** Thumbnail for course list cards; falls back to branding header image when unset. */
   coverImageUrl?: string;
   courseBrandingHeader?: CourseBrandingHeader;
+  courseBrandingFooter?: CourseBrandingFooter;
 }
 
 export interface CourseLesson {

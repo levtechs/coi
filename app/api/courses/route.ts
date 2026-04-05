@@ -4,6 +4,7 @@ import { getVerifiedUid } from "../helpers";
 import { Course, CourseLesson } from "@/lib/types/course";
 import { Filter } from "firebase-admin/firestore";
 import { normalizeCourse, normalizeCourseLesson } from "@/app/api/courses/helpers";
+import { loadCourseResources } from "@/app/api/courses/course_resources_firestore";
 
 /*
  * Fetches all courses available to a user.
@@ -37,7 +38,9 @@ export async function GET(req: NextRequest) {
                 const lessonsSnap = await lessonsRef.get();
                 const lessons = lessonsSnap.docs.map((p) => normalizeCourseLesson(doc.id, p.id, p.data(), [])) as CourseLesson[];
 
-                return normalizeCourse(doc.id, data, lessons) as Course;
+                const resources = await loadCourseResources(doc.id, { omitReferenceText: true });
+
+                return normalizeCourse(doc.id, { ...data, resources }, lessons) as Course;
             })
         );
         return NextResponse.json(courses);

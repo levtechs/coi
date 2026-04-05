@@ -14,6 +14,12 @@ import {
   normalizeCourseLesson,
   normalizeCoverImageUrl,
 } from "@/app/api/courses/helpers";
+import { normalizeCourseBrandingFooter } from "@/lib/courseBranding";
+import {
+  assertCourseResourcesWithinLimits,
+  loadCourseResources,
+  syncCourseResources,
+} from "@/app/api/courses/course_resources_firestore";
 
 /**
  * POST /api/courses/create
@@ -46,8 +52,18 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        try {
+            assertCourseResourcesWithinLimits(courseData.resources);
+        } catch (limitErr) {
+            return NextResponse.json(
+                { error: limitErr instanceof Error ? limitErr.message : "Invalid course resources" },
+                { status: 400 },
+            );
+        }
+
         const coverImageUrl = normalizeCoverImageUrl(courseData.coverImageUrl);
         const courseBrandingHeader = normalizeCourseBrandingHeader(courseData.courseBrandingHeader);
+        const courseBrandingFooter = normalizeCourseBrandingFooter(courseData.courseBrandingFooter);
 
         // Create the course document
         const courseRef = await adminDb.collection('courses').add({
@@ -60,11 +76,11 @@ export async function POST(req: NextRequest) {
             quizReportPolicy: courseData.quizReportPolicy || {},
             category: courseData.category || "",
             tutorDefaults: courseData.tutorDefaults || null,
-            resources: courseData.resources || [],
             ownerId: uid,
             createdAt: new Date().toISOString(),
             ...(coverImageUrl ? { coverImageUrl } : {}),
             ...(courseBrandingHeader ? { courseBrandingHeader } : {}),
+            ...(courseBrandingFooter ? { courseBrandingFooter } : {}),
         });
 
         const courseId = courseRef.id;
@@ -102,6 +118,21 @@ export async function POST(req: NextRequest) {
         }
         await batch.commit();
 
+        try {
+            await syncCourseResources(courseId, courseData.resources);
+        } catch (syncErr) {
+            console.error("Failed to sync course resources:", syncErr);
+            try {
+                await adminDb.recursiveDelete(courseRef);
+            } catch (delErr) {
+                console.error("Rollback failed after course create resource sync error:", delErr);
+            }
+            return NextResponse.json(
+                { error: syncErr instanceof Error ? syncErr.message : "Failed to sync course resources" },
+                { status: syncErr instanceof Error && syncErr.message.includes("exceeds") ? 400 : 500 },
+            );
+        }
+
         await Promise.all([
             ...(courseData.quizIds || []).map((quizId) => updateQuizMetadata(quizId, {
                 sourceType: "course",
@@ -118,7 +149,8 @@ export async function POST(req: NextRequest) {
             }))),
         ]);
 
-        const fullCourse: Course = normalizeCourse(courseId, { ...courseData, ownerId: uid }, lessons);
+        const resources = await loadCourseResources(courseId);
+        const fullCourse: Course = normalizeCourse(courseId, { ...courseData, ownerId: uid, resources }, lessons);
 
         return NextResponse.json(fullCourse);
     } catch (error) {

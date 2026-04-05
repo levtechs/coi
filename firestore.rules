@@ -23,7 +23,10 @@ service cloud.firestore {
     }
 
     function canReadCourse(resourceData) {
-      return resourceData.public == true || isOwner(resourceData) || isShared(resourceData);
+      return resourceData.public == true
+        || isOwner(resourceData)
+        || isShared(resourceData)
+        || (isAuthenticated() && 'staffIds' in resourceData && request.auth.uid in resourceData.staffIds);
     }
 
     // Default: Deny all writes from client
@@ -58,6 +61,10 @@ service cloud.firestore {
       allow read: if canReadCourse(resource.data);
       
       match /lessons/{lessonId} {
+        allow read: if canReadCourse(get(/databases/$(database)/documents/courses/$(courseId)).data);
+      }
+
+      match /courseResources/{resourceId} {
         allow read: if canReadCourse(get(/databases/$(database)/documents/courses/$(courseId)).data);
       }
       

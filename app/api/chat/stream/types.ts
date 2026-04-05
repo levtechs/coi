@@ -1,4 +1,4 @@
-import { GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
+import type { Content, GenerationConfig, ThinkingConfig, Tool } from "@google/genai";
 
 import { Card } from "@/lib/types/cards";
 import { ChatAttachment } from "@/lib/types/chat";
@@ -6,7 +6,13 @@ import { TutorAction } from "@/lib/types/content";
 
 export type MyPart = { text: string } | { inlineData: { data: string; mimeType: string } };
 export type MyContent = { role: string; parts: MyPart[] };
-export type MyConfig = { generationConfig: GenerationConfig; thinkingConfig?: ThinkingConfig; tools?: Tool[] };
+export type MyConfig = {
+    generationConfig: GenerationConfig;
+    thinkingConfig?: ThinkingConfig;
+    tools?: Tool[];
+    /** Stable steering + course grounding; not mixed into conversation turns. */
+    systemInstruction?: Content;
+};
 export type MyGenerateContentParameters = { model: string; contents: MyContent[]; config: MyConfig };
 
 export type KnowledgeCardSpec = {

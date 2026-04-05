@@ -213,17 +213,18 @@ export default function LessonComponent({
                         <div className="space-y-4">
                             {lesson.cardsToUnlock.map((card, cardIndex) => (
                                 <div key={`card-${index}-${cardIndex}`} className="bg-[var(--neutral-100)] border border-[var(--neutral-300)] rounded-lg p-4 shadow-sm group">
-                                    <div className="flex justify-between items-start mb-4">
+                                    <div className="flex justify-between items-start gap-3 pb-4 mb-4 border-b border-[var(--neutral-200)]">
                                         <input
                                             type="text"
                                             value={card.title}
                                             onChange={(e) => onUpdateCard(index, cardIndex, "title", e.target.value)}
-                                            className="bg-transparent border-b border-[var(--neutral-300)] focus:border-[var(--accent-500)] font-bold text-[var(--foreground)] focus:outline-none flex-1 mr-4"
+                                            className="bg-transparent border-b border-transparent hover:border-[var(--neutral-300)] focus:border-[var(--accent-500)] font-bold text-[var(--foreground)] focus:outline-none flex-1 min-w-0"
                                             placeholder="Card Title"
                                         />
                                         <button
+                                            type="button"
                                             onClick={() => onRemoveCard(index, cardIndex)}
-                                            className="text-[var(--neutral-400)] hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                                            className="text-[var(--neutral-400)] hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
                                         >
                                             <FiTrash2 size={14} />
                                         </button>
@@ -231,30 +232,44 @@ export default function LessonComponent({
 
                                     <div className="space-y-2 mb-4">
                                         {card.details?.map((detail, detailIndex) => (
-                                            <div key={detailIndex} className="flex gap-2 items-start group/detail">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-500)] mt-3 flex-shrink-0" />
+                                            <div
+                                                key={detailIndex}
+                                                className="grid grid-cols-[minmax(0,3px)_minmax(0,1fr)_auto] gap-x-3 items-stretch group/detail"
+                                            >
+                                                <div
+                                                    className="rounded-full bg-[var(--neutral-300)] w-full self-stretch min-h-[1.25rem]"
+                                                    aria-hidden
+                                                />
                                                 <textarea
                                                     value={detail}
                                                     onChange={(e) => onUpdateDetail(index, cardIndex, detailIndex, e.target.value)}
-                                                    className="flex-1 p-2 text-sm bg-transparent border-none focus:ring-0 focus:outline-none resize-none min-h-[40px]"
+                                                    className="min-w-0 py-1.5 px-0 text-sm leading-normal text-[var(--foreground)] bg-transparent border-none focus:ring-0 focus:outline-none resize-y overflow-hidden placeholder:text-[var(--neutral-500)] [field-sizing:content] min-h-[2rem] max-h-48"
                                                     placeholder="Point detail..."
+                                                    rows={1}
                                                 />
-                                                {card.details && card.details.length > 1 && (
+                                                {card.details && card.details.length > 1 ? (
                                                     <button
+                                                        type="button"
                                                         onClick={() => onRemoveDetail(index, cardIndex, detailIndex)}
-                                                        className="text-[var(--neutral-400)] hover:text-red-500 opacity-0 group-hover/detail:opacity-100 mt-2"
+                                                        className="text-[var(--neutral-400)] hover:text-red-500 opacity-0 group-hover/detail:opacity-100 self-start pt-1.5 shrink-0"
                                                     >
                                                         <FiX size={12} />
                                                     </button>
+                                                ) : (
+                                                    <span className="w-6 shrink-0" aria-hidden />
                                                 )}
                                             </div>
                                         ))}
-                                        <button
-                                            onClick={() => onAddDetail(index, cardIndex)}
-                                            className="text-[var(--accent-500)] hover:underline text-[10px] font-bold ml-3.5"
-                                        >
-                                            + ADD POINT
-                                        </button>
+                                        <div className="grid grid-cols-[minmax(0,3px)_minmax(0,1fr)] gap-x-3">
+                                            <span aria-hidden className="block" />
+                                            <button
+                                                type="button"
+                                                onClick={() => onAddDetail(index, cardIndex)}
+                                                className="text-left text-[var(--neutral-600)] hover:text-[var(--accent-600)] text-[10px] font-bold tracking-wide"
+                                            >
+                                                + ADD POINT
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div className="pt-4 border-t border-[var(--neutral-200)]">

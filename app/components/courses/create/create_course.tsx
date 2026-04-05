@@ -31,6 +31,7 @@ import {
     CourseBrandingHeader,
 } from "@/lib/types/course";
 import { QuizSettings } from "@/lib/types/quiz";
+import { normalizeCourseBrandingFooter } from "@/lib/courseBranding";
 import {
     createCourse,
     getCourse,
@@ -138,6 +139,14 @@ export default function CreateCourse() {
     const [headerImageUrl, setHeaderImageUrl] = useState("");
     const [headerImageAlt, setHeaderImageAlt] = useState("");
     const [headerEmbedHtml, setHeaderEmbedHtml] = useState("");
+    const [footerOutreachEmail, setFooterOutreachEmail] = useState("");
+    const [footerLogoUrl, setFooterLogoUrl] = useState("");
+    const [footerLogoAlt, setFooterLogoAlt] = useState("");
+    const [footerPrimaryLabel, setFooterPrimaryLabel] = useState("");
+    const [footerPrimaryUrl, setFooterPrimaryUrl] = useState("");
+    const [footerSecondaryLabel, setFooterSecondaryLabel] = useState("");
+    const [footerSecondaryUrl, setFooterSecondaryUrl] = useState("");
+    const [footerCustomLine, setFooterCustomLine] = useState("");
 
     const allQuizIdsForPolicy = useMemo(() => {
         const s = new Set<string>();
@@ -224,6 +233,26 @@ export default function CreateCourse() {
                         setHeaderImageUrl("");
                         setHeaderImageAlt("");
                         setHeaderEmbedHtml(bh.html);
+                    }
+                    const cf = course.courseBrandingFooter;
+                    if (cf) {
+                        setFooterOutreachEmail(cf.outreachEmail || "");
+                        setFooterLogoUrl(cf.logoUrl || "");
+                        setFooterLogoAlt(cf.logoAlt || "");
+                        setFooterPrimaryLabel(cf.primaryLinkLabel || "");
+                        setFooterPrimaryUrl(cf.primaryLinkUrl || "");
+                        setFooterSecondaryLabel(cf.secondaryLinkLabel || "");
+                        setFooterSecondaryUrl(cf.secondaryLinkUrl || "");
+                        setFooterCustomLine(cf.customLine || "");
+                    } else {
+                        setFooterOutreachEmail("");
+                        setFooterLogoUrl("");
+                        setFooterLogoAlt("");
+                        setFooterPrimaryLabel("");
+                        setFooterPrimaryUrl("");
+                        setFooterSecondaryLabel("");
+                        setFooterSecondaryUrl("");
+                        setFooterCustomLine("");
                     }
                     setSharedWithIds(course.sharedWith || []);
                     setStaffIds(course.staffIds || []);
@@ -397,6 +426,18 @@ export default function CreateCourse() {
         return { kind: "embed", html };
     };
 
+    const buildCourseBrandingFooterPayload = () =>
+        normalizeCourseBrandingFooter({
+            outreachEmail: footerOutreachEmail,
+            logoUrl: footerLogoUrl,
+            logoAlt: footerLogoAlt,
+            primaryLinkLabel: footerPrimaryLabel,
+            primaryLinkUrl: footerPrimaryUrl,
+            secondaryLinkLabel: footerSecondaryLabel,
+            secondaryLinkUrl: footerSecondaryUrl,
+            customLine: footerCustomLine,
+        });
+
     const handleSubmit = async () => {
         setIsCreatingCourse(true);
         try {
@@ -434,6 +475,7 @@ export default function CreateCourse() {
                     staffIds,
                     coverImageUrl: coverImageUrl.trim(),
                     courseBrandingHeader: buildCourseBrandingPayload() ?? null,
+                    courseBrandingFooter: buildCourseBrandingFooterPayload() ?? null,
                 };
                 const success = await updateCourse(editCourseId, courseData);
                 if (success) {
@@ -443,6 +485,7 @@ export default function CreateCourse() {
                 }
             } else {
                 const newBranding = buildCourseBrandingPayload();
+                const newFooter = buildCourseBrandingFooterPayload();
                 const courseData: NewCourse & { quizIds?: string[] } = {
                     title: courseTitle,
                     description: courseDescription,
@@ -469,6 +512,7 @@ export default function CreateCourse() {
                     staffIds,
                     ...(coverImageUrl.trim() ? { coverImageUrl: coverImageUrl.trim() } : {}),
                     ...(newBranding ? { courseBrandingHeader: newBranding } : {}),
+                    ...(newFooter ? { courseBrandingFooter: newFooter } : {}),
                 };
                 const data = await createCourse(courseData);
                 if (data) {
@@ -621,7 +665,7 @@ export default function CreateCourse() {
                                         Branding
                                     </h3>
                                     <p className="mb-6 text-sm text-[var(--neutral-600)]">
-                                        List cards can show a cover image. The course page can use a banner image or a custom HTML block (shown in a sandboxed frame; scripts are allowed).
+                                        List cards can show a cover image. The course and lesson pages can use a banner image or a custom HTML block at the top (sandboxed frame; scripts are allowed), and an optional footer at the bottom with links and contact info.
                                     </p>
                                     <div className="space-y-4">
                                         <div>
@@ -701,6 +745,141 @@ export default function CreateCourse() {
                                                 />
                                             </div>
                                         )}
+                                        <div className="border-t border-[var(--neutral-300)] pt-8 mt-8">
+                                            <h4 className="mb-2 text-sm font-bold uppercase tracking-wider text-[var(--neutral-600)]">
+                                                Course page footer
+                                            </h4>
+                                            <p className="mb-4 text-sm text-[var(--neutral-600)]">
+                                                Shown at the bottom of the course overview and every lesson. Leave fields blank to hide the footer. Link rows need both a label and a valid https URL.
+                                            </p>
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="mb-2 block text-xs font-bold text-[var(--neutral-600)]">
+                                                        Outreach email
+                                                    </label>
+                                                    <input
+                                                        type="email"
+                                                        value={footerOutreachEmail}
+                                                        onChange={(e) => {
+                                                            setFooterOutreachEmail(e.target.value);
+                                                            markChanged();
+                                                        }}
+                                                        className="w-full rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-3 text-[var(--foreground)]"
+                                                        placeholder="you@school.edu"
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                                    <div>
+                                                        <label className="mb-2 block text-xs font-bold text-[var(--neutral-600)]">
+                                                            Logo image URL
+                                                        </label>
+                                                        <input
+                                                            type="url"
+                                                            value={footerLogoUrl}
+                                                            onChange={(e) => {
+                                                                setFooterLogoUrl(e.target.value);
+                                                                markChanged();
+                                                            }}
+                                                            className="w-full rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-3 text-[var(--foreground)]"
+                                                            placeholder="https://…"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="mb-2 block text-xs font-bold text-[var(--neutral-600)]">
+                                                            Logo alt text (optional)
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={footerLogoAlt}
+                                                            onChange={(e) => {
+                                                                setFooterLogoAlt(e.target.value);
+                                                                markChanged();
+                                                            }}
+                                                            className="w-full rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-3 text-[var(--foreground)]"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                                    <div>
+                                                        <label className="mb-2 block text-xs font-bold text-[var(--neutral-600)]">
+                                                            Primary button — label
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={footerPrimaryLabel}
+                                                            onChange={(e) => {
+                                                                setFooterPrimaryLabel(e.target.value);
+                                                                markChanged();
+                                                            }}
+                                                            className="w-full rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-3 text-[var(--foreground)]"
+                                                            placeholder="e.g. Meet Manolis"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="mb-2 block text-xs font-bold text-[var(--neutral-600)]">
+                                                            Primary button — URL
+                                                        </label>
+                                                        <input
+                                                            type="url"
+                                                            value={footerPrimaryUrl}
+                                                            onChange={(e) => {
+                                                                setFooterPrimaryUrl(e.target.value);
+                                                                markChanged();
+                                                            }}
+                                                            className="w-full rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-3 text-[var(--foreground)]"
+                                                            placeholder="https://…"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                                    <div>
+                                                        <label className="mb-2 block text-xs font-bold text-[var(--neutral-600)]">
+                                                            Secondary link — label
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={footerSecondaryLabel}
+                                                            onChange={(e) => {
+                                                                setFooterSecondaryLabel(e.target.value);
+                                                                markChanged();
+                                                            }}
+                                                            className="w-full rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-3 text-[var(--foreground)]"
+                                                            placeholder="e.g. Product docs"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="mb-2 block text-xs font-bold text-[var(--neutral-600)]">
+                                                            Secondary link — URL
+                                                        </label>
+                                                        <input
+                                                            type="url"
+                                                            value={footerSecondaryUrl}
+                                                            onChange={(e) => {
+                                                                setFooterSecondaryUrl(e.target.value);
+                                                                markChanged();
+                                                            }}
+                                                            className="w-full rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-3 text-[var(--foreground)]"
+                                                            placeholder="https://…"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="mb-2 block text-xs font-bold text-[var(--neutral-600)]">
+                                                        Custom note (plain text, optional)
+                                                    </label>
+                                                    <textarea
+                                                        value={footerCustomLine}
+                                                        onChange={(e) => {
+                                                            setFooterCustomLine(e.target.value);
+                                                            markChanged();
+                                                        }}
+                                                        className="h-24 w-full resize-y rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-3 text-sm text-[var(--foreground)]"
+                                                        placeholder="Short line for students, e.g. office hours or how to get help."
+                                                        maxLength={500}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

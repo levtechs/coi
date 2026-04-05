@@ -1,15 +1,9 @@
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
+import { MAX_COURSE_RESOURCE_REFERENCE_UTF8_BYTES } from '@/lib/courseResourceLimits';
 import { FileAttachment } from "@/lib/types/uploads";
 import { CourseResource } from '@/lib/types/course';
 import { apiFetch } from './helpers';
-
-const MAX_RESOURCE_REFERENCE_TEXT_CHARS = 25_000;
-
-function clipReferenceText(text: string): string {
-    if (text.length <= MAX_RESOURCE_REFERENCE_TEXT_CHARS) return text;
-    return `${text.slice(0, MAX_RESOURCE_REFERENCE_TEXT_CHARS)}\n\n[truncated]`;
-}
 
 function isMarkdownLikeFile(file: File): boolean {
     const lowerName = file.name.toLowerCase();
@@ -66,9 +60,25 @@ export async function uploadCourseResourceFile(
     folder = 'course-resources',
     overrides?: Partial<CourseResource>
 ): Promise<CourseResource> {
-    const { url, storagePath } = await uploadBlobToStorage(file, folder);
     const isMarkdown = isMarkdownLikeFile(file);
-    const maybeText = isMarkdown ? clipReferenceText(await file.text()) : undefined;
+    if (isMarkdown && file.size > MAX_COURSE_RESOURCE_REFERENCE_UTF8_BYTES + 65_536) {
+        throw new Error(
+            `This file is too large to use as tutor reference text (max about ${Math.round(MAX_COURSE_RESOURCE_REFERENCE_UTF8_BYTES / 1024)} KB of UTF-8 text).`,
+        );
+    }
+
+    const { url, storagePath } = await uploadBlobToStorage(file, folder);
+    let maybeText: string | undefined;
+    if (isMarkdown) {
+        const text = await file.text();
+        const utf8Bytes = new TextEncoder().encode(text).length;
+        if (utf8Bytes > MAX_COURSE_RESOURCE_REFERENCE_UTF8_BYTES) {
+            throw new Error(
+                `Reference text is ${utf8Bytes} UTF-8 bytes; maximum is ${MAX_COURSE_RESOURCE_REFERENCE_UTF8_BYTES} bytes.`,
+            );
+        }
+        maybeText = text;
+    }
     const resourceKind = inferCourseResourceKind(file);
 
     return {

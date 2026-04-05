@@ -22,7 +22,8 @@ export async function streamChatResponse(
     onToken: (token: string) => Promise<void> | void,
     onNewCards?: (cards: ModelCard[]) => Promise<Card[]>,
     cardsToUnlock?: Card[],
-    courseLesson?: { cardsToUnlock: Card[] }
+    courseLesson?: { cardsToUnlock: Card[] },
+    courseTutorGrounding: string | null = null,
 ): Promise<StreamChatResponseResult> {
     if (!message || message.trim() === "") throw new Error("Message is required.");
     const params = await buildStreamChatRequest(
@@ -34,6 +35,7 @@ export async function streamChatResponse(
         preferences,
         cardsToUnlock,
         courseLesson,
+        courseTutorGrounding,
     );
 
     const streamingResp = await genAI.models.generateContentStream(params);

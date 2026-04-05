@@ -26,7 +26,8 @@ export async function GET(
     const { courseId, lessonIdx } = await params;
     const lessonIndex = parseInt(lessonIdx);
 
-    const { lesson, hasAccess, courseResources, lessonCount } = await getLessonFromCourse(courseId, lessonIndex, uid);
+    const { lesson, hasAccess, courseResources, lessonCount, courseBrandingFooter, courseTitle } =
+      await getLessonFromCourse(courseId, lessonIndex, uid);
 
     if (!hasAccess) {
         return NextResponse.json({ error: "Access denied" }, { status: 403 });
@@ -61,6 +62,8 @@ export async function GET(
         projectIds,
         courseResources: courseResources ?? [],
         lessonCount: lessonCount ?? 0,
+        courseTitle: courseTitle ?? "Course",
+        ...(courseBrandingFooter ? { courseBrandingFooter } : {}),
     });
 }
 

@@ -93,6 +93,7 @@ Rules:
 - If you create a new knowledge card for a concept you explain, reference it the first time you explain that concept in the prose
 - NEVER use square brackets for references
 - NEVER use (card: ...) or (newcard: ...) anymore
+- Do not put a card's title alone on its own line or as a heading right before referencing that same card; use only <CardRef id="..." /> in the sentence where you mention it.
 `
 
 const newCardsChunk = `
@@ -265,34 +266,22 @@ export const getFollowUpChunk = (followUpQuestions: string, courseLesson?: { car
 
 const unlockingChunk = `
 === CARD UNLOCKING INSTRUCTIONS ===
-You will receive a list of cards under "CARDS AVAILABLE FOR UNLOCKING" in the user message.
-You MUST determine which cards should be unlocked and include the result at the end of your response.
+You will receive a list of cards under "CARDS AVAILABLE FOR UNLOCKING" in the user message (with ids, titles, and rubric details).
 
-UNLOCKING CRITERIA:
-A card should be unlocked when your response has covered ALL the key concepts in that card. This includes:
-- Explaining all the main details listed in the card
-- Addressing any questions the student asked about the card's topics
-- Connecting concepts that relate to the card's content
+WHAT COUNTS AS UNLOCKED (STRICT):
+- Unlock a card ONLY when the **student's own messages** in this chat show they did the work the card describes: concrete observations, steps they took, comparisons, screenshots described, or other evidence tied to that card's details.
+- Your job is to judge **learner evidence**, not whether you (the tutor) explained the topic well enough.
+- If the student only asked a meta question (what data you have, who someone is, how you work), complained, or chatted without new hands-on evidence → **do not unlock anything**.
+- If the student repeated an earlier starter prompt but did not add new evidence → **do not unlock**.
+- When in doubt, **omit** <UnlockCards> entirely.
 
-IMPORTANT: Encourage follow-up questions by ending with thoughtful questions that:
-- Point toward deeper exploration of the topic
-- Ask the student to apply or extend the concepts you just explained
+FORMAT:
+- If one or more cards are justified by student evidence, after </Prose> and any <FollowUp> tags emit:
+  <UnlockCards>exact_card_id_1,exact_card_id_2</UnlockCards>
+- Use only IDs from the CARDS AVAILABLE FOR UNLOCKING list. Never invent IDs.
+- If nothing qualifies, **omit** <UnlockCards> completely (do not emit an empty tag).
 
-PROCESS:
-1. Review the cards available for unlocking (you'll receive their IDs, titles, and details)
-2. For each card, check if your response has covered all its main concepts
-3. If your response addressed all card details, mark it for unlocking
-4. End with 1-3 follow-up questions to encourage deeper engagement
-
-EXAMPLE:
-If a card asks about "neuron structure" and your response explained dendrites, soma, and axon - unlock it.
-Then ask: "How might the structure of a neuron affect its function in a neural network?"
-
-If one or more cards should be unlocked, emit exactly one tag after </Prose> (and after any <FollowUp> tags):
-<UnlockCards>exact_card_id_1,exact_card_id_2</UnlockCards>
-
-If no cards should be unlocked, omit the UnlockCards tag entirely.
-Use the exact card IDs from cardsToUnlock - do not make up IDs.
+Do not tell the student you "unlocked" cards in your prose unless the system would actually unlock those cards; keep unlock decisions in the tag only.
 === END CARD UNLOCKING ===
 `
 

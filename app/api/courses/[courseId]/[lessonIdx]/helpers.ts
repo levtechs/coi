@@ -1,6 +1,8 @@
 import { adminDb } from "@/lib/firebaseAdmin";
-import { CourseLesson, CourseResource } from "@/lib/types/course";
-import { canAccessCourse, normalizeCardsToUnlock, normalizeCourseLesson, normalizeResources } from "@/app/api/courses/helpers";
+import { CourseBrandingFooter, CourseLesson, CourseResource } from "@/lib/types/course";
+import { loadCourseResources } from "@/app/api/courses/course_resources_firestore";
+import { normalizeCourseBrandingFooter } from "@/lib/courseBranding";
+import { canAccessCourse, normalizeCardsToUnlock, normalizeCourseLesson } from "@/app/api/courses/helpers";
 
 /**
  * Fetches a specific lesson from a course and checks user access permissions.
@@ -10,7 +12,18 @@ import { canAccessCourse, normalizeCardsToUnlock, normalizeCourseLesson, normali
  * @param uid - The user ID to check access permissions for
  * @returns An object containing the lesson (if found) and whether the user has access
  */
-export async function getLessonFromCourse(courseId: string, lessonIdx: number, uid: string): Promise<{ lesson: CourseLesson | null; hasAccess: boolean; courseResources?: CourseResource[]; lessonCount?: number }> {
+export async function getLessonFromCourse(
+  courseId: string,
+  lessonIdx: number,
+  uid: string,
+): Promise<{
+  lesson: CourseLesson | null;
+  hasAccess: boolean;
+  courseResources?: CourseResource[];
+  lessonCount?: number;
+  courseBrandingFooter?: CourseBrandingFooter;
+  courseTitle?: string;
+}> {
     try {
         const courseRef = adminDb.collection('courses').doc(courseId);
         const courseSnap = await courseRef.get();
@@ -48,9 +61,20 @@ export async function getLessonFromCourse(courseId: string, lessonIdx: number, u
         })));
 
         const lesson = normalizeCourseLesson(courseId, lessonDoc.id, lessonDoc.data(), cardsToUnlock);
-        const courseResources = normalizeResources(courseData.resources);
+        const courseResources = await loadCourseResources(courseId, { omitReferenceText: true });
+        const courseBrandingFooter = normalizeCourseBrandingFooter(courseData.courseBrandingFooter);
+        const courseTitle = typeof courseData.title === "string" && courseData.title.trim()
+          ? courseData.title.trim()
+          : "Course";
 
-        return { lesson, hasAccess: true, courseResources, lessonCount };
+        return {
+          lesson,
+          hasAccess: true,
+          courseResources,
+          lessonCount,
+          courseTitle,
+          ...(courseBrandingFooter ? { courseBrandingFooter } : {}),
+        };
     } catch (error) {
         console.error("Error fetching lesson:", error);
         return { lesson: null, hasAccess: false, lessonCount: 0 };
