@@ -61,7 +61,7 @@ export async function getLessonFromCourse(
         })));
 
         const lesson = normalizeCourseLesson(courseId, lessonDoc.id, lessonDoc.data(), cardsToUnlock);
-        const courseResources = await loadCourseResources(courseId);
+        const courseResources = await loadCourseResources(courseId, { omitReferenceText: true });
         const courseBrandingFooter = normalizeCourseBrandingFooter(courseData.courseBrandingFooter);
         const courseTitle = typeof courseData.title === "string" && courseData.title.trim()
           ? courseData.title.trim()

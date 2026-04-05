@@ -5,7 +5,7 @@ import LoginPrompt from "../../components/login_prompt";
 import LessonCard from "@/app/components/courses/lesson_card"
 import { FlickeringGrid } from "@/app/components/flickering-grid";
 import Sidebar from "@/app/components/sidebar";
-import { FiArrowLeft, FiShare, FiPlay, FiSettings, FiBarChart } from "react-icons/fi";
+import { FiShare, FiPlay, FiSettings, FiBarChart } from "react-icons/fi";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { getCourse, getPortfolioReportStatus, regeneratePortfolioReport } from "../../views/courses";
@@ -175,14 +175,9 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
                 <CourseBrandedHeader course={course} className="w-full shrink-0" />
 
                 <div className="p-6 relative z-[5] flex-1 min-w-0">
-                <div className="flex items-center gap-4 mb-8">
-                    <Button color="var(--neutral-300)" onClick={() => window.location.href = '/courses'}>
-                        Back to Courses
-                    </Button>
-                    <h1 className="text-3xl font-extrabold text-[var(--foreground)]">
-                        {course.title}
-                    </h1>
-                </div>
+                <h1 className="text-3xl font-extrabold text-[var(--foreground)] mb-8">
+                    {course.title}
+                </h1>
                 {course.description && (
                     <p className="text-[var(--foreground)] text-lg leading-relaxed mb-8">{course.description}</p>
                 )}
@@ -321,12 +316,6 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
                 </div>
 
                 <div className="flex justify-center gap-4 mb-8">
-                    <FiArrowLeft
-                        title="Back to Courses"
-                        size={32}
-                        className="text-[var(--neutral-600)] hover:text-[var(--neutral-700)] cursor-pointer"
-                        onClick={() => window.location.href = '/courses'}
-                    />
                     <FiShare
                         title="Share Course"
                         size={32}

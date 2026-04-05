@@ -15,7 +15,11 @@ import {
   normalizeCoverImageUrl,
 } from "@/app/api/courses/helpers";
 import { normalizeCourseBrandingFooter } from "@/lib/courseBranding";
-import { loadCourseResources, syncCourseResources } from "@/app/api/courses/course_resources_firestore";
+import {
+  assertCourseResourcesWithinLimits,
+  loadCourseResources,
+  syncCourseResources,
+} from "@/app/api/courses/course_resources_firestore";
 
 /**
  * POST /api/courses/create
@@ -44,6 +48,15 @@ export async function POST(req: NextRequest) {
         if (courseBrandingEmbedHtmlTooLong(courseData.courseBrandingHeader)) {
             return NextResponse.json(
                 { error: "Branding embed HTML exceeds maximum length" },
+                { status: 400 },
+            );
+        }
+
+        try {
+            assertCourseResourcesWithinLimits(courseData.resources);
+        } catch (limitErr) {
+            return NextResponse.json(
+                { error: limitErr instanceof Error ? limitErr.message : "Invalid course resources" },
                 { status: 400 },
             );
         }
@@ -109,6 +122,11 @@ export async function POST(req: NextRequest) {
             await syncCourseResources(courseId, courseData.resources);
         } catch (syncErr) {
             console.error("Failed to sync course resources:", syncErr);
+            try {
+                await adminDb.recursiveDelete(courseRef);
+            } catch (delErr) {
+                console.error("Rollback failed after course create resource sync error:", delErr);
+            }
             return NextResponse.json(
                 { error: syncErr instanceof Error ? syncErr.message : "Failed to sync course resources" },
                 { status: syncErr instanceof Error && syncErr.message.includes("exceeds") ? 400 : 500 },

@@ -1,10 +1,12 @@
 import { adminDb } from "@/lib/firebaseAdmin";
-import { assertCourseAccessByUid } from "@/app/api/helpers";
-import { normalizeTutorPromptConfig } from "@/app/api/courses/helpers";
-import { loadCourseResources } from "@/app/api/courses/course_resources_firestore";
+import { canAccessCourse, normalizeTutorPromptConfig } from "@/app/api/courses/helpers";
+import { loadCourseResourcesForTutorGrounding } from "@/app/api/courses/course_resources_firestore";
 import { formatTutorProfileIdsForContext } from "@/lib/tutor_prompt_profiles";
 import type { CourseLesson, CourseResource, TutorPromptConfig } from "@/lib/types/course";
 import type { Project } from "@/lib/types/project";
+
+/** Cap total grounding payload so very large reference corpora do not blow model limits. Reference sections are listed first so truncation keeps facts over pedagogy. */
+const MAX_TUTOR_GROUNDING_UTF8_BYTES = 900_000;
 
 function mergeTutorConfig(
   courseDefaults: TutorPromptConfig | undefined,
@@ -36,6 +38,21 @@ function referenceSections(resources: CourseResource[] | undefined, label: strin
   return parts.length > 0 ? parts.join("\n\n---\n\n") : "";
 }
 
+function truncateUtf8ToLimit(text: string, maxBytes: number): string {
+  const suffix = "\n\n[…truncated for model context limit…]";
+  const maxBody = maxBytes - Buffer.byteLength(suffix, "utf8");
+  if (maxBody <= 0) return suffix.trim();
+  if (Buffer.byteLength(text, "utf8") <= maxBody) return text;
+  let lo = 0;
+  let hi = text.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (Buffer.byteLength(text.slice(0, mid), "utf8") <= maxBody) lo = mid;
+    else hi = mid - 1;
+  }
+  return text.slice(0, lo) + suffix;
+}
+
 /**
  * Builds text appended to the tutor system instruction for course lesson projects.
  * Returns null if not a course project or if course cannot be loaded.
@@ -46,18 +63,16 @@ export async function buildCourseTutorGroundingContext(uid: string, project: Pro
     return null;
   }
 
-  try {
-    await assertCourseAccessByUid(uid, courseId, true);
-  } catch {
-    return null;
-  }
-
   const courseSnap = await adminDb.collection("courses").doc(courseId).get();
   if (!courseSnap.exists) {
     return null;
   }
 
   const courseData = courseSnap.data() || {};
+  if (!canAccessCourse(courseData, uid, true)) {
+    return null;
+  }
+
   const tutorDefaults = normalizeTutorPromptConfig(courseData.tutorDefaults);
   const lesson = project.courseLesson as CourseLesson;
 
@@ -65,21 +80,12 @@ export async function buildCourseTutorGroundingContext(uid: string, project: Pro
 
   let courseResources: CourseResource[] = [];
   try {
-    courseResources = await loadCourseResources(courseId);
+    courseResources = await loadCourseResourcesForTutorGrounding(courseId);
   } catch (err) {
-    console.error("buildCourseTutorGroundingContext: loadCourseResources failed", err);
+    console.error("buildCourseTutorGroundingContext: loadCourseResourcesForTutorGrounding failed", err);
   }
 
   const chunks: string[] = [];
-
-  if (mergedTutor?.customInstruction) {
-    chunks.push("## Tutor instructions (course and lesson)\n\n" + mergedTutor.customInstruction);
-  }
-
-  const profileText = formatTutorProfileIdsForContext(mergedTutor?.profileIds);
-  if (profileText) {
-    chunks.push("## Tutor behavior profiles (follow these tendencies)\n\n" + profileText);
-  }
 
   const courseRefBlock = referenceSections(courseResources, "Course resource");
   if (courseRefBlock) {
@@ -91,12 +97,22 @@ export async function buildCourseTutorGroundingContext(uid: string, project: Pro
     chunks.push("## Lesson reference materials\n\n" + lessonRefBlock);
   }
 
+  if (mergedTutor?.customInstruction) {
+    chunks.push("## Tutor instructions (course and lesson)\n\n" + mergedTutor.customInstruction);
+  }
+
+  const profileText = formatTutorProfileIdsForContext(mergedTutor?.profileIds);
+  if (profileText) {
+    chunks.push("## Tutor behavior profiles (follow these tendencies)\n\n" + profileText);
+  }
+
   if (chunks.length === 0) {
     return null;
   }
 
-  return (
-    "The following context is authoritative for this course lesson. Ground your answers in it when relevant.\n\n" +
-    chunks.join("\n\n---\n\n")
-  );
+  const body =
+    "The following context is authoritative for this course lesson. For factual questions about the product, people, and documentation, treat the reference material sections below as primary sources. Tutor instructions and behavior profiles govern tone and pedagogy.\n\n" +
+    chunks.join("\n\n---\n\n");
+
+  return truncateUtf8ToLimit(body, MAX_TUTOR_GROUNDING_UTF8_BYTES);
 }

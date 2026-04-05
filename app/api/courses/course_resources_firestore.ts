@@ -3,14 +3,15 @@ import type { DocumentData, QueryDocumentSnapshot } from "firebase-admin/firesto
 import * as admin from "firebase-admin";
 
 import { adminDb } from "@/lib/firebaseAdmin";
+import { MAX_COURSE_RESOURCE_REFERENCE_UTF8_BYTES } from "@/lib/courseResourceLimits";
 import type { CourseResource } from "@/lib/types/course";
 import { normalizeResources } from "@/app/api/courses/helpers";
 
 /** Subcollection under each course document (keeps large referenceText off the course root). */
 export const COURSE_RESOURCES_SUBCOLLECTION = "courseResources";
 
-/** Stay under Firestore ~1 MiB document size; single string field + overhead. */
-export const MAX_RESOURCE_REFERENCE_TEXT_CHARS = 800_000;
+/** @deprecated Use MAX_COURSE_RESOURCE_REFERENCE_UTF8_BYTES; limit is UTF-8 bytes, not code units. */
+export const MAX_RESOURCE_REFERENCE_TEXT_CHARS = MAX_COURSE_RESOURCE_REFERENCE_UTF8_BYTES;
 
 function docToCourseResource(doc: QueryDocumentSnapshot<DocumentData>): CourseResource {
   const d = doc.data();
@@ -31,67 +32,101 @@ function docToCourseResource(doc: QueryDocumentSnapshot<DocumentData>): CourseRe
 }
 
 export type LoadCourseResourcesOptions = {
-  /** Omit large referenceText (e.g. course list). */
+  /** Omit large referenceText (e.g. course list, lesson pills). */
   omitReferenceText?: boolean;
+  /** Only return resources marked for tutor grounding (filtered in memory after read). */
+  onlyTutorReference?: boolean;
 };
+
+function sortResourceDocsByOrder(docs: QueryDocumentSnapshot<DocumentData>[]): QueryDocumentSnapshot<DocumentData>[] {
+  return [...docs].sort((a, b) => {
+    const ao = typeof a.data().order === "number" ? a.data().order : 0;
+    const bo = typeof b.data().order === "number" ? b.data().order : 0;
+    return ao - bo;
+  });
+}
 
 /**
  * Course-level resources stored in courses/{courseId}/courseResources/{resourceId}, ordered by `order`.
+ * Uses collection scans + in-memory sort so no composite Firestore indexes are required (works on localhost).
  */
 export async function loadCourseResources(
   courseId: string,
   options?: LoadCourseResourcesOptions,
 ): Promise<CourseResource[]> {
-  const base = adminDb
-    .collection("courses")
-    .doc(courseId)
-    .collection(COURSE_RESOURCES_SUBCOLLECTION)
-    .orderBy("order");
+  const col = adminDb.collection("courses").doc(courseId).collection(COURSE_RESOURCES_SUBCOLLECTION);
+
+  const selectFields = [
+    "title",
+    "url",
+    "kind",
+    "caption",
+    "mimeType",
+    "sourceFileName",
+    "size",
+    "storagePath",
+    "includeInTutorReference",
+    "studentVisible",
+    "order",
+  ] as const;
 
   const snap = options?.omitReferenceText
-    ? await base
-        .select(
-          "title",
-          "url",
-          "kind",
-          "caption",
-          "mimeType",
-          "sourceFileName",
-          "size",
-          "storagePath",
-          "includeInTutorReference",
-          "studentVisible",
-          "order",
-        )
-        .get()
-    : await base.get();
+    ? await col.select(...selectFields).get()
+    : await col.get();
 
-  return snap.docs.map((doc) => docToCourseResource(doc));
+  const docs = sortResourceDocsByOrder(snap.docs);
+  let resources = docs.map((doc) => docToCourseResource(doc));
+  if (options?.onlyTutorReference) {
+    resources = resources.filter((r) => r.includeInTutorReference === true);
+  }
+  return resources;
+}
+
+/** Tutor grounding: full resource bodies for items flagged `includeInTutorReference`. */
+export async function loadCourseResourcesForTutorGrounding(courseId: string): Promise<CourseResource[]> {
+  const all = await loadCourseResources(courseId);
+  return all.filter((r) => r.includeInTutorReference === true);
 }
 
 function assertReferenceTextSize(resource: CourseResource, resourceLabel: string): void {
   const t = resource.referenceText;
-  if (typeof t === "string" && t.length > MAX_RESOURCE_REFERENCE_TEXT_CHARS) {
+  if (typeof t !== "string") return;
+  const bytes = Buffer.byteLength(t, "utf8");
+  if (bytes > MAX_COURSE_RESOURCE_REFERENCE_UTF8_BYTES) {
     throw new Error(
-      `Resource "${resourceLabel}" reference text exceeds ${MAX_RESOURCE_REFERENCE_TEXT_CHARS} characters (Firestore document limit).`,
+      `Resource "${resourceLabel}" reference text exceeds ${MAX_COURSE_RESOURCE_REFERENCE_UTF8_BYTES} UTF-8 bytes (Firestore document limit).`,
     );
   }
+}
+
+/** Validate resource sizes before creating a course or syncing (no Firestore writes). */
+export function assertCourseResourcesWithinLimits(resources: CourseResource[] | undefined): void {
+  const normalized = normalizeResources(resources || []);
+  for (let i = 0; i < normalized.length; i++) {
+    const r = normalized[i];
+    assertReferenceTextSize(r, r.title || r.id?.trim() || `resource-${i}`);
+  }
+}
+
+type ResourceRow = { id: string; resource: CourseResource };
+
+function buildResourceRows(resources: CourseResource[] | undefined): ResourceRow[] {
+  const normalized = normalizeResources(resources || []);
+  return normalized.map((r) => {
+    const id = r.id?.trim() || randomUUID();
+    return { id, resource: { ...r, id } };
+  });
 }
 
 /**
  * Replaces the entire courseResources subcollection to match `resources` (by id). Assigns `order` from array index.
  */
 export async function syncCourseResources(courseId: string, resources: CourseResource[] | undefined): Promise<void> {
-  const normalized = normalizeResources(resources || []);
+  const rows = buildResourceRows(resources);
   const col = adminDb.collection("courses").doc(courseId).collection(COURSE_RESOURCES_SUBCOLLECTION);
 
   const existingSnap = await col.get();
-  const nextIds = new Set(
-    normalized.map((r) => {
-      const id = r.id?.trim() || randomUUID();
-      return id;
-    }),
-  );
+  const nextIds = new Set(rows.map((row) => row.id));
 
   let batch = adminDb.batch();
   let ops = 0;
@@ -112,9 +147,8 @@ export async function syncCourseResources(courseId: string, resources: CourseRes
     }
   }
 
-  for (let i = 0; i < normalized.length; i += 1) {
-    const r = normalized[i];
-    const id = r.id?.trim() || randomUUID();
+  for (let i = 0; i < rows.length; i += 1) {
+    const { id, resource: r } = rows[i];
     assertReferenceTextSize(r, r.title || id);
 
     const ref = col.doc(id);

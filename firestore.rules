@@ -23,7 +23,10 @@ service cloud.firestore {
     }
 
     function canReadCourse(resourceData) {
-      return resourceData.public == true || isOwner(resourceData) || isShared(resourceData);
+      return resourceData.public == true
+        || isOwner(resourceData)
+        || isShared(resourceData)
+        || (isAuthenticated() && 'staffIds' in resourceData && request.auth.uid in resourceData.staffIds);
     }
 
     // Default: Deny all writes from client
