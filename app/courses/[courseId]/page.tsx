@@ -22,6 +22,7 @@ import CommentSection from "../../components/courses/comments/comment_section";
 import CourseSharePanel from "../../components/courses/course_share_panel";
 import CourseResourcePills, { visibleStudentResources } from "../../components/courses/course_resource_pills";
 import CourseBrandedHeader from "../../components/courses/course_branded_header";
+import CourseBrandedFooter from "../../components/courses/course_branded_footer";
 import Modal from "../../components/modal";
 import MarkdownArticle from "../../components/md";
 
@@ -360,6 +361,8 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
 
                 <CommentSection courseId={courseId} isCourseOwner={isOwner} />
                 </div>
+
+                <CourseBrandedFooter footer={course.courseBrandingFooter} courseTitle={course.title} className="w-full shrink-0" />
             </div>
 
             <Modal

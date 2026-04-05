@@ -14,6 +14,7 @@ import {
   normalizeCourseLesson,
   normalizeCoverImageUrl,
 } from "@/app/api/courses/helpers";
+import { normalizeCourseBrandingFooter } from "@/lib/courseBranding";
 import { loadCourseResources, syncCourseResources } from "@/app/api/courses/course_resources_firestore";
 import { updateQuizMetadata } from "@/app/api/quiz/helpers";
 
@@ -129,6 +130,10 @@ export async function PUT(
             }
             const header = normalizeCourseBrandingHeader(courseData.courseBrandingHeader);
             brandingPatch.courseBrandingHeader = header ?? admin.firestore.FieldValue.delete();
+        }
+        if (Object.prototype.hasOwnProperty.call(courseData, "courseBrandingFooter")) {
+            const footer = normalizeCourseBrandingFooter(courseData.courseBrandingFooter);
+            brandingPatch.courseBrandingFooter = footer ?? admin.firestore.FieldValue.delete();
         }
 
         // Update the course document (course-level resources live in courseResources subcollection)

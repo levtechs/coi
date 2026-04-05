@@ -9,6 +9,7 @@ import {
   TutorPromptConfig,
   TutorPromptProfileId,
 } from "@/lib/types/course";
+import { normalizeCourseBrandingFooter } from "@/lib/courseBranding";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { stripUndefinedDeep } from "@/lib/firestoreSanitize";
 
@@ -165,6 +166,7 @@ export function normalizeCourseLesson(courseId: string, lessonId: string, lesson
 
 export function normalizeCourse(courseId: string, courseData: CourseDocLike, lessons: CourseLesson[]): Course {
   const courseBrandingHeader = normalizeCourseBrandingHeader(courseData.courseBrandingHeader);
+  const courseBrandingFooter = normalizeCourseBrandingFooter(courseData.courseBrandingFooter);
   const coverImageUrl = normalizeCoverImageUrl(courseData.coverImageUrl);
   return {
     id: courseId,
@@ -182,6 +184,7 @@ export function normalizeCourse(courseId: string, courseData: CourseDocLike, les
     quizReportPolicy: normalizeQuizReportPolicy(courseData.quizReportPolicy),
     ...(coverImageUrl ? { coverImageUrl } : {}),
     ...(courseBrandingHeader ? { courseBrandingHeader } : {}),
+    ...(courseBrandingFooter ? { courseBrandingFooter } : {}),
   };
 }
 

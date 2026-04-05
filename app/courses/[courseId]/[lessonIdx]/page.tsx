@@ -9,11 +9,12 @@ import { useParams } from "next/navigation";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { getLesson } from "../../../views/lessons";
-import { CourseLesson, CourseResource } from "@/lib/types/course";
+import { CourseBrandingFooter, CourseLesson, CourseResource } from "@/lib/types/course";
 import { Project } from "@/lib/types/project";
 import LoadingComponent from "../../../components/loading";
 import LessonPage from "../../../components/courses/lessons/lesson_page";
 import Button from "../../../components/button";
+import CourseBrandedFooter from "../../../components/courses/course_branded_footer";
 
 export default function LessonDetailPage() {
     const { user, loading: authLoading } = useAuth();
@@ -25,6 +26,8 @@ export default function LessonDetailPage() {
     const [lessonCount, setLessonCount] = useState(0);
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(false);
+    const [courseBrandingFooter, setCourseBrandingFooter] = useState<CourseBrandingFooter | undefined>();
+    const [courseTitleForFooter, setCourseTitleForFooter] = useState("Course");
 
     useEffect(() => {
         const fetchLesson = async () => {
@@ -36,6 +39,8 @@ export default function LessonDetailPage() {
                     setLesson(result.lesson);
                     setCourseResources(result.courseResources);
                     setLessonCount(result.lessonCount);
+                    setCourseTitleForFooter(result.courseTitle);
+                    setCourseBrandingFooter(result.courseBrandingFooter);
                 }
             } catch (error) {
                 console.error("Failed to fetch lesson:", error);
@@ -103,16 +108,19 @@ export default function LessonDetailPage() {
             <div className="fixed inset-0 bg-[var(--neutral-100)] pointer-events-none"></div>
             <FlickeringGrid className="fixed inset-0 z-0 pointer-events-none" />
             <Sidebar current="courses" />
-            <div className="ml-16 p-6 relative z-5">
-                <div className="flex items-center gap-4 mb-8">
-                    <Button color="var(--neutral-300)" onClick={() => window.location.href = `/courses/${courseId}`}>
-                        Back to Course
-                    </Button>
-                    <h1 className="text-3xl font-extrabold text-[var(--foreground)]">
-                        Lesson {lessonIdx + 1}: {lesson.title}
-                    </h1>
+            <div className="relative z-[5] ml-16 flex min-h-screen min-w-0 flex-col">
+                <div className="relative z-5 flex-1 p-6">
+                    <div className="flex items-center gap-4 mb-8">
+                        <Button color="var(--neutral-300)" onClick={() => window.location.href = `/courses/${courseId}`}>
+                            Back to Course
+                        </Button>
+                        <h1 className="text-3xl font-extrabold text-[var(--foreground)]">
+                            Lesson {lessonIdx + 1}: {lesson.title}
+                        </h1>
+                    </div>
+                    <LessonPage lesson={lesson} courseId={courseId} lessonIdx={lessonIdx} totalLessons={lessonCount} projects={projects} courseResources={courseResources} />
                 </div>
-                <LessonPage lesson={lesson} courseId={courseId} lessonIdx={lessonIdx} totalLessons={lessonCount} projects={projects} courseResources={courseResources} />
+                <CourseBrandedFooter footer={courseBrandingFooter} courseTitle={courseTitleForFooter} className="w-full shrink-0" />
             </div>
         </div>
     );

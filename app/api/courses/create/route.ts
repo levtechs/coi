@@ -14,6 +14,7 @@ import {
   normalizeCourseLesson,
   normalizeCoverImageUrl,
 } from "@/app/api/courses/helpers";
+import { normalizeCourseBrandingFooter } from "@/lib/courseBranding";
 import { loadCourseResources, syncCourseResources } from "@/app/api/courses/course_resources_firestore";
 
 /**
@@ -49,6 +50,7 @@ export async function POST(req: NextRequest) {
 
         const coverImageUrl = normalizeCoverImageUrl(courseData.coverImageUrl);
         const courseBrandingHeader = normalizeCourseBrandingHeader(courseData.courseBrandingHeader);
+        const courseBrandingFooter = normalizeCourseBrandingFooter(courseData.courseBrandingFooter);
 
         // Create the course document
         const courseRef = await adminDb.collection('courses').add({
@@ -65,6 +67,7 @@ export async function POST(req: NextRequest) {
             createdAt: new Date().toISOString(),
             ...(coverImageUrl ? { coverImageUrl } : {}),
             ...(courseBrandingHeader ? { courseBrandingHeader } : {}),
+            ...(courseBrandingFooter ? { courseBrandingFooter } : {}),
         });
 
         const courseId = courseRef.id;
