@@ -50,5 +50,9 @@ next-env.d.ts
 # Mantis - stuff related to customization for mantis
 /mantis
 
+# Private / one-off scripts (seed data, client-specific HTML, etc.) — not for public repo
+/scripts/*
+!/scripts/fetch-facts.js
+
 # local Python venv (WhisperX / tooling)
 /.venv-whisperx311/
