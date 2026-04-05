@@ -84,14 +84,16 @@ export default function ResourceEditor({
   }
 
   return (
-    <div className="mb-4 border border-[var(--neutral-300)] rounded-md bg-[var(--neutral-100)] p-4">
-      <div className="flex items-start justify-between gap-4 mb-3">
-        <div>
+    <div className="mb-4 space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+        <div className="min-w-0">
           <label className="block text-sm font-medium text-[var(--foreground)] mb-1">{label}</label>
-          {helperText && <p className="text-xs text-[var(--neutral-600)]">{helperText}</p>}
+          {helperText && (
+            <p className="text-xs text-[var(--neutral-600)] max-w-2xl">{helperText}</p>
+          )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 shrink-0">
           <input
             type="file"
             ref={fileInputRef}
@@ -119,7 +121,9 @@ export default function ResourceEditor({
         </div>
       </div>
 
-      {visibleResources.length === 0 && <p className="text-sm text-[var(--neutral-600)] mb-3">No resources added yet.</p>}
+      {visibleResources.length === 0 && (
+        <p className="text-sm text-[var(--neutral-600)]">No resources added yet.</p>
+      )}
 
       <div className="space-y-4">
         {visibleResources.map((resource, index) => (
