@@ -13,6 +13,7 @@ import { getProjectById } from "@/app/api/projects/helpers";
 import { Card } from "@/lib/types/cards";
 import { ChatAttachment, GroundingChunk } from "@/lib/types/chat";
 import { ContentHierarchy } from "@/lib/types/content";
+import { dedupeStandaloneTitleBeforeCardRef, sanitizeUnlockCardIds } from "./unlock_helpers";
 import { buildFinalChatAttachments, resolveNewcardRefs } from "./shared";
 import { StreamChatResponseResult } from "./types";
 
@@ -72,6 +73,12 @@ export async function finalizeTaggedStream(args: FinalizeArgs): Promise<{
     const allWrittenCards = [...writtenCards, ...writtenResourceCards];
 
     finalResponseMessage = resolveNewcardRefs(finalResponseMessage, allWrittenCards);
+    if (args.mode === "existing") {
+      const { cardsToUnlock } = args;
+      if (cardsToUnlock.length > 0) {
+        finalResponseMessage = dedupeStandaloneTitleBeforeCardRef(finalResponseMessage, cardsToUnlock);
+      }
+    }
     const finalAttachments = buildFinalChatAttachments(chatAttachments, allWrittenCards, new Set<string>());
 
     sendUpdate("responseMessage", finalResponseMessage, finalAttachments);
@@ -89,9 +96,10 @@ export async function finalizeTaggedStream(args: FinalizeArgs): Promise<{
         const { unlockedCardIds: parsedUnlockedCardIds, tutorActions } = response;
 
         let unlockedCards: Card[] = [];
-        if (parsedUnlockedCardIds.length > 0 && cardsToUnlock.length > 0) {
+        const sanitizedUnlockIds = sanitizeUnlockCardIds(parsedUnlockedCardIds, cardsToUnlock);
+        if (sanitizedUnlockIds.length > 0 && cardsToUnlock.length > 0) {
             const existingCardIds = new Set((effectivePreviousCards || []).map((c) => c.id));
-            unlockedCards = unlockCards(parsedUnlockedCardIds, cardsToUnlock, existingCardIds);
+            unlockedCards = unlockCards(sanitizedUnlockIds, cardsToUnlock, existingCardIds);
             if (unlockedCards.length > 0) {
                 unlockedCards = unlockedCards.map((c) => ({ ...c, isUnlocked: true }));
                 await copyCardsToDb(projectId, unlockedCards);
