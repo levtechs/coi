@@ -30,12 +30,15 @@ interface QuickCreateInputProps {
     className?: string;
     /** If true, will auto-redirect to /projects/new when a pending query is found after login */
     autoRedirectOnPending?: boolean;
+    /** Dashboard row: full width inside a flex row, no centered max-width shell */
+    inline?: boolean;
 }
 
 const QuickCreateInput = ({ 
     isLoggedIn = true,
     className = "",
-    autoRedirectOnPending = false
+    autoRedirectOnPending = false,
+    inline = false,
 }: QuickCreateInputProps) => {
     const router = useRouter();
     const [input, setInput] = useState("");
@@ -187,8 +190,12 @@ const QuickCreateInput = ({
         }
     };
 
+    const rootClass = inline
+        ? `flex flex-col w-full min-w-0 h-full min-h-[56px] ${className}`
+        : `flex flex-col items-center justify-center w-full max-w-2xl mx-auto mb-8 mt-6 ${className}`;
+
     return (
-        <div className={`flex flex-col items-center justify-center w-full max-w-2xl mx-auto mb-8 mt-6 ${className}`}>
+        <div className={rootClass}>
             {/* Attachments Display - only when logged in */}
             {isLoggedIn && attachments.length > 0 && (
                 <div className="w-full mb-3 flex flex-wrap gap-2">
@@ -231,15 +238,20 @@ const QuickCreateInput = ({
 
 
             {/* Input Container with Glow Effect */}
-            <div className="relative w-full group">
+            <div className={`relative w-full group ${inline ? "h-full min-h-[56px] flex flex-col justify-center" : ""}`}>
                 {/* Glow Effect */}
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent-500)] to-[var(--accent-300)] rounded-2xl opacity-30 group-hover:opacity-60 transition duration-500 blur-sm group-focus-within:opacity-100"></div>
                 
-                <div className="relative flex items-center w-full bg-[var(--neutral-100)] rounded-xl border border-[var(--neutral-300)] focus-within:border-[var(--accent-500)] transition-all duration-200 shadow-sm">
+                <div
+                    className={`relative flex items-center w-full bg-[var(--neutral-100)] rounded-xl border border-[var(--neutral-300)] focus-within:border-[var(--accent-500)] transition-all duration-200 shadow-sm ${
+                        inline ? "min-h-[56px] h-full" : ""
+                    }`}
+                >
                     {/* File Upload Button - disabled when not logged in */}
                     <button 
                         className={`
-                            pl-4 pr-2 py-4 transition-colors
+                            pl-4 pr-2 transition-colors shrink-0
+                            ${inline ? "py-0 self-stretch flex items-center" : "py-4"}
                             ${isLoggedIn 
                                 ? "text-[var(--neutral-500)] hover:text-[var(--accent-500)]" 
                                 : "text-[var(--neutral-400)] cursor-not-allowed"}
@@ -259,7 +271,9 @@ const QuickCreateInput = ({
                         placeholder={placeholderText}
                         disabled={isSubmitting}
                         autoFocus
-                        className="flex-1 py-4 bg-transparent border-none outline-none text-lg text-[var(--foreground)] placeholder:text-[var(--neutral-400)] min-w-0"
+                        className={`flex-1 bg-transparent border-none outline-none text-lg text-[var(--foreground)] placeholder:text-[var(--neutral-400)] min-w-0 ${
+                            inline ? "py-0" : "py-4"
+                        }`}
                     />
 
                     {/* Submit Button */}
@@ -267,7 +281,8 @@ const QuickCreateInput = ({
                         onClick={handleSubmit}
                         disabled={isSubmitting || !input.trim()}
                         className={`
-                            mx-2 p-2 rounded-lg transition-all duration-200
+                            mx-2 shrink-0 rounded-lg transition-all duration-200 flex items-center justify-center
+                            ${inline ? "my-2 p-2 self-center" : "p-2"}
                             ${input.trim() && !isSubmitting 
                                 ? "bg-[var(--accent-500)] text-white hover:bg-[var(--accent-600)] shadow-md" 
                                 : "bg-[var(--neutral-200)] text-[var(--neutral-400)] cursor-not-allowed"}

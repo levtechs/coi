@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 
 import { FiEdit2, FiLoader, FiMoreVertical, FiTrash2 } from "react-icons/fi";
 
@@ -12,9 +13,13 @@ type ProjectCardProps = {
     project: Project;
     onEdit: (project: Project) => void;
     setProjects: (projects: Project[]) => void;
+    /** Course name shown as a truncated pill overlapping the top-left of the card */
+    courseLabel?: string;
+    /** When set with courseLabel, the label links to this course */
+    courseId?: string;
 };
 
-export default function ProjectCard({ project, onEdit, setProjects }: ProjectCardProps) {
+export default function ProjectCard({ project, onEdit, setProjects, courseLabel, courseId }: ProjectCardProps) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLDivElement>(null);
@@ -41,27 +46,44 @@ export default function ProjectCard({ project, onEdit, setProjects }: ProjectCar
         };
     }, []);
 
+    const labelClasses =
+        "pointer-events-auto absolute left-2 top-2 z-[1] block max-w-[calc(100%-2.75rem)] truncate text-left text-xs font-medium text-[var(--neutral-700)] rounded-md border border-[var(--neutral-300)]/80 bg-[var(--neutral-50)]/95 px-2 py-0.5 shadow-sm backdrop-blur-[2px]";
+
+    const cardShell =
+        "relative border border-[var(--neutral-300)] rounded-lg p-6 bg-[var(--neutral-200)] shadow hover:shadow-md transition cursor-pointer group";
+
     if (isLoading) {
         return (
             <div
-                className="relative border border-[var(--neutral-300)] rounded-lg p-6 bg-[var(--neutral-200)] shadow hover:shadow-md transition cursor-pointer group"
+                className={cardShell}
                 onClick={() => window.location.assign(`/projects/${project.id}`)}
             >
+                {courseLabel && courseId && (
+                    <Link href={`/courses/${courseId}`} className={labelClasses} onClick={(e) => e.stopPropagation()}>
+                        {courseLabel}
+                    </Link>
+                )}
+                {courseLabel && !courseId && <span className={labelClasses}>{courseLabel}</span>}
                 <FiLoader className="animate-spin w-5 h-5 text-[var(--foreground)]" />
             </div>
         );
-
-    };
+    }
 
     return (
-        <div
-            className="relative border border-[var(--neutral-300)] rounded-lg p-6 bg-[var(--neutral-200)] shadow hover:shadow-md transition cursor-pointer group"
-            onClick={() => window.location.assign(`/projects/${project.id}`)}
-        >
-            <h3 className="text-[var(--foreground)] font-semibold text-xl line-clamp-2">{project.title}</h3>
+        <div className={cardShell} onClick={() => window.location.assign(`/projects/${project.id}`)}>
+            {courseLabel && courseId && (
+                <Link href={`/courses/${courseId}`} className={labelClasses} onClick={(e) => e.stopPropagation()}>
+                    {courseLabel}
+                </Link>
+            )}
+            {courseLabel && !courseId && <span className={labelClasses}>{courseLabel}</span>}
+
+            <h3 className="text-[var(--foreground)] font-semibold text-xl line-clamp-2 pr-1">
+                {project.title}
+            </h3>
 
             {/* Three Dots Icon */}
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition" ref={buttonRef}>
+            <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition" ref={buttonRef}>
                 <FiMoreVertical
                     className="text-[var(--neutral-700)] cursor-pointer hover:text-[var(--accent-500)]"
                     size={20}
@@ -75,7 +97,7 @@ export default function ProjectCard({ project, onEdit, setProjects }: ProjectCar
             {/* Menu Dropdown */}
             {isMenuOpen && (
                 <div
-                    className="absolute top-8 right-2 w-32 bg-[var(--neutral-400)] rounded-md shadow-lg py-1 z-10"
+                    className="absolute top-8 right-2 w-32 bg-[var(--neutral-400)] rounded-md shadow-lg py-1 z-30"
                     ref={menuRef}
                     onClick={(e) => e.stopPropagation()}
                 >
@@ -100,8 +122,7 @@ export default function ProjectCard({ project, onEdit, setProjects }: ProjectCar
                                     setProjects(projects);
                                 } catch (err) {
                                     console.error("Failed to fetch projects:", err);
-                                }
-                                finally {
+                                } finally {
                                     setLoading(false);
                                 }
                             };

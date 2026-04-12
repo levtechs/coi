@@ -6,6 +6,8 @@ import { FileAttachment } from "@/lib/types/uploads";
 export interface Project {
   id: string;
   title: string;
+  /** ISO string from Firestore when present */
+  createdAt?: string;
   ownerId: string;
   collaborators: string[];
   sharedWith: string[];
