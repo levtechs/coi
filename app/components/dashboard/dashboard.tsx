@@ -151,7 +151,7 @@ const Dashboard = ({ user }: DashboardProps) => {
 
     return (
         <>
-            <div className="flex flex-row flex-wrap items-stretch gap-3 w-full max-w-5xl min-h-[56px]">
+            <div className="flex flex-row flex-wrap items-stretch gap-3 w-full min-h-[56px]">
                 <button
                     type="button"
                     onClick={openCreateModal}
@@ -169,7 +169,7 @@ const Dashboard = ({ user }: DashboardProps) => {
                 </div>
             </div>
 
-            <section className="mt-10 max-w-5xl">
+            <section className="mt-10 w-full">
                 <div className="flex flex-wrap items-baseline gap-2 mb-4">
                     <h2 className="text-[var(--foreground)] text-lg font-bold">Your projects</h2>
                     {!isLoading && <span className="text-sm text-[var(--neutral-600)]">({projects.length})</span>}

@@ -43,16 +43,18 @@ export default function Sidebar({ current }: SidebarProps) {
                     <FiBookOpen className="h-6 w-6 flex-shrink-0 text-[var(--neutral-600)]" />
                     <span className="ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Courses</span>
                 </Link>
-                <Link href="/friends" className={`flex items-center w-full px-4 py-2 hover:bg-[var(--accent-100)] cursor-pointer relative ${current === 'friends' ? 'bg-[var(--neutral-200)]' : ''}`}>
-                    <FiUsers className="h-6 w-6 flex-shrink-0 text-[var(--neutral-600)]" />
-                    {pendingCount > 0 && (
-                        <span
-                            className="absolute top-1 left-8 w-4 h-4 rounded-full text-white text-[10px] flex items-center justify-center"
-                            style={{ backgroundColor: "var(--accent-500)" }}
-                        >
-                            {pendingCount}
-                        </span>
-                    )}
+                <Link href="/friends" className={`flex items-center w-full px-4 py-2 hover:bg-[var(--accent-100)] cursor-pointer relative overflow-visible ${current === 'friends' ? 'bg-[var(--neutral-200)]' : ''}`}>
+                    <span className="relative inline-flex flex-shrink-0">
+                        <FiUsers className="h-6 w-6 text-[var(--neutral-600)]" />
+                        {pendingCount > 0 && (
+                            <span
+                                className="absolute -right-2 -top-1 flex min-h-[1.375rem] min-w-[1.375rem] items-center justify-center rounded-full bg-red-600 px-1 text-xs font-bold leading-none text-white shadow-sm ring-2 ring-[var(--neutral-100)] tabular-nums"
+                                aria-label={`${pendingCount} incoming friend requests`}
+                            >
+                                {pendingCount > 99 ? "99+" : pendingCount}
+                            </span>
+                        )}
+                    </span>
                     <span className="ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">Friends</span>
                 </Link>
                 <div className="mt-auto">
