@@ -8,16 +8,7 @@ import QuickCreateInput from "@/app/components/quick_create_input";
 
 const HeroSection = React.forwardRef<HTMLDivElement, { onScrollDown?: () => void }>(({ onScrollDown }, ref) => {
     const { user } = useAuth();
-    const [isDark, setIsDark] = useState(false);
     const [buttonsVisible, setButtonsVisible] = useState(false);
-
-    useEffect(() => {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        setIsDark(mediaQuery.matches);
-        const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
-        mediaQuery.addEventListener('change', handler);
-        return () => mediaQuery.removeEventListener('change', handler);
-    }, []);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -26,8 +17,6 @@ const HeroSection = React.forwardRef<HTMLDivElement, { onScrollDown?: () => void
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
-
-    const themeFolder = isDark ? 'dark' : 'light';
 
     return (
         <section

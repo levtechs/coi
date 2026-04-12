@@ -102,7 +102,7 @@ function InvitePageContent() {
                                           Boolean(course.sharedWith && course.sharedWith.includes(user.uid));
                         }
                     }
-                } catch (_) {
+                } catch {
                     // If access denied (404), assume not already in; don't set error
                     isAlreadyIn = false;
                 }

@@ -31,7 +31,6 @@ const Editor = ({
     user,
     addCollaborator,
     setTitle,
-    setProject,
     quickCreate,
 }: EditorProps) => {
     const [tab, setTab] = useState<"content" | "cards">("content"); // "content" or "cards"

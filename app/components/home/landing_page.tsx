@@ -12,7 +12,6 @@ import Transformation from "./transformation";
 import Testimonials from "./testimonials_component";
 import Features from "./features";
 import AboutUs from "./about_us";
-import Pricing from "./pricing";
 import FAQ from "./faq";
 import Footer from "./footer";
 

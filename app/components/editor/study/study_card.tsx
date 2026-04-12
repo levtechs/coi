@@ -5,7 +5,7 @@ import { Card } from "@/lib/types/cards";
 import MarkdownArticle from "../../md";
 
 import { FaYoutube } from "react-icons/fa";
-import { FiEdit2, FiMoreVertical, FiTrash2, FiStar, FiGlobe } from "react-icons/fi";
+import { FiStar, FiGlobe } from "react-icons/fi";
 
 type StudyCardProps = {
     card: Card;

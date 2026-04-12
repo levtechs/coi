@@ -1,11 +1,10 @@
 import { Card } from "@/lib/types/cards";
 import { Message, ChatAttachment, GroundingChunk, ChatPreferences } from "@/lib/types/chat";
 import { ContentHierarchy, TutorAction } from "@/lib/types/content";
-import { FileAttachment } from "@/lib/types/uploads";
 import { genAI } from "@/app/api/gemini/config";
 import { buildStreamChatRequest } from "./model_request";
 import { stripTransportTags } from "./prose_helpers";
-import { createActiveBlock, extractTaggedBodies, findOpenTag, isPotentialPartialTopLevelTag, parseKnowledgeCards, parseResourceCards, parseUnlockCards } from "./tag_parsing";
+import { extractTaggedBodies, findOpenTag, isPotentialPartialTopLevelTag, parseKnowledgeCards, parseResourceCards, parseUnlockCards } from "./tag_parsing";
 import { ActiveBlock, ModelCard, StreamChatResponseResult } from "./types";
 
 function maybeWaitForCardWrites(writePromise: Promise<void> | null): Promise<void> {

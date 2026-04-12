@@ -166,7 +166,6 @@ export default function CreateCourse() {
 
     const quizPolicyKey = useMemo(() => allQuizIdsForPolicy.join(","), [allQuizIdsForPolicy]);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- quizPolicyKey fingerprints allQuizIdsForPolicy
     useEffect(() => {
         if (allQuizIdsForPolicy.length === 0) {
             setQuizPolicyTitles({});

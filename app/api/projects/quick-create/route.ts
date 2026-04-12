@@ -6,7 +6,7 @@ import { finalizeTaggedStream } from "@/app/api/chat/stream/orchestrator";
 import { persistModelCards } from "@/app/api/chat/stream/persist";
 import { createProject } from "@/app/api/projects/helpers";
 import { copyUploadsToDb } from "@/app/api/uploads/helpers";
-import { ChatAttachment, StreamPhase, GroundingChunk, DEFAULT_CHAT_PREFERENCES } from "@/lib/types/chat";
+import { ChatAttachment, StreamPhase, DEFAULT_CHAT_PREFERENCES } from "@/lib/types/chat";
 import { FileAttachment } from "@/lib/types/uploads";
 
 function generateTitleFromMessage(message: string): string {
@@ -115,10 +115,7 @@ export async function POST(req: NextRequest) {
 
                     if (!result) throw new Error("Failed to generate response.");
 
-                    const { newCardsFromModel, writtenCards, chatAttachments } = result;
-
                     updatePhase("processing");
-                    const groundingChunks: GroundingChunk[] = chatAttachments.filter((a): a is GroundingChunk => "web" in a);
                     const finalized = await finalizeTaggedStream({
                         mode: "quick-create",
                         projectId,

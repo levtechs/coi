@@ -55,11 +55,6 @@ function CoursesPageContent() {
                                 <h1 className="text-3xl font-extrabold tracking-tight text-[var(--foreground)]">
                                     {isCreateMode ? (searchParams.has('edit') ? 'Edit Course' : 'Create Course') : 'Courses'}
                                 </h1>
-                                {!isCreateMode && (
-                                    <p className="mt-1 max-w-xl text-sm text-[var(--neutral-600)]">
-                                        Your enrolled and shared courses. Search, filter by category and visibility, and open any course from the grid.
-                                    </p>
-                                )}
                             </div>
                         </div>
                         {!isCreateMode && userData?.starUser && (

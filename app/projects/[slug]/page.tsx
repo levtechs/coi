@@ -45,7 +45,9 @@ export default function ProjectPage() {
                 if (docSnap.exists()) {
                     const projectData = docSnap.data();
                     // Exclude cards and uploads from document data, as they are managed by subcollections
-                    const { cards: _, uploads: __, ...projectDataWithoutCards } = projectData as Project;
+                    const { cards, uploads, ...projectDataWithoutCards } = projectData as Project;
+                    void cards;
+                    void uploads;
                     const projectWithId = { ...projectDataWithoutCards, id: docSnap.id };
 
                     setProject((prev: Project | null) =>

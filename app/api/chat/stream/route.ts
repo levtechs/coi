@@ -8,8 +8,7 @@ import { persistModelCards } from "./persist";
 import { getProjectById } from "@/app/api/projects/helpers";
 import { fetchCardsFromProject } from "@/app/api/cards/helpers";
 import { copyUploadsToDb } from "@/app/api/uploads/helpers";
-import { Card } from "@/lib/types/cards";
-import { ChatAttachment, StreamPhase, GroundingChunk, DEFAULT_CHAT_PREFERENCES } from "@/lib/types/chat";
+import { ChatAttachment, StreamPhase, DEFAULT_CHAT_PREFERENCES } from "@/lib/types/chat";
 import { FileAttachment } from "@/lib/types/uploads";
 
 export async function POST(req: NextRequest) {
@@ -114,11 +113,8 @@ export async function POST(req: NextRequest) {
                         courseTutorGrounding,
                     );
 
-                    const { newCardsFromModel, writtenCards, chatAttachments } = result!;
-
                     updatePhase("processing");
 
-                    const groundingChunks: GroundingChunk[] = chatAttachments.filter((a): a is GroundingChunk => "web" in a);
                     const finalized = await finalizeTaggedStream({
                         mode: "existing",
                         projectId,

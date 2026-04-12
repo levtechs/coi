@@ -58,7 +58,6 @@ export async function finalizeTaggedStream(args: FinalizeArgs): Promise<{
 
     const {
         responseMessage: chatResponseMessage,
-        newCardsFromModel,
         writtenCards,
         chatAttachments,
         followUpQuestions,
@@ -79,7 +78,7 @@ export async function finalizeTaggedStream(args: FinalizeArgs): Promise<{
         finalResponseMessage = dedupeStandaloneTitleBeforeCardRef(finalResponseMessage, cardsToUnlock);
       }
     }
-    const finalAttachments = buildFinalChatAttachments(chatAttachments, allWrittenCards, new Set<string>());
+    const finalAttachments = buildFinalChatAttachments(chatAttachments, allWrittenCards);
 
     sendUpdate("responseMessage", finalResponseMessage, finalAttachments);
     if (writtenResourceCards.length > 0) {

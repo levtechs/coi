@@ -16,7 +16,6 @@ export function resolveNewcardRefs(response: string, writtenCards: Card[]): stri
 export function buildFinalChatAttachments(
     chatAttachments: ChatAttachment[],
     writtenCards: Card[],
-    _usedChunkUris: Set<string>,
 ): ChatAttachment[] {
     const groundingChunks = chatAttachments.filter((a): a is GroundingChunk => "web" in a);
     const nonGroundingAttachments = chatAttachments.filter((a) => !("web" in a));

@@ -64,7 +64,7 @@ const UploadsPanel = ({ addFileAttachment, projectId }: { addFileAttachment?: (a
         setIsDragOver(true);
     };
 
-    const handleDragLeave = (_: React.DragEvent) => {
+    const handleDragLeave: React.DragEventHandler<HTMLDivElement> = () => {
         setIsDragOver(false);
     };
 

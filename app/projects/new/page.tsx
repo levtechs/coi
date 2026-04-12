@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
 import { ChatAttachment } from "@/lib/types/chat";
 import { Project } from "@/lib/types/project";
-import { addCollaborator, setTitle } from "@/app/views/projects";
-
 import Editor from "@/app/components/editor/editor";
 import LoadingComponent from "@/app/components/loading";
 import Button from "@/app/components/button";

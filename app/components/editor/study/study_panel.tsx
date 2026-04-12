@@ -48,16 +48,6 @@ const StudyPanel = ({ cards }: { cards: Card[] }) => {
         }
     }, [currentSlot, visibleCards.length]);
 
-    const handleCardClick = (card: Card, position: number) => {
-        if (position === 0) {
-            setSelectedCard(card);
-        } else if (position === -1) {
-            setCurrentSlot(currentSlot - 1);
-        } else if (position === 1) {
-            next();
-        }
-    };
-
     return (
         <div className="p-4">
             {cards.length > 0 ? (

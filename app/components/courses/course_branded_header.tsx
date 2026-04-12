@@ -48,12 +48,16 @@ export default function CourseBrandedHeader({ course, className = "" }: CourseBr
   const header = course.courseBrandingHeader;
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  const embedNonceSource =
+    header?.kind === "embed" ? header.html : "";
+
   const embedNonce = useMemo(() => {
+    void embedNonceSource;
     if (typeof crypto !== "undefined" && crypto.randomUUID) {
       return crypto.randomUUID();
     }
     return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  }, [header?.kind === "embed" ? header.html : ""]);
+  }, [embedNonceSource]);
 
   const [embedHeight, setEmbedHeight] = useState<number | null>(null);
 
