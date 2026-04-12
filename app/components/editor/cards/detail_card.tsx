@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Card, Label } from "@/lib/types/cards";
 import MarkdownArticle from "../../md";
+import ExternalImage from "@/app/components/external_image";
 
 import { FaYoutube } from "react-icons/fa";
 import { FiEdit2, FiMoreVertical, FiTrash2, FiStar, FiCheckSquare, FiSquare, FiGlobe } from "react-icons/fi";
@@ -76,7 +77,7 @@ export default function DetailCard({ card, onClick, projectId, useCheckbox }: De
                 <FaYoutube className="w-6 h-6 mr-2 text-[var(--error)] flex-shrink-0" />
             ) : (
                 card.iconUrl ? (
-                    <img
+                    <ExternalImage
                         src={card.iconUrl}
                         alt="Favicon"
                         className="w-6 h-6 mr-2 rounded-sm flex-shrink-0"

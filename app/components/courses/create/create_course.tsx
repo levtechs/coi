@@ -167,13 +167,14 @@ export default function CreateCourse() {
     const quizPolicyKey = useMemo(() => allQuizIdsForPolicy.join(","), [allQuizIdsForPolicy]);
 
     useEffect(() => {
-        if (allQuizIdsForPolicy.length === 0) {
+        const ids = quizPolicyKey ? quizPolicyKey.split(",") : [];
+        if (ids.length === 0) {
             setQuizPolicyTitles({});
             return;
         }
         let cancelled = false;
         Promise.all(
-            allQuizIdsForPolicy.map(async (id) => {
+            ids.map(async (id) => {
                 try {
                     const q = await getQuiz(id);
                     return [id, q?.title || id] as const;

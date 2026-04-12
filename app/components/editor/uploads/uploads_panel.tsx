@@ -7,6 +7,7 @@ import { ALLOWED_MIME_TYPES, MAX_UPLOAD_SIZE_BYTES } from '@/lib/uploadConstants
 import { validateAndUploadFiles } from '@/lib/uploadUtils';
 import { collection, onSnapshot, CollectionReference } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import ExternalImage from '@/app/components/external_image';
 
 const UploadsPanel = ({ addFileAttachment, projectId }: { addFileAttachment?: (attachment: ChatAttachment) => void, projectId: string }) => {
     const [uploads, setUploads] = useState<FileAttachment[]>([]);
@@ -147,7 +148,7 @@ const UploadsPanel = ({ addFileAttachment, projectId }: { addFileAttachment?: (a
                         <div key={upload.id} className="flex items-center justify-between p-3 bg-[var(--neutral-100)] rounded-md">
                             <div className="flex items-center gap-3 flex-1">
                                 {upload.mimeType.startsWith('image/') && (
-                                    <img
+                                    <ExternalImage
                                         src={upload.url}
                                         alt={upload.name}
                                         className="w-12 h-12 object-cover rounded"

@@ -6,6 +6,7 @@ import { Card } from "@/lib/types/cards";
 import { FiX, FiStar, FiGlobe } from "react-icons/fi";
 
 import MarkdownArticle from "../../md";
+import ExternalImage from "@/app/components/external_image";
 
 type CardPopupProps = {
     card: Card;
@@ -40,7 +41,7 @@ export default function CardPopup({ card, onClose, isPartOfCourseLesson }: CardP
 
                 <div className="flex flex-row items-center justify-center overflow-hidden">
                     {card.iconUrl ? (
-                        <img
+                        <ExternalImage
                             src={card.iconUrl}
                             alt="Favicon"
                             className="w-6 h-6 mr-2 rounded-sm flex-shrink-0"
@@ -79,7 +80,7 @@ export default function CardPopup({ card, onClose, isPartOfCourseLesson }: CardP
                         card.refImageUrls && card.refImageUrls.length > 0 && (
                             <div className="grid grid-cols-2 gap-4">
                                 {card.refImageUrls.map((url, index) => (
-                                    <img
+                                    <ExternalImage
                                         key={index}
                                         src={url}
                                         alt={`Reference image ${index + 1}`}

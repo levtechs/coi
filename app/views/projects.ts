@@ -52,6 +52,18 @@ export async function getProject(projectId: string): Promise<Project> {
 }
 
 /**
+ * Project document only (no cards). Returns null if the current user cannot read the project
+ * (e.g. invitee who has not accepted yet). Does not log — intended for membership probes.
+ */
+export async function tryFetchProjectDocument(projectId: string): Promise<Project | null> {
+    try {
+        return await apiFetch<Project>(`/api/projects/${projectId}`);
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Deletes a project by its ID.
  * @param projectId The ID of the project to delete.
  * @returns A promise that resolves when the project is successfully deleted.

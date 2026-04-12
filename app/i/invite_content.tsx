@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 import { initializeApp, getApps, getApp } from "firebase/app";
 
 import { getTitleByToken, acceptInvitation } from "@/app/views/invite";
-import { getProject } from "@/app/views/projects";
-import { getCourse } from "@/app/views/courses";
+import { tryFetchProjectDocument } from "@/app/views/projects";
+import { tryFetchCourse } from "@/app/views/courses";
 import Button from "@/app/components/button";
 import Error from "../components/error";
 
@@ -34,31 +34,7 @@ function InvitePageContent() {
     const [token, setToken] = useState<string | null>(null);
     const [inputToken, setInputToken] = useState<string>("");
 
-    // Auth state listener and initial login
-    useEffect(() => {
-        const urlToken = searchParams.get("token");
-        if (urlToken) {
-            setToken(urlToken);
-            fetchProjectTitle(urlToken);
-        } else {
-            setIsLoading(false);
-        }
-
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            if (currentUser) {
-                setUser(currentUser);
-            } else {
-                // If there is no signed-in user, redirect to the login page.
-                // This is a more direct approach for a page that requires authentication.
-                const forwardUrl = `/i${urlToken ? `?token=${urlToken}` : ""}`;
-                router.push(`/login?forward=${encodeURIComponent(forwardUrl)}`);
-            }
-        });
-
-        return () => unsubscribe();
-    }, [searchParams, router]);
-
-    const fetchProjectTitle = async (tkn: string) => {
+    const fetchProjectTitle = useCallback(async (tkn: string) => {
         setIsLoading(true);
         setError(null);
         try {
@@ -83,28 +59,24 @@ function InvitePageContent() {
                 document.title = `Join Course: ${data.title} - coi`;
             }
 
-            // Check if user is already in the project/course
+            // Check if user is already in the project/course (must not use getProject: invitees
+            // have no access until they accept, and getProject logs + throws on denied access).
             if (user && data.id) {
-                let isAlreadyIn: boolean = false;
-                try {
-                    if (data.type === 'project') {
-                        const project = await getProject(data.id);
-                        if (project) {
-                            isAlreadyIn = project.ownerId === user.uid ||
-                                          Boolean(project.sharedWith && project.sharedWith.includes(user.uid)) ||
-                                          Boolean(user.email && project.collaborators && project.collaborators.includes(user.email));
-                        }
-                    } else if (data.type === 'course') {
-                        const result = await getCourse(data.id);
-                        if (result) {
-                            const course = result.course;
-                            isAlreadyIn = course.ownerId === user.uid ||
-                                          Boolean(course.sharedWith && course.sharedWith.includes(user.uid));
-                        }
+                let isAlreadyIn = false;
+                if (data.type === 'project') {
+                    const project = await tryFetchProjectDocument(data.id);
+                    if (project) {
+                        isAlreadyIn = project.ownerId === user.uid ||
+                            Boolean(project.sharedWith && project.sharedWith.includes(user.uid)) ||
+                            Boolean(user.email && project.collaborators && project.collaborators.includes(user.email));
                     }
-                } catch {
-                    // If access denied (404), assume not already in; don't set error
-                    isAlreadyIn = false;
+                } else if (data.type === 'course') {
+                    const result = await tryFetchCourse(data.id);
+                    if (result) {
+                        const course = result.course;
+                        isAlreadyIn = course.ownerId === user.uid ||
+                            Boolean(course.sharedWith && course.sharedWith.includes(user.uid));
+                    }
                 }
 
                 if (isAlreadyIn) {
@@ -117,7 +89,31 @@ function InvitePageContent() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [user, router]);
+
+    useEffect(() => {
+        const urlToken = searchParams.get("token");
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            if (currentUser) {
+                setUser(currentUser);
+            } else {
+                const forwardUrl = `/i${urlToken ? `?token=${urlToken}` : ""}`;
+                router.push(`/login?forward=${encodeURIComponent(forwardUrl)}`);
+            }
+        });
+
+        return () => unsubscribe();
+    }, [searchParams, router]);
+
+    useEffect(() => {
+        const urlToken = searchParams.get("token");
+        if (urlToken) {
+            setToken(urlToken);
+            void fetchProjectTitle(urlToken);
+        } else {
+            setIsLoading(false);
+        }
+    }, [searchParams, fetchProjectTitle]);
 
     const handleAccept = async () => {
         if (!user) {

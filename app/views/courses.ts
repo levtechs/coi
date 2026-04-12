@@ -44,6 +44,19 @@ export async function getCourse(courseId: string): Promise<{ course: Course; les
     }
 }
 
+/** Same as getCourse on success; returns null without logging on failure (e.g. no access). */
+export async function tryFetchCourse(courseId: string): Promise<{ course: Course; lessonProjects: { [lessonId: string]: Project[] } } | null> {
+    try {
+        const data = await apiFetch<{ course: Course; lessonProjects: { [lessonId: string]: Project[] } }>(`/api/courses/${courseId}`, {
+            method: "GET",
+        });
+        if (data) data.course.id = courseId;
+        return data;
+    } catch {
+        return null;
+    }
+}
+
 export async function createCourse(courseData: NewCourse): Promise<Course | null> {
     try {
         const data = await apiFetch<Course>(`/api/courses/create`, {

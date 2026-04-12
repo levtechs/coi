@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { FiChevronDown, FiChevronUp, FiExternalLink } from "react-icons/fi";
 import Image from "next/image";
@@ -31,15 +31,18 @@ const LandingPage = () => {
     const pricingRef = useRef<HTMLDivElement>(null);
     const faqRef = useRef<HTMLDivElement>(null);
 
-    const navItems = [
-        { id: 'hero' as SectionId, label: 'Home', ref: heroRef },
-        { id: 'problem' as SectionId, label: 'Problem', ref: problemRef },
-        { id: 'transformation' as SectionId, label: 'Solution', ref: transformationRef },
-        { id: 'testimonials' as SectionId, label: 'Reviews', ref: testimonialsRef },
-        { id: 'features' as SectionId, label: 'Features', ref: featuresRef },
-        { id: 'about' as SectionId, label: 'About', ref: aboutRef },
-        /* { id: 'pricing' as SectionId, label: 'Pricing', ref: pricingRef }, */
-    ];
+    const navItems = useMemo(
+        () => [
+            { id: 'hero' as SectionId, label: 'Home', ref: heroRef },
+            { id: 'problem' as SectionId, label: 'Problem', ref: problemRef },
+            { id: 'transformation' as SectionId, label: 'Solution', ref: transformationRef },
+            { id: 'testimonials' as SectionId, label: 'Reviews', ref: testimonialsRef },
+            { id: 'features' as SectionId, label: 'Features', ref: featuresRef },
+            { id: 'about' as SectionId, label: 'About', ref: aboutRef },
+            /* { id: 'pricing' as SectionId, label: 'Pricing', ref: pricingRef }, */
+        ],
+        [heroRef, problemRef, transformationRef, testimonialsRef, featuresRef, aboutRef],
+    );
 
     useEffect(() => {
         const handleScroll = () => {
@@ -68,7 +71,7 @@ const LandingPage = () => {
         window.addEventListener('scroll', handleScroll);
         handleScroll(); // Initial check
         return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
+    }, [navItems]);
 
     const scrollToSection = (sectionRef: React.RefObject<HTMLDivElement | null>) => {
         sectionRef.current?.scrollIntoView({ behavior: 'smooth' });

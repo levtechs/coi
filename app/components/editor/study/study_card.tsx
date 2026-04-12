@@ -3,6 +3,7 @@
 import React from "react";
 import { Card } from "@/lib/types/cards";
 import MarkdownArticle from "../../md";
+import ExternalImage from "@/app/components/external_image";
 
 import { FaYoutube } from "react-icons/fa";
 import { FiStar, FiGlobe } from "react-icons/fi";
@@ -27,7 +28,7 @@ export default function StudyCard({ card, onClick }: StudyCardProps) {
                 <FaYoutube className="w-6 h-6 mr-2 text-[var(--error)] flex-shrink-0" />
             ) : (
                 card.iconUrl ? (
-                    <img
+                    <ExternalImage
                         src={card.iconUrl}
                         alt="Favicon"
                         className="w-6 h-6 mr-2 rounded-sm flex-shrink-0"

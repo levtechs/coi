@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card } from "@/lib/types/cards";
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import StudyCard from './study_card';
@@ -14,11 +14,11 @@ const StudyPanel = ({ cards }: { cards: Card[] }) => {
     const [currentSlot, setCurrentSlot] = useState(1);
     const [selectedCard, setSelectedCard] = useState<Card | null>(null);
 
-    const getRandomCard = () => {
+    const getRandomCard = useCallback(() => {
         const available = cards.filter(c => !visibleCards.some(v => v.id === c.id));
         const pool = available.length > 0 ? available : cards;
         return pool[Math.floor(Math.random() * pool.length)];
-    };
+    }, [cards, visibleCards]);
 
     const next = () => {
         if (currentSlot + 1 < visibleCards.length) {
@@ -46,7 +46,7 @@ const StudyPanel = ({ cards }: { cards: Card[] }) => {
             const newCards = Array.from({ length: toAdd }, () => getRandomCard());
             setVisibleCards(prev => [...prev, ...newCards]);
         }
-    }, [currentSlot, visibleCards.length]);
+    }, [currentSlot, visibleCards.length, getRandomCard]);
 
     return (
         <div className="p-4">
