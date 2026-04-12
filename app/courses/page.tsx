@@ -57,7 +57,7 @@ function CoursesPageContent() {
                                 </h1>
                                 {!isCreateMode && (
                                     <p className="mt-1 max-w-xl text-sm text-[var(--neutral-600)]">
-                                        Your enrolled and shared courses, grouped by category.
+                                        Your enrolled and shared courses. Search, filter by category and visibility, and open any course from the grid.
                                     </p>
                                 )}
                             </div>

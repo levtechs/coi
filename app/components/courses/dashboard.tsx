@@ -1,28 +1,64 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { FiChevronRight, FiChevronDown } from "react-icons/fi";
+import { FiSearch } from "react-icons/fi";
 import { useAuth } from "@/lib/AuthContext";
 import { getCourses } from "@/app/views/courses";
-import { Course } from "@/lib/types/course";
+import { Course, type CourseCategory } from "@/lib/types/course";
 import LoadingComponent from "../loading";
 import CourseCard from "./course_card";
+
+const CATEGORY_FILTER_VALUES: (CourseCategory | "__uncategorized__")[] = [
+    "__uncategorized__",
+    "math",
+    "science",
+    "history",
+    "health",
+    "business",
+    "life skills",
+    "social studies",
+    "computer science",
+    "other",
+];
+
+function categoryFilterPillLabel(value: CourseCategory | "__uncategorized__"): string {
+    if (value === "__uncategorized__") return "Uncategorized";
+    return categoryLabel(value);
+}
+
+function categoryLabel(category: Course["category"]): string {
+    if (!category) return "Uncategorized";
+    return category
+        .split(" ")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(" ");
+}
+
+function matchesCategoryFilter(course: Course, filter: string): boolean {
+    if (filter === "") return true;
+    if (filter === "__uncategorized__") return !course.category;
+    return course.category === filter;
+}
+
+function matchesVisibilityFilter(course: Course, filter: "all" | "public" | "private"): boolean {
+    if (filter === "all") return true;
+    if (filter === "public") return course.public === true;
+    return course.public !== true;
+}
+
+const filterPillBase =
+    "rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-500)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--neutral-100)]";
+const filterPillInactive =
+    "border-[var(--neutral-300)] bg-[var(--neutral-200)] text-[var(--foreground)] hover:border-[var(--accent-400)]/40 hover:bg-[var(--neutral-300)]/70";
+const filterPillActive = "border-[var(--accent-500)] bg-[var(--accent-500)] text-white shadow-sm";
 
 const CoursesDashboard = () => {
     const { user } = useAuth();
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
-    const [expanded, setExpanded] = useState<Record<string, boolean>>({
-        math: true,
-        science: true,
-        history: true,
-        health: true,
-        business: true,
-        life_skills: true,
-        social_studies: true,
-        computer_science: true,
-        other: true,
-    });
+    const [searchQuery, setSearchQuery] = useState("");
+    const [categoryFilter, setCategoryFilter] = useState<string>("");
+    const [visibilityFilter, setVisibilityFilter] = useState<"all" | "public" | "private">("all");
 
     useEffect(() => {
         const fetchCourses = async () => {
@@ -48,107 +84,120 @@ const CoursesDashboard = () => {
         return [...byId.values()];
     }, [courses]);
 
-    const grouped = useMemo(() => {
-        const g: Record<string, Course[]> = {
-            math: [],
-            science: [],
-            history: [],
-            health: [],
-            business: [],
-            life_skills: [],
-            social_studies: [],
-            computer_science: [],
-            other: [],
-        };
-        for (const course of uniqueCourses) {
-            const cat = course.category?.toLowerCase();
-            if (cat === "math") g.math.push(course);
-            else if (cat === "science") g.science.push(course);
-            else if (cat === "history") g.history.push(course);
-            else if (cat === "health") g.health.push(course);
-            else if (cat === "business") g.business.push(course);
-            else if (cat === "life skills") g.life_skills.push(course);
-            else if (cat === "social studies") g.social_studies.push(course);
-            else if (cat === "computer science") g.computer_science.push(course);
-            else g.other.push(course);
+    const filteredCourses = useMemo(() => {
+        let list = uniqueCourses.filter(
+            (course) =>
+                matchesCategoryFilter(course, categoryFilter) &&
+                matchesVisibilityFilter(course, visibilityFilter),
+        );
+        const q = searchQuery.trim().toLowerCase();
+        if (q) {
+            list = list.filter((course) => {
+                const tag = categoryLabel(course.category).toLowerCase();
+                const title = (course.title || "").toLowerCase();
+                const desc = (course.description || "").toLowerCase();
+                const vis = course.public === true ? "public" : "private";
+                return title.includes(q) || desc.includes(q) || tag.includes(q) || vis.includes(q);
+            });
         }
-        return g;
-    }, [uniqueCourses]);
+        return [...list].sort((a, b) =>
+            (a.title || "").localeCompare(b.title || "", undefined, { sensitivity: "base" }),
+        );
+    }, [uniqueCourses, searchQuery, categoryFilter, visibilityFilter]);
 
-    const categories = [
-        { name: "Math", key: "math" },
-        { name: "Science", key: "science" },
-        { name: "History", key: "history" },
-        { name: "Health", key: "health" },
-        { name: "Business", key: "business" },
-        { name: "Life Skills", key: "life_skills" },
-        { name: "Social Studies", key: "social_studies" },
-        { name: "Computer Science", key: "computer_science" },
-    ];
+    const hasActiveFilters =
+        categoryFilter !== "" || visibilityFilter !== "all" || searchQuery.trim() !== "";
 
     if (loading) {
         return <LoadingComponent small={true} />;
     }
 
     return (
-        <div className="mx-auto mt-6 max-w-6xl space-y-10">
-            {categories.map(({ name, key }) => (
-                grouped[key].length > 0 && (
-                    <section key={key} className="space-y-4">
+        <div className="mx-auto mt-6 max-w-6xl">
+            <div className="relative mb-5">
+                <FiSearch
+                    className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--neutral-500)]"
+                    aria-hidden
+                />
+                <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by title, description, category, or public/private…"
+                    aria-label="Search courses"
+                    className="w-full rounded-xl border border-[var(--neutral-300)] bg-[var(--neutral-200)] py-3.5 pl-12 pr-4 text-[var(--foreground)] shadow-sm placeholder:text-[var(--neutral-500)] focus:border-[var(--accent-500)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)]/25"
+                />
+            </div>
+
+            <div className="mb-8 space-y-6">
+                <div>
+                    <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-600)]">
+                        Category
+                    </p>
+                    <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by category">
                         <button
                             type="button"
-                            onClick={() => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))}
-                            className="group flex w-full items-center gap-2 text-left"
+                            onClick={() => setCategoryFilter("")}
+                            className={`${filterPillBase} ${categoryFilter === "" ? filterPillActive : filterPillInactive}`}
+                            aria-pressed={categoryFilter === ""}
                         >
-                            {expanded[key] ? (
-                                <FiChevronDown className="shrink-0 text-[var(--neutral-500)]" size={22} />
-                            ) : (
-                                <FiChevronRight className="shrink-0 text-[var(--neutral-500)]" size={22} />
-                            )}
-                            <h2 className="text-xl font-semibold tracking-tight text-[var(--foreground)] md:text-2xl">
-                                {name}
-                            </h2>
-                            <span className="rounded-full bg-[var(--neutral-300)] px-2.5 py-0.5 text-xs font-medium text-[var(--neutral-700)]">
-                                {grouped[key].length}
-                            </span>
+                            All
                         </button>
-                        {expanded[key] && (
-                            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                                {grouped[key].map((course) => (
-                                    <CourseCard key={course.id} course={course} />
-                                ))}
-                            </div>
-                        )}
-                    </section>
-                )
-            ))}
-            {grouped.other.length > 0 && (
-                <section className="space-y-4">
-                    <button
-                        type="button"
-                        onClick={() => setExpanded((prev) => ({ ...prev, other: !prev.other }))}
-                        className="group flex w-full items-center gap-2 text-left"
-                    >
-                        {expanded.other ? (
-                            <FiChevronDown className="shrink-0 text-[var(--neutral-500)]" size={22} />
-                        ) : (
-                            <FiChevronRight className="shrink-0 text-[var(--neutral-500)]" size={22} />
-                        )}
-                        <h2 className="text-xl font-semibold tracking-tight text-[var(--foreground)] md:text-2xl">
-                            Other
-                        </h2>
-                        <span className="rounded-full bg-[var(--neutral-300)] px-2.5 py-0.5 text-xs font-medium text-[var(--neutral-700)]">
-                            {grouped.other.length}
-                        </span>
-                    </button>
-                    {expanded.other && (
-                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                            {grouped.other.map((course) => (
-                                <CourseCard key={course.id} course={course} />
-                            ))}
-                        </div>
-                    )}
-                </section>
+                        {CATEGORY_FILTER_VALUES.map((value) => (
+                            <button
+                                key={value}
+                                type="button"
+                                onClick={() => setCategoryFilter(value)}
+                                className={`${filterPillBase} ${categoryFilter === value ? filterPillActive : filterPillInactive}`}
+                                aria-pressed={categoryFilter === value}
+                            >
+                                {categoryFilterPillLabel(value)}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div>
+                    <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-[var(--neutral-600)]">
+                        Visibility
+                    </p>
+                    <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by visibility">
+                        {(
+                            [
+                                { value: "all" as const, label: "All" },
+                                { value: "public" as const, label: "Public" },
+                                { value: "private" as const, label: "Private" },
+                            ] as const
+                        ).map(({ value, label }) => (
+                            <button
+                                key={value}
+                                type="button"
+                                onClick={() => setVisibilityFilter(value)}
+                                className={`${filterPillBase} ${visibilityFilter === value ? filterPillActive : filterPillInactive}`}
+                                aria-pressed={visibilityFilter === value}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {uniqueCourses.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-[var(--neutral-300)] bg-[var(--neutral-200)]/80 py-16 text-center text-sm text-[var(--neutral-600)]">
+                    No courses yet. Create one to get started.
+                </p>
+            ) : filteredCourses.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-[var(--neutral-300)] bg-[var(--neutral-200)]/80 py-16 text-center text-sm text-[var(--neutral-600)]">
+                    {hasActiveFilters
+                        ? "No courses match your search or filters. Try adjusting them."
+                        : "No courses to show."}
+                </p>
+            ) : (
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                    {filteredCourses.map((course) => (
+                        <CourseCard key={course.id} course={course} categoryTag={categoryLabel(course.category)} />
+                    ))}
+                </div>
             )}
         </div>
     );

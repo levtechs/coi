@@ -13,7 +13,8 @@ import {
     FiSettings as FiSettingsIcon,
     FiExternalLink,
     FiAlertCircle,
-    FiTrash2
+    FiTrash2,
+    FiUpload,
 } from "react-icons/fi";
 import Button from "../../button";
 import Loading from "../../loading";
@@ -43,10 +44,14 @@ import { getQuiz } from "@/app/views/quiz";
 import { createQuiz } from "@/app/views/quiz";
 import { auth } from "@/lib/firebase";
 import { getIdToken } from "firebase/auth";
+import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "@/lib/uploadConstants";
+import { uploadFileToStorageOnly } from "@/app/views/uploads";
 import TutorConfigEditor from "./tutor_config_editor";
 import ResourceEditor from "./resource_editor";
 
 type CourseLessonForm = Omit<NewLesson, "index"> & { id?: string; };
+
+type BrandingImageTarget = "cover" | "header" | "footerLogo";
 
 export default function CreateCourse() {
     const [initialQuery] = useState(() => {
@@ -147,6 +152,10 @@ export default function CreateCourse() {
     const [footerSecondaryLabel, setFooterSecondaryLabel] = useState("");
     const [footerSecondaryUrl, setFooterSecondaryUrl] = useState("");
     const [footerCustomLine, setFooterCustomLine] = useState("");
+    const [brandingImageUploading, setBrandingImageUploading] = useState<null | BrandingImageTarget>(null);
+    const [brandingImageDragOver, setBrandingImageDragOver] = useState<null | BrandingImageTarget>(null);
+    const brandingImageTargetRef = useRef<BrandingImageTarget>("cover");
+    const brandingImageInputRef = useRef<HTMLInputElement>(null);
 
     const allQuizIdsForPolicy = useMemo(() => {
         const s = new Set<string>();
@@ -195,6 +204,103 @@ export default function CreateCourse() {
         setCourseResources([...otherResources, ...nextStudent]);
         markChanged();
     };
+
+    const openBrandingImagePicker = (target: BrandingImageTarget) => {
+        brandingImageTargetRef.current = target;
+        brandingImageInputRef.current?.click();
+    };
+
+    const uploadBrandingImageFile = async (file: File, target: BrandingImageTarget) => {
+        if (brandingImageUploading !== null) return;
+
+        if (!file.type.startsWith("image/")) {
+            alert("Please use an image file.");
+            return;
+        }
+        if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+            alert(`Image must be at most ${MAX_UPLOAD_SIZE_MB} MB.`);
+            return;
+        }
+
+        setBrandingImageUploading(target);
+        try {
+            const attachment = await uploadFileToStorageOnly(file);
+            if (target === "cover") setCoverImageUrl(attachment.url);
+            else if (target === "header") setHeaderImageUrl(attachment.url);
+            else setFooterLogoUrl(attachment.url);
+            markChanged();
+        } catch (error) {
+            console.error("Branding image upload failed:", error);
+            alert(error instanceof Error ? error.message : "Upload failed.");
+        } finally {
+            setBrandingImageUploading(null);
+        }
+    };
+
+    const handleBrandingImageFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+        if (!file) return;
+        await uploadBrandingImageFile(file, brandingImageTargetRef.current);
+    };
+
+    const handleBrandingImagePaste =
+        (target: BrandingImageTarget) => async (event: React.ClipboardEvent<HTMLInputElement>) => {
+            if (brandingImageUploading !== null) return;
+            const items = event.clipboardData?.items;
+            if (!items?.length) return;
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                if (item.kind !== "file") continue;
+                const file = item.getAsFile();
+                if (file?.type.startsWith("image/")) {
+                    event.preventDefault();
+                    await uploadBrandingImageFile(file, target);
+                    return;
+                }
+            }
+        };
+
+    const handleBrandingImageDragEnter = (target: BrandingImageTarget) => (event: React.DragEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (brandingImageUploading !== null) return;
+        if (event.dataTransfer.types.includes("Files")) setBrandingImageDragOver(target);
+    };
+
+    const handleBrandingImageDragOver = (event: React.DragEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.dataTransfer.types.includes("Files")) event.dataTransfer.dropEffect = "copy";
+    };
+
+    const handleBrandingImageDragLeave = (target: BrandingImageTarget) => (event: React.DragEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const related = event.relatedTarget as Node | null;
+        if (related && event.currentTarget.contains(related)) return;
+        setBrandingImageDragOver((current) => (current === target ? null : current));
+    };
+
+    const handleBrandingImageDrop = (target: BrandingImageTarget) => async (event: React.DragEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setBrandingImageDragOver(null);
+        if (brandingImageUploading !== null) return;
+        const file = Array.from(event.dataTransfer.files).find((f) => f.type.startsWith("image/"));
+        if (!file) {
+            if (event.dataTransfer.files.length > 0) alert("Please drop an image file.");
+            return;
+        }
+        await uploadBrandingImageFile(file, target);
+    };
+
+    const brandingImageRowClass = (target: BrandingImageTarget) =>
+        `flex flex-col gap-2 rounded-lg p-1 transition-[box-shadow,background-color] sm:flex-row sm:items-stretch ${
+            brandingImageDragOver === target
+                ? "bg-[var(--accent-100)] ring-2 ring-[var(--accent-500)] ring-offset-2 ring-offset-[var(--neutral-100)]"
+                : ""
+        }`;
 
     useEffect(() => {
         const totalCards = lessons.reduce((sum, l) => sum + l.cardsToUnlock.length, 0);
@@ -665,23 +771,52 @@ export default function CreateCourse() {
                                         Branding
                                     </h3>
                                     <p className="mb-6 text-sm text-[var(--neutral-600)]">
-                                        List cards can show a cover image. The course and lesson pages can use a banner image or a custom HTML block at the top (sandboxed frame; scripts are allowed), and an optional footer at the bottom with links and contact info.
+                                        List cards can show a cover image. The course and lesson pages can use a banner image or a custom HTML block at the top (sandboxed frame; scripts are allowed), and an optional footer at the bottom with links and contact info. For cover, banner, and footer logo URLs you can paste an image into the field, drop a file on the highlighted row, or use Upload to store the file and fill in the link.
                                     </p>
+                                    <input
+                                        ref={brandingImageInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={handleBrandingImageFileChange}
+                                    />
                                     <div className="space-y-4">
                                         <div>
                                             <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-[var(--neutral-600)]">
                                                 Cover image URL (course list)
                                             </label>
-                                            <input
-                                                type="url"
-                                                value={coverImageUrl}
-                                                onChange={(e) => {
-                                                    setCoverImageUrl(e.target.value);
-                                                    markChanged();
-                                                }}
-                                                className="w-full rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-3 text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)]"
-                                                placeholder="https://…"
-                                            />
+                                            <div
+                                                className={brandingImageRowClass("cover")}
+                                                onDragEnter={handleBrandingImageDragEnter("cover")}
+                                                onDragOver={handleBrandingImageDragOver}
+                                                onDragLeave={handleBrandingImageDragLeave("cover")}
+                                                onDrop={handleBrandingImageDrop("cover")}
+                                            >
+                                                <input
+                                                    type="url"
+                                                    value={coverImageUrl}
+                                                    onChange={(e) => {
+                                                        setCoverImageUrl(e.target.value);
+                                                        markChanged();
+                                                    }}
+                                                    onPaste={handleBrandingImagePaste("cover")}
+                                                    className="min-w-0 flex-1 rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-3 text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-500)]"
+                                                    placeholder="https://…"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openBrandingImagePicker("cover")}
+                                                    disabled={brandingImageUploading !== null}
+                                                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] px-4 py-3 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--neutral-200)] disabled:opacity-60"
+                                                >
+                                                    {brandingImageUploading === "cover" ? (
+                                                        <FiLoader className="h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                        <FiUpload className="h-4 w-4" />
+                                                    )}
+                                                    Upload
+                                                </button>
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-[var(--neutral-600)]">
@@ -704,16 +839,38 @@ export default function CreateCourse() {
                                             <div className="space-y-4 rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-4">
                                                 <div>
                                                     <label className="mb-2 block text-xs font-bold text-[var(--neutral-600)]">Image URL</label>
-                                                    <input
-                                                        type="url"
-                                                        value={headerImageUrl}
-                                                        onChange={(e) => {
-                                                            setHeaderImageUrl(e.target.value);
-                                                            markChanged();
-                                                        }}
-                                                        className="w-full rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-200)] p-3 text-[var(--foreground)]"
-                                                        placeholder="https://…"
-                                                    />
+                                                    <div
+                                                        className={brandingImageRowClass("header")}
+                                                        onDragEnter={handleBrandingImageDragEnter("header")}
+                                                        onDragOver={handleBrandingImageDragOver}
+                                                        onDragLeave={handleBrandingImageDragLeave("header")}
+                                                        onDrop={handleBrandingImageDrop("header")}
+                                                    >
+                                                        <input
+                                                            type="url"
+                                                            value={headerImageUrl}
+                                                            onChange={(e) => {
+                                                                setHeaderImageUrl(e.target.value);
+                                                                markChanged();
+                                                            }}
+                                                            onPaste={handleBrandingImagePaste("header")}
+                                                            className="min-w-0 flex-1 rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-200)] p-3 text-[var(--foreground)]"
+                                                            placeholder="https://…"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openBrandingImagePicker("header")}
+                                                            disabled={brandingImageUploading !== null}
+                                                            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-200)] px-4 py-3 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--neutral-100)] disabled:opacity-60"
+                                                        >
+                                                            {brandingImageUploading === "header" ? (
+                                                                <FiLoader className="h-4 w-4 animate-spin" />
+                                                            ) : (
+                                                                <FiUpload className="h-4 w-4" />
+                                                            )}
+                                                            Upload
+                                                        </button>
+                                                    </div>
                                                 </div>
                                                 <div>
                                                     <label className="mb-2 block text-xs font-bold text-[var(--neutral-600)]">Alt text (optional)</label>
@@ -773,16 +930,38 @@ export default function CreateCourse() {
                                                         <label className="mb-2 block text-xs font-bold text-[var(--neutral-600)]">
                                                             Logo image URL
                                                         </label>
-                                                        <input
-                                                            type="url"
-                                                            value={footerLogoUrl}
-                                                            onChange={(e) => {
-                                                                setFooterLogoUrl(e.target.value);
-                                                                markChanged();
-                                                            }}
-                                                            className="w-full rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-3 text-[var(--foreground)]"
-                                                            placeholder="https://…"
-                                                        />
+                                                        <div
+                                                            className={brandingImageRowClass("footerLogo")}
+                                                            onDragEnter={handleBrandingImageDragEnter("footerLogo")}
+                                                            onDragOver={handleBrandingImageDragOver}
+                                                            onDragLeave={handleBrandingImageDragLeave("footerLogo")}
+                                                            onDrop={handleBrandingImageDrop("footerLogo")}
+                                                        >
+                                                            <input
+                                                                type="url"
+                                                                value={footerLogoUrl}
+                                                                onChange={(e) => {
+                                                                    setFooterLogoUrl(e.target.value);
+                                                                    markChanged();
+                                                                }}
+                                                                onPaste={handleBrandingImagePaste("footerLogo")}
+                                                                className="min-w-0 flex-1 rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-3 text-[var(--foreground)]"
+                                                                placeholder="https://…"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => openBrandingImagePicker("footerLogo")}
+                                                                disabled={brandingImageUploading !== null}
+                                                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] px-4 py-3 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--neutral-200)] disabled:opacity-60"
+                                                            >
+                                                                {brandingImageUploading === "footerLogo" ? (
+                                                                    <FiLoader className="h-4 w-4 animate-spin" />
+                                                                ) : (
+                                                                    <FiUpload className="h-4 w-4" />
+                                                                )}
+                                                                Upload
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                     <div>
                                                         <label className="mb-2 block text-xs font-bold text-[var(--neutral-600)]">
@@ -812,7 +991,7 @@ export default function CreateCourse() {
                                                                 markChanged();
                                                             }}
                                                             className="w-full rounded-lg border border-[var(--neutral-300)] bg-[var(--neutral-100)] p-3 text-[var(--foreground)]"
-                                                            placeholder="e.g. Meet Manolis"
+                                                            placeholder="e.g. Contact us"
                                                         />
                                                     </div>
                                                     <div>

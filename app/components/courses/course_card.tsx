@@ -10,9 +10,11 @@ import { useAuth } from "@/lib/AuthContext";
 
 type CourseCardProps = {
     course: Course;
+    /** Shown as a pill on the card (e.g. formatted category). */
+    categoryTag?: string;
 };
 
-export default function CourseCard({ course }: CourseCardProps) {
+export default function CourseCard({ course, categoryTag }: CourseCardProps) {
     const { user } = useAuth();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
@@ -71,8 +73,23 @@ export default function CourseCard({ course }: CourseCardProps) {
                             <span className="text-sm font-medium opacity-80">Course</span>
                         </div>
                     )}
+                    {categoryTag !== undefined && (
+                        <span
+                            className={`pointer-events-none absolute left-3 top-3 z-[2] max-w-[min(14rem,calc(100%-3.5rem))] truncate rounded-full border px-2.5 py-1 text-xs font-medium shadow-sm backdrop-blur-sm ${
+                                course.category
+                                    ? "border-white/25 bg-black/50 text-white"
+                                    : "border-white/20 bg-black/40 text-white/95"
+                            }`}
+                        >
+                            {categoryTag}
+                        </span>
+                    )}
                     {!course.public && (
-                        <div className="absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm">
+                        <div
+                            className={`pointer-events-none absolute left-3 z-[2] flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm ${
+                                categoryTag !== undefined ? "top-11" : "top-3"
+                            }`}
+                        >
                             <FiLock size={16} aria-hidden />
                         </div>
                     )}
@@ -83,7 +100,7 @@ export default function CourseCard({ course }: CourseCardProps) {
                             aria-label="Open course menu"
                             aria-expanded={isMenuOpen}
                             aria-haspopup="menu"
-                            className="pointer-events-auto absolute right-2 top-2 z-[2] rounded-lg bg-black/40 p-1.5 text-white backdrop-blur-sm hover:bg-black/55"
+                            className="pointer-events-auto absolute right-2 top-2 z-[3] rounded-lg bg-black/40 p-1.5 text-white backdrop-blur-sm hover:bg-black/55"
                             onClick={handleMenuToggle}
                         >
                             <FiMoreVertical size={18} aria-hidden />
