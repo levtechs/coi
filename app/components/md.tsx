@@ -207,6 +207,7 @@ export default function MarkdownArticle({ markdown, singleLine = false, cards, o
                         <h6 className={`${headingBase} text-base ${headingSpacing}`} {...props} />
                     ),
                     p: ({ ...props }) => <p className={paragraphBase} {...props} />,
+                    a: ({ ...props }) => <a className="underline" target="_blank" rel="noopener noreferrer" {...props} />,
                     ul: ({ ...props }) => <ul className={`list-disc list-outside ${listSpacing}`} {...props} />,
                     ol: ({ ...props }) => <ol className={`list-decimal list-outside ${listSpacing}`} {...props} />,
                 }}

@@ -28,6 +28,84 @@ import {
 import { writeCardsToDb, updateCardInDb } from "../cards/helpers";
 import { getYoutubeData } from "../youtube/helpers";
 
+const isYoutubeUrl = (url: string): boolean => url.includes("youtube.com") || url.includes("youtu.be");
+
+const isWikipediaUrl = (url: string): boolean => {
+    try {
+        return new URL(url).hostname.toLowerCase().includes("wikipedia.org");
+    } catch {
+        return false;
+    }
+};
+
+const decodeHtmlEntities = (text: string): string => {
+    return text
+        .replace(/&nbsp;/gi, " ")
+        .replace(/&amp;/gi, "&")
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;|&apos;/gi, "'")
+        .replace(/&lt;/gi, "<")
+        .replace(/&gt;/gi, ">")
+        .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+        .replace(/&#x([\da-f]+);/gi, (_, code) => String.fromCodePoint(parseInt(code, 16)));
+};
+
+const stripHtml = (html: string): string => {
+    return decodeHtmlEntities(html.replace(/<[^>]*>/g, " ")).replace(/\s+/g, " ").trim();
+};
+
+const htmlInlineToMarkdown = (html: string, baseUrl: string): string => {
+    let markdown = html
+        .replace(/<sup\b[^>]*class=["'][^"']*reference[^"']*["'][^>]*>[\s\S]*?<\/sup>/gi, "")
+        .replace(/<span\b[^>]*class=["'][^"']*(?:mw-editsection|reference|mw-reflink-text)[^"']*["'][^>]*>[\s\S]*?<\/span>/gi, "")
+        .replace(/<br\s*\/?>/gi, "\n");
+
+    markdown = markdown.replace(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_match, href: string, text: string) => {
+        const label = stripHtml(text);
+        if (!label) return "";
+
+        try {
+            const resolvedHref = new URL(href, baseUrl).href;
+            return `[${label}](${resolvedHref})`;
+        } catch {
+            return label;
+        }
+    });
+
+    markdown = markdown
+        .replace(/<(?:b|strong)\b[^>]*>([\s\S]*?)<\/(?:b|strong)>/gi, "**$1**")
+        .replace(/<(?:i|em)\b[^>]*>([\s\S]*?)<\/(?:i|em)>/gi, "*$1*")
+        .replace(/<[^>]*>/g, "");
+
+    return decodeHtmlEntities(markdown)
+        .replace(/[ \t]+\n/g, "\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .replace(/\s+/g, " ")
+        .trim();
+};
+
+const extractWikipediaLeadMarkdown = (html: string, pageUrl: string): string | null => {
+    const parserOutputMatch = /<div\b[^>]*class=["'][^"']*mw-parser-output[^"']*["'][^>]*>/i.exec(html);
+    if (!parserOutputMatch || parserOutputMatch.index === undefined) return null;
+
+    const leadHtml = html
+        .slice(parserOutputMatch.index + parserOutputMatch[0].length)
+        .split(/<h2\b/i)[0];
+    const paragraphMatches = leadHtml.match(/<p\b[^>]*>[\s\S]*?<\/p>/gi) || [];
+
+    for (const paragraphHtml of paragraphMatches) {
+        const markdown = htmlInlineToMarkdown(paragraphHtml, pageUrl)
+            .replace(/\s+([,.;:!?])/g, "$1")
+            .trim();
+
+        if (markdown) {
+            return markdown;
+        }
+    }
+
+    return null;
+};
+
 /**
  * Recursively builds a JSON representation of a content hierarchy combined with its referenced cards.
  * Used in prompt context for chat LLM
@@ -326,7 +404,7 @@ export const groundingChunksToCardsAndWrite = async (
             }
 
             // Youtube chunks handled differently
-            if (response.url.includes("youtube.com") || response.url.includes("youtu.be")) {
+            if (isYoutubeUrl(response.url)) {
                 try {
                     const data = await getYoutubeData(response.url);
                     const desc = data.description.length > 80 ? data.description.slice(0, 77) + "..." : data.description;
@@ -356,6 +434,10 @@ export const groundingChunksToCardsAndWrite = async (
                     continue;
                 }
             }
+
+            const wikipediaLeadMarkdown = isWikipediaUrl(response.url)
+                ? extractWikipediaLeadMarkdown(html, response.url)
+                : null;
 
 
             // Extract favicon
@@ -427,7 +509,11 @@ export const groundingChunksToCardsAndWrite = async (
                 url: response.url,
                 iconUrl,
                 exclude: false,
-                ...(firstHeading && { details: [firstHeading] }),
+                ...(wikipediaLeadMarkdown
+                    ? { details: [wikipediaLeadMarkdown] }
+                    : firstHeading
+                        ? { details: [firstHeading] }
+                        : {}),
                 ...(refImageUrls.length > 0 && { refImageUrls }),
             });
         } catch (err) {
@@ -991,7 +1077,7 @@ export const enrichResourceCards = async (
 
             const updates: Partial<Omit<Card, "id">> = {};
 
-            if (response.url.includes("youtube.com") || response.url.includes("youtu.be")) {
+            if (isYoutubeUrl(response.url)) {
                 try {
                     const data = await getYoutubeData(response.url);
                     const desc = data.description.length > MAX_YOUTUBE_DESCRIPTION_LENGTH
@@ -1010,6 +1096,9 @@ export const enrichResourceCards = async (
             } else {
                 const html = await response.text();
                 cost += 1;
+                const wikipediaLeadMarkdown = isWikipediaUrl(response.url)
+                    ? extractWikipediaLeadMarkdown(html, response.url)
+                    : null;
 
                 const iconMatch = html.match(/<link[^>]*rel=["'](?:icon|shortcut icon)["'][^>]*href=["']([^"']*)["'][^>]*>/i);
                 if (iconMatch) {
@@ -1023,11 +1112,15 @@ export const enrichResourceCards = async (
                 }
 
                 if (!card.details || card.details.length === 0) {
-                    const headingMatch = html.match(/<h[1-2][^>]*>([\s\S]*?)<\/h[1-2]>/i);
-                    if (headingMatch) {
-                        let heading = headingMatch[1].replace(/<[^>]*>/g, '').trim();
-                        if (heading.length > MAX_HEADING_LENGTH) heading = heading.slice(0, MAX_HEADING_LENGTH - 3) + '...';
-                        if (heading) updates.details = [heading];
+                    if (wikipediaLeadMarkdown) {
+                        updates.details = [wikipediaLeadMarkdown];
+                    } else {
+                        const headingMatch = html.match(/<h[1-2][^>]*>([\s\S]*?)<\/h[1-2]>/i);
+                        if (headingMatch) {
+                            let heading = headingMatch[1].replace(/<[^>]*>/g, '').trim();
+                            if (heading.length > MAX_HEADING_LENGTH) heading = heading.slice(0, MAX_HEADING_LENGTH - 3) + '...';
+                            if (heading) updates.details = [heading];
+                        }
                     }
                 }
 
